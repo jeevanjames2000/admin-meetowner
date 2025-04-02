@@ -17,6 +17,7 @@ export default function SignInForm() {
   const [formData,setFormData] = useState({
     email:"",
     password:"",
+    type:""
   });
 
   interface RootState {
@@ -101,7 +102,18 @@ export default function SignInForm() {
                     </span>
                   </div>
                 </div>
-               
+                <div>
+                  <Label>
+                    Type <span className="text-error-500">*</span>{" "}
+                  </Label>
+                  <Input
+                  name="type"
+                   placeholder="Ex :manager"
+                    value={formData.type}
+                    onChange={handleInputChange}
+                    
+                   />
+                </div>
                 <div>
                   <Button className="w-full" size="sm">
                     Sign in

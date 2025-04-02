@@ -33,6 +33,7 @@ import PaymentSuccessUsers from "./pages/Accounts/Users/paymentSuccess";
 import PaymentSuccessAgents from "./pages/Accounts/Agents/PaymentSuccess";
 import InvoiceDownload from "./pages/Employee/Invoice";
 import ResidentialBuyApprove from "./pages/Residential/Buy/ResidentialBuyApprove";
+import BasicTables from "./pages/Tables/BasicTables";
 
 // Define the shape of your Redux state
 interface RootState {
@@ -69,6 +70,16 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+             <Route
+              index
+              path="/basic-tables"
+              element={
+                <ProtectedRoute>
+                  <BasicTables />
+                </ProtectedRoute>
+              }
+            />
+
 
             {/* listing pages */}
             {/* residential */}
