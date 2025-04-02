@@ -1,0 +1,14 @@
+{
+    "posts": [
+      { "id": 1, "title": "My First Post", "content": "Hello, world!" },
+      { "id": 2, "title": "Another Post", "content": "This is a second post." }
+    ],
+    "users": [
+      {
+        "id": 1,
+        "username": "admin",
+        "password": "admin123",
+        "userType": "Admin"
+      }
+    ]
+  }

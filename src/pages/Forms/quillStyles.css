@@ -1,0 +1,99 @@
+.ql-toolbar.ql-snow {
+    border: none !important;
+    border-bottom: 1px solid #e5e7eb !important; /* Match screenshot border */
+    background: #f3f4f6 !important; /* Light gray background for toolbar */
+    border-top-left-radius: 0.5rem;
+    border-top-right-radius: 0.5rem;
+    padding: 8px !important;
+  }
+  
+  .ql-container.ql-snow {
+    border: none !important;
+    border-bottom-left-radius: 0.5rem;
+    border-bottom-right-radius: 0.5rem;
+    background: #ffffff !important; /* White background for editor */
+    color: #1f2937 !important; /* Dark text color */
+    min-height: 160px !important; /* Match screenshot height */
+  }
+  
+  .ql-editor {
+    padding: 12px !important; /* Match screenshot padding */
+    font-size: 14px !important; /* Match screenshot font size */
+    line-height: 1.5 !important;
+  }
+  
+  .ql-editor:focus {
+    outline: none !important;
+    box-shadow: 0 0 0 2px #3b82f6 !important; /* Blue focus ring */
+  }
+  
+  .ql-toolbar.ql-snow .ql-formats {
+    margin-right: 8px !important;
+  }
+  
+  .ql-toolbar.ql-snow .ql-picker-label,
+  .ql-toolbar.ql-snow .ql-picker-item {
+    color: #4b5563 !important; /* Gray text for toolbar items */
+  }
+  
+  .ql-toolbar.ql-snow .ql-picker-label:hover,
+  .ql-toolbar.ql-snow .ql-picker-item:hover {
+    color: #1f2937 !important; /* Darker gray on hover */
+  }
+  
+  .ql-toolbar.ql-snow .ql-stroke,
+  .ql-toolbar.ql-snow .ql-fill {
+    stroke: #4b5563 !important; /* Gray icons */
+  }
+  
+  .ql-toolbar.ql-snow .ql-stroke:hover,
+  .ql-toolbar.ql-snow .ql-fill:hover {
+    stroke: #1f2937 !important; /* Darker gray on hover */
+  }
+  
+  /* Dark mode styles */
+  .dark .ql-toolbar.ql-snow {
+    background: #374151 !important; /* Dark gray background for toolbar */
+    border-bottom: 1px solid #4b5563 !important;
+  }
+  
+  .dark .ql-container.ql-snow {
+    background: #1f2937 !important; /* Dark background for editor */
+    color: #d1d5db !important; /* Light text color */
+  }
+  
+  .dark .ql-toolbar.ql-snow .ql-picker-label,
+  .dark .ql-toolbar.ql-snow .ql-picker-item {
+    color: #d1d5db !important; /* Light gray text for toolbar items */
+  }
+  
+  .dark .ql-toolbar.ql-snow .ql-picker-label:hover,
+  .dark .ql-toolbar.ql-snow .ql-picker-item:hover {
+    color: #ffffff !important; /* White on hover */
+  }
+  
+  .dark .ql-toolbar.ql-snow .ql-stroke,
+  .dark .ql-toolbar.ql-snow .ql-fill {
+    stroke: #d1d5db !important; /* Light gray icons */
+  }
+  
+  .dark .ql-toolbar.ql-snow .ql-stroke:hover,
+  .dark .ql-toolbar.ql-snow .ql-fill:hover {
+    stroke: #ffffff !important; /* White on hover */
+  }
+
+  .h-2 {
+    height: 8px;
+  }
+  
+  .cursor-ns-resize {
+    cursor: ns-resize;
+  }
+  
+  .bg-gray-300 {
+    background-color: #d1d5db;
+  }
+  
+  .hover\:bg-gray-400:hover {
+    background-color: #9ca3af;
+  }
