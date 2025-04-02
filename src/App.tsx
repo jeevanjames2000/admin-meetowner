@@ -1,13 +1,10 @@
 import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
-import { useSelector } from "react-redux";
-import { ReactNode } from "react";
+import { useDispatch, useSelector } from "react-redux";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/UserProfiles";
-
 import Calendar from "./pages/Calendar";
-
 import FormElements from "./pages/Forms/FormElements";
 import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
@@ -34,23 +31,32 @@ import PaymentSuccessAgents from "./pages/Accounts/Agents/PaymentSuccess";
 import InvoiceDownload from "./pages/Employee/Invoice";
 import ResidentialBuyApprove from "./pages/Residential/Buy/ResidentialBuyApprove";
 import BasicTables from "./pages/Tables/BasicTables";
+import { ProtectedRouteProps,  } from "./types/auth";
 
-// Define the shape of your Redux state
-interface RootState {
-  auth: {
-    isAuthenticated: boolean;
-  };
-}
+import { AppDispatch, RootState } from "./store/store";
+import { isTokenExpired, logout } from "./store/slices/authSlice";
 
-// Define props interface for ProtectedRoute
-interface ProtectedRouteProps {
-  children: ReactNode;
-}
 
-// Fix the ProtectedRoute component typing
-const ProtectedRoute = ({ children }: ProtectedRouteProps) => {
-  const isAuthenticated = useSelector((state: RootState) => state.auth.isAuthenticated);
-  return isAuthenticated ? children : <Navigate to="/signin" />;
+
+
+
+const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { isAuthenticated, token,  } = useSelector(
+    (state: RootState) => state.auth
+  );
+
+  // Check if token is expired
+  const tokenExpired = isTokenExpired(token,);
+
+  if (!isAuthenticated || tokenExpired) {
+    if (tokenExpired) {
+      dispatch(logout()); 
+    }
+    return <Navigate to="/signin" replace />;
+  }
+
+  return children;
 };
 
 export default function App() {

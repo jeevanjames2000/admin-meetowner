@@ -1,51 +1,84 @@
 import { useState } from "react";
-
-import {  EyeCloseIcon, EyeIcon } from "../../icons";
+import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
-
 import Button from "../ui/button/Button";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate, useNavigate } from "react-router";
-import { login } from "../../store/slices/authSlice";
+import { loginUser } from "../../store/slices/authSlice";
+import { RootState, AppDispatch } from "../../store/store";
 
 export default function SignInForm() {
-
-  const dispatch = useDispatch();
+  const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const [showPassword, setShowPassword] = useState(false);
-  const [formData,setFormData] = useState({
-    email:"",
-    password:"",
-    type:""
+  const [formData, setFormData] = useState({
+    mobile: "",
+    password: "",
+  });
+  const [errors, setErrors] = useState({
+    mobile: "",
+    password: "",
   });
 
-  interface RootState {
-    auth: {
-      isAuthenticated: boolean;
-    };
-  }
-  
-  const isAuthenticated = useSelector((state :RootState)=> state.auth.isAuthenticated);
+  const { isAuthenticated, loading, error } = useSelector(
+    (state: RootState) => state.auth
+  );
 
-
-  const handleInputChange = (e: { target: { name: any; value: any; }; }) => {
-    const {name,value} = e.target;
-    setFormData(prevState => ({
+  const handleInputChange = (e: { target: { name: string; value: string } }) => {
+    const { name, value } = e.target;
+    setFormData((prevState) => ({
       ...prevState,
-      [name]:value
+      [name]: value,
     }));
-  }
+   
+    if (errors[name as keyof typeof errors]) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        [name]: "",
+      }));
+    }
+  };
 
-  const handleSubmit = (e: { preventDefault: () => void; }) => {
+  const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    dispatch(login());
-    navigate("/");
 
-  }
-  
-  if(isAuthenticated){
-    return <Navigate to="/" />
+    let newErrors = { mobile: "", password: "" };
+    let hasError = false;
+
+    if (!formData.mobile.trim()) {
+      newErrors.mobile = "Mobile number is required";
+      hasError = true;
+    }
+    if (!formData.password.trim()) {
+      newErrors.password = "Password is required";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      const resultAction = await dispatch(
+        loginUser({
+          mobile: formData.mobile,
+          password: formData.password,
+        })
+      ).unwrap();
+
+      navigate("/");
+    } catch (err) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        password: "Invalid mobile number or password",
+      }));
+    }
+  };
+
+  if (isAuthenticated) {
+    return <Navigate to="/" />;
   }
 
   return (
@@ -57,36 +90,35 @@ export default function SignInForm() {
               Sign In
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Enter your email and password to sign in!
+              Enter your mobile number and password to sign in!
             </p>
           </div>
           <div>
-            
-           
             <form onSubmit={handleSubmit}>
               <div className="space-y-6">
                 <div>
                   <Label>
-                    Email <span className="text-error-500">*</span>{" "}
+                    Mobile Number <span className="text-error-500">*</span>
                   </Label>
                   <Input
-                  name="email"
-                   placeholder="info@gmail.com"
-                    value={formData.email}
+                    name="mobile"
+                    placeholder="9703003098"
+                    value={formData.mobile}
                     onChange={handleInputChange}
-                    
-                   />
+                  />
+                  {errors.mobile && (
+                    <p className="mt-1 text-sm text-error-500">{errors.mobile}</p>
+                  )}
                 </div>
                 <div>
                   <Label>
-                    Password <span className="text-error-500">*</span>{" "}
+                    Password <span className="text-error-500">*</span>
                   </Label>
                   <div className="relative">
                     <Input
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    
+                      name="password"
+                      value={formData.password}
+                      onChange={handleInputChange}
                       type={showPassword ? "text" : "password"}
                       placeholder="Enter your password"
                     />
@@ -101,28 +133,24 @@ export default function SignInForm() {
                       )}
                     </span>
                   </div>
+                  {errors.password && (
+                    <p className="mt-1 text-sm text-error-500">{errors.password}</p>
+                  )}
                 </div>
                 <div>
-                  <Label>
-                    Type <span className="text-error-500">*</span>{" "}
-                  </Label>
-                  <Input
-                  name="type"
-                   placeholder="Ex :manager"
-                    value={formData.type}
-                    onChange={handleInputChange}
-                    
-                   />
-                </div>
-                <div>
-                  <Button className="w-full" size="sm">
-                    Sign in
+                  <Button 
+                    className="w-full" 
+                    size="sm" 
+                    disabled={loading}
+                  >
+                    {loading ? "Signing in..." : "Sign in"}
                   </Button>
                 </div>
               </div>
             </form>
-
-            
+            {error && (
+              <p className="mt-4 text-sm text-error-500 text-center">{error}</p>
+            )}
           </div>
         </div>
       </div>

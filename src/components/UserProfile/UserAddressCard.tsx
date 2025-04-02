@@ -3,9 +3,12 @@ import { Modal } from "../ui/modal";
 import Button from "../ui/button/Button";
 import Input from "../form/input/InputField";
 import Label from "../form/Label";
+import { RootState } from "../../store/store";
+import { useSelector } from "react-redux";
 
 export default function UserAddressCard() {
   const { isOpen, openModal, closeModal } = useModal();
+  const {  user } = useSelector((state: RootState) => state.auth);
   const handleSave = () => {
     // Handle save logic here
     console.log("Saving changes...");
@@ -26,7 +29,7 @@ export default function UserAddressCard() {
                   Country
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  United States.
+                  India
                 </p>
               </div>
 
@@ -35,25 +38,25 @@ export default function UserAddressCard() {
                   City/State
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  Phoenix, Arizona, United States.
+                  {user?.city},{user?.state}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  Postal Code
+                 address
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  ERT 2489
+                  {user?.address ?? '------------'}
                 </p>
               </div>
 
               <div>
                 <p className="mb-2 text-xs leading-normal text-gray-500 dark:text-gray-400">
-                  TAX ID
+                 RERA Number
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  AS4568384
+                  {user?.rera_number}
                 </p>
               </div>
             </div>

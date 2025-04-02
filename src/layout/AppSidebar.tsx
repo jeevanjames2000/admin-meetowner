@@ -13,6 +13,9 @@ import {
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
 import { FaFileInvoice } from "react-icons/fa";
+import { useSelector } from "react-redux";
+import { AuthState } from "../store/slices/authSlice";
+// import { RootState } from "../types/auth";
 
 type NavItem = {
   name: string;
@@ -212,6 +215,8 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
+  const userType = useSelector((state: AuthState) => state.user?.user_type);
+  
 
   const [openSubmenu, setOpenSubmenu] = useState<{
     type: "main" | "others";
@@ -228,6 +233,13 @@ const AppSidebar: React.FC = () => {
     subIndex: number;
     nestedIndex: number;
   } | null>(null);
+  
+  const filteredNavItems = navItems.filter(item => {
+    if (userType === 2) {
+      return !["Accounts", "Employees"].includes(item.name);
+    }
+    return true;
+  });
 
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const nestedSubMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
@@ -694,7 +706,7 @@ const AppSidebar: React.FC = () => {
                   <HorizontaLDots className="size-6" />
                 )}
               </h2>
-              {renderMenuItems(navItems, "main")}
+              {renderMenuItems(filteredNavItems, "main")}
             </div>
             {/* <div>
               <h2
