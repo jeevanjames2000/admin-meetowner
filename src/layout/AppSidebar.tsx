@@ -2,14 +2,13 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react
 import { Link, useLocation } from "react-router"; // Fixed import typo
 
 import {
-  BoxCubeIcon,
+ 
   CalenderIcon,
   ChevronDownIcon,
   GridIcon,
   HorizontaLDots,
   ListIcon,
-  PieChartIcon,
-  PlugInIcon,
+
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
