@@ -1,16 +1,11 @@
 import EcommerceMetrics from "../../components/ecommerce/EcommerceMetrics";
 
 import PageMeta from "../../components/common/PageMeta";
-import { useEffect } from "react";
+
 
 export default function Home() {
   
   
- useEffect(()=>{
-  fetch('http://localhost:3004/posts')
-  .then(response => response.json())
-  .then(data => console.log(data));
- },[])
 
   return (
     <>

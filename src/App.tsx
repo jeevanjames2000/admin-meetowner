@@ -32,6 +32,7 @@ import AllEmployees from "./pages/Employee/AllEmployees";
 import PaymentSuccessUsers from "./pages/Accounts/Users/paymentSuccess";
 import PaymentSuccessAgents from "./pages/Accounts/Agents/PaymentSuccess";
 import InvoiceDownload from "./pages/Employee/Invoice";
+import ResidentialBuyApprove from "./pages/Residential/Buy/ResidentialBuyApprove";
 
 // Define the shape of your Redux state
 interface RootState {
@@ -95,6 +96,15 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+            <Route
+              path="residential-buy-approve"
+              element={
+                <ProtectedRoute>
+                  <ResidentialBuyApprove />
+                </ProtectedRoute>
+              }
+            />
+
             <Route
               path="residential-rent-edit"
               element={

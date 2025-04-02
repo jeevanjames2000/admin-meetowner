@@ -50,8 +50,8 @@ const navItems: NavItem[] = [
           {
             name: "Buy",
             nestedItems: [
-              { name: "Review", path: "/resendetial-buy" }, // Fixed typo
-              { name: "Approved", path: "/listings/residential/buy/approved" },
+              { name: "Review", path: "/resendetial-buy" }, 
+              { name: "Approved", path: "/residential-buy-approve" },
               { name: "Deleted", path: "/listings/residential/buy/deleted" },
               { name: "Expired", path: "/listings/residential/buy/expired" },
               { name: "Rejected", path: "/listings/residential/buy/rejected" },
@@ -60,7 +60,7 @@ const navItems: NavItem[] = [
           {
             name: "Rent",
             nestedItems: [
-              { name: "Review", path: "/resendetial-rent" }, // Fixed typo
+              { name: "Review", path: "/resendetial-rent" }, 
               { name: "Approved", path: "/listings/residential/rent/approved" },
               { name: "Deleted", path: "/listings/residential/rent/deleted" },
               { name: "Expired", path: "/listings/residential/rent/expired" },
