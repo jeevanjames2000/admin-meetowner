@@ -1,4 +1,5 @@
-import { useState, ChangeEvent, FormEvent } from "react";
+import { useState, ChangeEvent, FormEvent, useEffect } from "react";
+import { useLocation } from "react-router"; // Corrected import
 import ComponentCard from "../../../components/common/ComponentCard";
 import Label from "../../../components/form/Label";
 import Input from "../../../components/form/input/InputField";
@@ -8,13 +9,11 @@ import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import PropertyLocationFields from "../components/propertyLocationFields";
 import MediaUploadSection from "../components/MediaUploadSection";
 
-// Define the type for the Around Property entries
 interface AroundProperty {
   place: string;
   distance: string;
 }
 
-// Define the type for the form data
 interface ResidentialBuyFormData {
   propertyType: "Residential" | "Commercial";
   lookingTo: "Sell" | "Rent" | "PG-Co-living";
@@ -22,7 +21,7 @@ interface ResidentialBuyFormData {
   location: string;
   propertySubType: "Apartment" | "Independent House" | "Independent Villa" | "Plot" | "Land";
   constructionStatus: "Ready to move" | "Under Construction";
-  possessionEnd?: string; // Added for Under Construction
+  possessionEnd?: string;
   bhk: "1BHK" | "2BHK" | "3BHK" | "4BHK" | "4+BHK";
   bedroom: "1" | "2" | "3" | "4" | "4+";
   balcony: "1" | "2" | "3" | "4" | "4+";
@@ -31,11 +30,14 @@ interface ResidentialBuyFormData {
   areaUnits: "Sq.ft" | "Sq.yd" | "Acres";
   builtUpArea: string;
   carpetArea: string;
+  plotArea: string;
+  lengthArea: string;
+  widthArea: string;
   totalProjectArea: string;
   unitCost: string;
   pentHouse: "Yes" | "No";
   propertyCost: string;
-  possessionStatus: "Intermediate" | "Future";
+  possessionStatus: "Immediate" | "Future";
   facilities: string[];
   investorProperty: "Yes" | "No";
   loanFacility: "Yes" | "No";
@@ -50,6 +52,7 @@ interface ResidentialBuyFormData {
   propertyName: string;
   locality: string;
   flatNo: string;
+  plotNumber: string;
   floorNo: string;
   totalFloors: string;
   photos: File[];
@@ -58,54 +61,114 @@ interface ResidentialBuyFormData {
   featuredImageIndex: number | null;
 }
 
-// Define the type for the Select options
 interface SelectOption {
   value: string;
   label: string;
 }
 
 const ResidentialBuyEdit: React.FC = () => {
-  const [formData, setFormData] = useState<ResidentialBuyFormData>({
-    propertyType: "Residential",
-    lookingTo: "Sell",
-    transactionType: "New",
-    location: "",
-    propertySubType: "Apartment",
-    constructionStatus: "Ready to move",
-    possessionEnd: "", // Initialize possessionEnd
-    bhk: "2BHK",
-    bedroom: "3",
-    balcony: "3",
-    furnishType: "Semi",
-    ageOfProperty: "5-10",
-    areaUnits: "Sq.yd",
-    builtUpArea: "2000",
-    carpetArea: "",
-    totalProjectArea: "",
-    unitCost: "100",
-    pentHouse: "No",
-    propertyCost: "1005",
-    possessionStatus: "Intermediate",
-    facilities: ["Lift", "Regular Water", "Gazebo", "Water Harvesting Pit", "Security Cabin"],
-    investorProperty: "Yes",
-    loanFacility: "Yes",
-    facing: "",
-    carParking: "0",
-    bikeParking: "0",
-    openParking: "0",
-    aroundProperty: [],
-    servantRoom: "No",
-    propertyDescription: "",
-    city: "",
-    propertyName: "",
-    locality: "",
-    flatNo: "",
-    floorNo: "",
-    totalFloors: "",
-    photos: [],
-    video: null,
-    floorPlan: null,
-    featuredImageIndex: null,
+  const location = useLocation();
+  const property = location.state?.property;
+
+  const [formData, setFormData] = useState<ResidentialBuyFormData>(() => {
+    if (property) {
+      const possessionEndDate = property.under_construction
+        ? new Date(property.under_construction).toISOString().split("T")[0]
+        : "";
+
+      return {
+        propertyType: property.property_in || "Residential",
+        lookingTo: property.property_for || "Sell",
+        transactionType: property.transaction_type || "New",
+        location: property.google_address || "",
+        propertySubType: property.sub_type || "Apartment",
+        constructionStatus: property.occupancy === "Under Construction" ? "Under Construction" : "Ready to move",
+        possessionEnd: possessionEndDate,
+        bhk: property.bedrooms ? `${property.bedrooms}BHK` : "1BHK",
+        bedroom: property.bathroom ? String(property.bathroom) as "1" | "2" | "3" | "4" | "4+" : "1",
+        balcony: property.balconies ? String(property.balconies) as "1" | "2" | "3" | "4" | "4+" : "1",
+        furnishType: property.furnished_status === "Unfurnished" ? "Unfurnished" : property.furnished_status === "Semi" ? "Semi" : "Fully",
+        ageOfProperty: property.property_age === "0.00" ? "0-5" : "5-10",
+        areaUnits: property.area_units || "Sq.ft",
+        builtUpArea: property.builtup_area || "",
+        carpetArea: property.carpet_area || "",
+        plotArea: property.plot_area || "",
+        lengthArea: property.length_area || "",
+        widthArea: property.width_area || "",
+        totalProjectArea: property.total_project_area || "",
+        unitCost: "",
+        pentHouse: property.pent_house === "Yes" ? "Yes" : "No",
+        propertyCost: property.property_cost || "",
+        possessionStatus: property.possession_status || "Immediate",
+        facilities: property.facilities ? property.facilities.split(",") : [],
+        investorProperty: property.investor_property === "Yes" ? "Yes" : "No",
+        loanFacility: property.loan_facility === "Yes" ? "Yes" : "No",
+        facing: property.facing || "",
+        carParking: property.car_parking || "0",
+        bikeParking: property.bike_parking || "0",
+        openParking: property.open_parking || "0",
+        aroundProperty: [],
+        servantRoom: property.servant_room === "Yes" ? "Yes" : "No",
+        propertyDescription: property.description || "",
+        city: property.city_id || "",
+        propertyName: property.property_name || "",
+        locality: property.location_id || "",
+        flatNo: property.unit_flat_house_no || "",
+        plotNumber: property.plot_number || "",
+        floorNo: property.floors || "",
+        totalFloors: property.total_floors || "",
+        photos: [],
+        video: null,
+        floorPlan: null,
+        featuredImageIndex: null,
+      };
+    }
+    return {
+      propertyType: "Residential",
+      lookingTo: "Sell",
+      transactionType: "New",
+      location: "",
+      propertySubType: "Apartment",
+      constructionStatus: "Ready to move",
+      possessionEnd: "",
+      bhk: "2BHK",
+      bedroom: "3",
+      balcony: "3",
+      furnishType: "Semi",
+      ageOfProperty: "5-10",
+      areaUnits: "Sq.yd",
+      builtUpArea: "2000",
+      carpetArea: "",
+      plotArea: "183.00",
+      lengthArea: "9.14",
+      widthArea: "18.24",
+      totalProjectArea: "",
+      unitCost: "100",
+      pentHouse: "No",
+      propertyCost: "1005",
+      possessionStatus: "Immediate",
+      facilities: ["Lift", "Regular Water", "Gazebo", "Water Harvesting Pit", "Security Cabin"],
+      investorProperty: "Yes",
+      loanFacility: "Yes",
+      facing: "",
+      carParking: "0",
+      bikeParking: "0",
+      openParking: "0",
+      aroundProperty: [],
+      servantRoom: "No",
+      propertyDescription: "",
+      city: "",
+      propertyName: "",
+      locality: "",
+      flatNo: "",
+      plotNumber: "87",
+      floorNo: "",
+      totalFloors: "",
+      photos: [],
+      video: null,
+      floorPlan: null,
+      featuredImageIndex: null,
+    };
   });
 
   const [errors, setErrors] = useState({
@@ -119,6 +182,9 @@ const ResidentialBuyEdit: React.FC = () => {
     balcony: "",
     furnishType: "",
     builtUpArea: "",
+    plotArea: "",
+    lengthArea: "",
+    widthArea: "",
     totalProjectArea: "",
     unitCost: "",
     propertyCost: "",
@@ -127,11 +193,11 @@ const ResidentialBuyEdit: React.FC = () => {
     aroundProperty: "",
     servantRoom: "",
     propertyDescription: "",
-    carpetArea: "",
     city: "",
     propertyName: "",
     locality: "",
     flatNo: "",
+    plotNumber: "",
     floorNo: "",
     totalFloors: "",
     photos: "",
@@ -140,26 +206,23 @@ const ResidentialBuyEdit: React.FC = () => {
     featuredImage: "",
   });
 
-  // State for Around Property inputs
   const [placeAroundProperty, setPlaceAroundProperty] = useState("");
   const [distanceFromProperty, setDistanceFromProperty] = useState("");
 
+  // Updated Select options
   const propertyTypeOptions: SelectOption[] = [
     { value: "Residential", label: "Residential" },
     { value: "Commercial", label: "Commercial" },
   ];
-
   const lookingToOptions: SelectOption[] = [
     { value: "Sell", label: "Sell" },
     { value: "Rent", label: "Rent" },
     { value: "PG-Co-living", label: "PG-Co-living" },
   ];
-
   const transactionTypeOptions: SelectOption[] = [
     { value: "New", label: "New" },
     { value: "Resale", label: "Resale" },
   ];
-
   const propertySubTypeOptions: SelectOption[] = [
     { value: "Apartment", label: "Apartment" },
     { value: "Independent House", label: "Independent House" },
@@ -167,12 +230,10 @@ const ResidentialBuyEdit: React.FC = () => {
     { value: "Plot", label: "Plot" },
     { value: "Land", label: "Land" },
   ];
-
   const constructionStatusOptions: SelectOption[] = [
     { value: "Ready to move", label: "Ready to move" },
     { value: "Under Construction", label: "Under Construction" },
   ];
-
   const bhkOptions: SelectOption[] = [
     { value: "1BHK", label: "1BHK" },
     { value: "2BHK", label: "2BHK" },
@@ -180,7 +241,6 @@ const ResidentialBuyEdit: React.FC = () => {
     { value: "4BHK", label: "4BHK" },
     { value: "4+BHK", label: "4+BHK" },
   ];
-
   const bedroomOptions: SelectOption[] = [
     { value: "1", label: "1" },
     { value: "2", label: "2" },
@@ -188,7 +248,6 @@ const ResidentialBuyEdit: React.FC = () => {
     { value: "4", label: "4" },
     { value: "4+", label: "4+" },
   ];
-
   const balconyOptions: SelectOption[] = [
     { value: "1", label: "1" },
     { value: "2", label: "2" },
@@ -196,25 +255,21 @@ const ResidentialBuyEdit: React.FC = () => {
     { value: "4", label: "4" },
     { value: "4+", label: "4+" },
   ];
-
   const furnishTypeOptions: SelectOption[] = [
     { value: "Fully", label: "Fully" },
     { value: "Semi", label: "Semi" },
     { value: "Unfurnished", label: "Unfurnished" },
   ];
-
   const ageOfPropertyOptions: SelectOption[] = [
     { value: "0-5", label: "0-5" },
     { value: "5-10", label: "5-10" },
     { value: "Above 10", label: "Above 10" },
   ];
-
   const areaUnitsOptions: SelectOption[] = [
     { value: "Sq.ft", label: "Sq.ft" },
     { value: "Sq.yd", label: "Sq.yd" },
     { value: "Acres", label: "Acres" },
   ];
-
   const carParkingOptions: SelectOption[] = [
     { value: "0", label: "0" },
     { value: "1", label: "1" },
@@ -222,7 +277,6 @@ const ResidentialBuyEdit: React.FC = () => {
     { value: "3", label: "3" },
     { value: "4+", label: "4+" },
   ];
-
   const bikeParkingOptions: SelectOption[] = [
     { value: "0", label: "0" },
     { value: "1", label: "1" },
@@ -230,7 +284,6 @@ const ResidentialBuyEdit: React.FC = () => {
     { value: "3", label: "3" },
     { value: "4+", label: "4+" },
   ];
-
   const openParkingOptions: SelectOption[] = [
     { value: "0", label: "0" },
     { value: "1", label: "1" },
@@ -238,7 +291,6 @@ const ResidentialBuyEdit: React.FC = () => {
     { value: "3", label: "3" },
     { value: "4+", label: "4+" },
   ];
-
   const facilitiesOptions: string[] = [
     "Lift",
     "CCTV",
@@ -275,200 +327,63 @@ const ResidentialBuyEdit: React.FC = () => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    //validations for address details
-      // Validation for new fields
-      if (name === "city") {
-        if (!value) {
-          setErrors((prev) => ({ ...prev, city: "City is required" }));
-        } else {
-          setErrors((prev) => ({ ...prev, city: "" }));
-        }
-      }
-  
-      if (name === "propertyName") {
-        if (!value) {
-          setErrors((prev) => ({ ...prev, propertyName: "Property name is required" }));
-        } else {
-          setErrors((prev) => ({ ...prev, propertyName: "" }));
-        }
-      }
-  
-      if (name === "locality") {
-        if (!value) {
-          setErrors((prev) => ({ ...prev, locality: "Locality is required" }));
-        } else {
-          setErrors((prev) => ({ ...prev, locality: "" }));
-        }
-      }
-  
-      if (name === "flatNo") {
-        if (!value) {
-          setErrors((prev) => ({ ...prev, flatNo: "Flat number is required" }));
-        } else {
-          setErrors((prev) => ({ ...prev, flatNo: "" }));
-        }
-      }
-  
-      if (name === "floorNo") {
-        if (!value) {
-          setErrors((prev) => ({ ...prev, floorNo: "Floor number is required" }));
-        } else {
-          setErrors((prev) => ({ ...prev, floorNo: "" }));
-        }
-      }
-  
-      if (name === "totalFloors") {
-        if (!value) {
-          setErrors((prev) => ({ ...prev, totalFloors: "Total floors is required" }));
-        } else {
-          setErrors((prev) => ({ ...prev, totalFloors: "" }));
-        }
-      }
-
-    // Validation for Carpet Area
-    if (name === "carpetArea") {
-      const carpetAreaValue = parseFloat(value);
-      if (carpetAreaValue < 150 || carpetAreaValue > 20000) {
-        setErrors((prev) => ({
-          ...prev,
-          carpetArea: "Carpet area should be between 150 to 20,000",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, carpetArea: "" }));
-      }
+    if (name === "city") {
+      setErrors((prev) => ({ ...prev, city: !value ? "City is required" : "" }));
     }
-
-    // Validation for Property Cost
+    if (name === "propertyName") {
+      setErrors((prev) => ({ ...prev, propertyName: !value ? "Property name is required" : "" }));
+    }
+    if (name === "locality") {
+      setErrors((prev) => ({ ...prev, locality: !value ? "Locality is required" : "" }));
+    }
+    if (name === "flatNo" && formData.propertySubType !== "Plot") {
+      setErrors((prev) => ({ ...prev, flatNo: !value ? "Flat number is required" : "" }));
+    }
+    if (name === "plotNumber" && formData.propertySubType === "Plot") {
+      setErrors((prev) => ({ ...prev, plotNumber: !value ? "Plot number is required" : "" }));
+    }
+    if (name === "floorNo" && formData.propertySubType !== "Plot") {
+      setErrors((prev) => ({ ...prev, floorNo: !value ? "Floor number is required" : "" }));
+    }
+    if (name === "totalFloors" && formData.propertySubType !== "Plot") {
+      setErrors((prev) => ({ ...prev, totalFloors: !value ? "Total floors is required" : "" }));
+    }
+    if (name === "builtUpArea" && formData.propertySubType !== "Plot") {
+      setErrors((prev) => ({ ...prev, builtUpArea: !value ? "Built-up area is required" : "" }));
+    }
+    if (name === "plotArea" && formData.propertySubType === "Plot") {
+      setErrors((prev) => ({ ...prev, plotArea: !value ? "Plot area is required" : "" }));
+    }
+    if (name === "lengthArea" && formData.propertySubType === "Plot") {
+      setErrors((prev) => ({ ...prev, lengthArea: !value ? "Length area is required" : "" }));
+    }
+    if (name === "widthArea" && formData.propertySubType === "Plot") {
+      setErrors((prev) => ({ ...prev, widthArea: !value ? "Width area is required" : "" }));
+    }
+    if (name === "totalProjectArea") {
+      setErrors((prev) => ({ ...prev, totalProjectArea: !value ? "Total project area is required" : "" }));
+    }
+    if (name === "unitCost") {
+      setErrors((prev) => ({ ...prev, unitCost: !value ? "Unit cost is required" : "" }));
+    }
     if (name === "propertyCost") {
       const propertyCostValue = parseFloat(value);
-      if (propertyCostValue < 100000 || propertyCostValue > 3000000000) {
-        setErrors((prev) => ({
-          ...prev,
-          propertyCost: "Property cost should be between 1 lakh to 300 cr",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, propertyCost: "" }));
-      }
+      setErrors((prev) => ({
+        ...prev,
+        propertyCost:
+          propertyCostValue < 100000 || propertyCostValue > 3000000000
+            ? "Property cost should be between 1 lakh to 300 cr"
+            : "",
+      }));
     }
-
-    // Validation for Built-up Area
-    if (name === "builtUpArea") {
-      if (!value) {
-        setErrors((prev) => ({
-          ...prev,
-          builtUpArea: "Built-up area is required",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, builtUpArea: "" }));
-      }
-    }
-
-    // Validation for Total Project Area
-    if (name === "totalProjectArea") {
-      if (!value) {
-        setErrors((prev) => ({
-          ...prev,
-          totalProjectArea: "Total project area is required",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, totalProjectArea: "" }));
-      }
-    }
-
-    // Validation for Unit Cost
-    if (name === "unitCost") {
-      if (!value) {
-        setErrors((prev) => ({
-          ...prev,
-          unitCost: "Unit cost is required",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, unitCost: "" }));
-      }
-    }
-
-    // Validation for Property Description
     if (name === "propertyDescription") {
-      if (!value) {
-        setErrors((prev) => ({
-          ...prev,
-          propertyDescription: "Property description is required",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, propertyDescription: "" }));
-      }
+      setErrors((prev) => ({ ...prev, propertyDescription: !value ? "Property description is required" : "" }));
     }
   };
 
   const handleSelectChange = (name: keyof ResidentialBuyFormData) => (value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
-
-    // Validation for required select fields
-    if (name === "propertyType" && !value) {
-      setErrors((prev) => ({ ...prev, propertyType: "Property type is required" }));
-    } else if (name === "propertyType") {
-      setErrors((prev) => ({ ...prev, propertyType: "" }));
-    }
-
-    if (name === "lookingTo" && !value) {
-      setErrors((prev) => ({ ...prev, lookingTo: "Looking to is required" }));
-    } else if (name === "lookingTo") {
-      setErrors((prev) => ({ ...prev, lookingTo: "" }));
-    }
-
-    if (name === "propertySubType" && !value) {
-      setErrors((prev) => ({ ...prev, propertySubType: "Property sub type is required" }));
-    } else if (name === "propertySubType") {
-      setErrors((prev) => ({ ...prev, propertySubType: "" }));
-    }
-
-    if (name === "constructionStatus" && !value) {
-      setErrors((prev) => ({ ...prev, constructionStatus: "Construction status is required" }));
-    } else if (name === "constructionStatus") {
-      setErrors((prev) => ({ ...prev, constructionStatus: "" }));
-    }
-
-    if (name === "bhk" && !value) {
-      setErrors((prev) => ({ ...prev, bhk: "BHK is required" }));
-    } else if (name === "bhk") {
-      setErrors((prev) => ({ ...prev, bhk: "" }));
-    }
-
-    if (name === "bedroom" && !value) {
-      setErrors((prev) => ({ ...prev, bedroom: "Bathroom is required" }));
-    } else if (name === "bedroom") {
-      setErrors((prev) => ({ ...prev, bedroom: "" }));
-    }
-
-    if (name === "balcony" && !value) {
-      setErrors((prev) => ({ ...prev, balcony: "Balcony is required" }));
-    } else if (name === "balcony") {
-      setErrors((prev) => ({ ...prev, balcony: "" }));
-    }
-
-    if (name === "furnishType" && !value) {
-      setErrors((prev) => ({ ...prev, furnishType: "Furnish type is required" }));
-    } else if (name === "furnishType") {
-      setErrors((prev) => ({ ...prev, furnishType: "" }));
-    }
-
-    if (name === "investorProperty" && !value) {
-      setErrors((prev) => ({ ...prev, investorProperty: "Investor property is required" }));
-    } else if (name === "investorProperty") {
-      setErrors((prev) => ({ ...prev, investorProperty: "" }));
-    }
-
-    if (name === "loanFacility" && !value) {
-      setErrors((prev) => ({ ...prev, loanFacility: "Loan facility is required" }));
-    } else if (name === "loanFacility") {
-      setErrors((prev) => ({ ...prev, loanFacility: "" }));
-    }
-
-    if (name === "servantRoom" && !value) {
-      setErrors((prev) => ({ ...prev, servantRoom: "Servant room is required" }));
-    } else if (name === "servantRoom") {
-      setErrors((prev) => ({ ...prev, servantRoom: "" }));
-    }
+    // Add validation as needed
   };
 
   const handleFacilityChange = (facility: string) => {
@@ -484,47 +399,28 @@ const ResidentialBuyEdit: React.FC = () => {
     if (placeAroundProperty && distanceFromProperty) {
       setFormData((prev) => ({
         ...prev,
-        aroundProperty: [
-          ...prev.aroundProperty,
-          { place: placeAroundProperty, distance: distanceFromProperty },
-        ],
+        aroundProperty: [...prev.aroundProperty, { place: placeAroundProperty, distance: distanceFromProperty }],
       }));
       setPlaceAroundProperty("");
       setDistanceFromProperty("");
       setErrors((prev) => ({ ...prev, aroundProperty: "" }));
     } else {
-      setErrors((prev) => ({
-        ...prev,
-        aroundProperty: "Both place and distance are required",
-      }));
+      setErrors((prev) => ({ ...prev, aroundProperty: "Both place and distance are required" }));
     }
   };
 
   const handleDateChange = (selectedDates: Date[]) => {
     const date = selectedDates[0] ? selectedDates[0].toISOString().split("T")[0] : "";
     setFormData((prev) => ({ ...prev, possessionEnd: date }));
-    if (!date) {
-      setErrors((prev) => ({ ...prev, possessionEnd: "Possession end date is required" }));
-    } else {
-      setErrors((prev) => ({ ...prev, possessionEnd: "" }));
-    }
+    setErrors((prev) => ({ ...prev, possessionEnd: !date ? "Possession end date is required" : "" }));
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // Validate all required fields before submission
     const newErrors: any = {};
-
-    if (!formData.propertyType) {
-      newErrors.propertyType = "Property type is required";
-    }
-    if (!formData.lookingTo) {
-      newErrors.lookingTo = "Looking to is required";
-    }
-    if (!formData.propertySubType) {
-      newErrors.propertySubType = "Property sub type is required";
-    }
+    if (!formData.propertyType) newErrors.propertyType = "Property type is required";
+    if (!formData.lookingTo) newErrors.lookingTo = "Looking to is required";
+    if (!formData.propertySubType) newErrors.propertySubType = "Property sub type is required";
     if (
       (formData.propertySubType === "Apartment" ||
         formData.propertySubType === "Independent House" ||
@@ -564,18 +460,25 @@ const ResidentialBuyEdit: React.FC = () => {
     ) {
       newErrors.furnishType = "Furnish type is required";
     }
-    if (!formData.builtUpArea) {
+    if (
+      formData.propertySubType !== "Plot" &&
+      formData.propertySubType !== "Land" &&
+      !formData.builtUpArea
+    ) {
       newErrors.builtUpArea = "Built-up area is required";
     }
-    if (!formData.totalProjectArea) {
-      newErrors.totalProjectArea = "Total project area is required";
+    if (formData.propertySubType === "Plot" && !formData.plotArea) {
+      newErrors.plotArea = "Plot area is required";
     }
-    if (!formData.unitCost) {
-      newErrors.unitCost = "Unit cost is required";
+    if (formData.propertySubType === "Plot" && !formData.lengthArea) {
+      newErrors.lengthArea = "Length area is required";
     }
-    if (!formData.propertyCost) {
-      newErrors.propertyCost = "Property cost is required";
+    if (formData.propertySubType === "Plot" && !formData.widthArea) {
+      newErrors.widthArea = "Width area is required";
     }
+    if (!formData.totalProjectArea) newErrors.totalProjectArea = "Total project area is required";
+    if (!formData.unitCost) newErrors.unitCost = "Unit cost is required";
+    if (!formData.propertyCost) newErrors.propertyCost = "Property cost is required";
     if (
       (formData.propertySubType === "Apartment" ||
         formData.propertySubType === "Independent Villa" ||
@@ -605,57 +508,24 @@ const ResidentialBuyEdit: React.FC = () => {
     ) {
       newErrors.servantRoom = "Servant room is required";
     }
-    if (!formData.propertyDescription) {
-      newErrors.propertyDescription = "Property description is required";
-    }
-    if (!formData.city) {
-      newErrors.city = "City is required";
-    }
-    if (!formData.propertyName) {
-      newErrors.propertyName = "Property name is required";
-    }
-    if (!formData.locality) {
-      newErrors.locality = "Locality is required";
-    }
-    if (!formData.flatNo) {
-      newErrors.flatNo = "Flat number is required";
-    }
-    if (!formData.floorNo) {
-      newErrors.floorNo = "Floor number is required";
-    }
-    if (!formData.totalFloors) {
-      newErrors.totalFloors = "Total floors is required";
-    }
-    if (formData.photos.length === 0) {
-      newErrors.photos = "At least one photo is required";
-    } else if (formData.photos.length < 5) {
-      newErrors.photos = "You must upload exactly 5 photos";
-    }
-
-    if (formData.photos.length === 5 && formData.featuredImageIndex === null) {
-      newErrors.featuredImage = "You must select a featured image when 5 photos are uploaded";
-    }
-
-    if (!formData.video) {
-      newErrors.video = "Video upload is required";
-    }
-
-    if (!formData.floorPlan) {
-      newErrors.floorPlan = "Floor plan upload is required";
-    }
+    if (!formData.propertyDescription) newErrors.propertyDescription = "Property description is required";
+    if (!formData.city) newErrors.city = "City is required";
+    if (!formData.propertyName) newErrors.propertyName = "Property name is required";
+    if (!formData.locality) newErrors.locality = "Locality is required";
+    if (formData.propertySubType !== "Plot" && !formData.flatNo) newErrors.flatNo = "Flat number is required";
+    if (formData.propertySubType === "Plot" && !formData.plotNumber) newErrors.plotNumber = "Plot number is required";
+    if (formData.propertySubType !== "Plot" && !formData.floorNo) newErrors.floorNo = "Floor number is required";
+    if (formData.propertySubType !== "Plot" && !formData.totalFloors) newErrors.totalFloors = "Total floors is required";
+    if (formData.photos.length === 0) newErrors.photos = "At least one photo is required";
 
     setErrors((prev) => ({ ...prev, ...newErrors }));
 
-    // If there are no errors, proceed with submission
     if (Object.values(newErrors).every((error) => !error)) {
       console.log("Form Data:", formData);
-      // Add your form submission logic here (e.g., API call)
     }
   };
 
   const areaUnitLabel = formData.areaUnits || "Sq.yd";
-
-  // Check if the form should render the specific fields (Residential -> Sell -> New/Resale)
   const shouldRenderFields =
     formData.propertyType === "Residential" &&
     formData.lookingTo === "Sell" &&
@@ -663,8 +533,8 @@ const ResidentialBuyEdit: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-2 sm:px-6 lg:px-8">
-        <PageBreadcrumb pageTitle="Residential Buy Review" pagePlacHolder="Filter listings" />
-      <ComponentCard title="Add Basic Details">
+      <PageBreadcrumb pageTitle="Residential Buy Edit" pagePlacHolder="Edit property details" />
+      <ComponentCard title="Edit Basic Details">
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Property Type */}
           <div>
@@ -685,9 +555,7 @@ const ResidentialBuyEdit: React.FC = () => {
                 </button>
               ))}
             </div>
-            {errors.propertyType && (
-              <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>
-            )}
+            {errors.propertyType && <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>}
           </div>
 
           {/* Looking to */}
@@ -709,9 +577,7 @@ const ResidentialBuyEdit: React.FC = () => {
                 </button>
               ))}
             </div>
-            {errors.lookingTo && (
-              <p className="text-red-500 text-sm mt-1">{errors.lookingTo}</p>
-            )}
+            {errors.lookingTo && <p className="text-red-500 text-sm mt-1">{errors.lookingTo}</p>}
           </div>
 
           {/* Transaction Type */}
@@ -759,15 +625,11 @@ const ResidentialBuyEdit: React.FC = () => {
                 </button>
               ))}
             </div>
-            {errors.propertySubType && (
-              <p className="text-red-500 text-sm mt-1">{errors.propertySubType}</p>
-            )}
+            {errors.propertySubType && <p className="text-red-500 text-sm mt-1">{errors.propertySubType}</p>}
           </div>
 
-          {/* Conditionally Render Fields Based on Property Sub Type */}
           {shouldRenderFields && (
             <>
-              {/* Construction Status (Apartment, Independent House, Independent Villa) */}
               {(formData.propertySubType === "Apartment" ||
                 formData.propertySubType === "Independent House" ||
                 formData.propertySubType === "Independent Villa") && (
@@ -789,13 +651,10 @@ const ResidentialBuyEdit: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  {errors.constructionStatus && (
-                    <p className="text-red-500 text-sm mt-1">{errors.constructionStatus}</p>
-                  )}
+                  {errors.constructionStatus && <p className="text-red-500 text-sm mt-1">{errors.constructionStatus}</p>}
                 </div>
               )}
 
-              {/* Age of Property or Possession End based on Construction Status */}
               {(formData.propertySubType === "Apartment" ||
                 formData.propertySubType === "Independent House" ||
                 formData.propertySubType === "Independent Villa" ||
@@ -824,15 +683,12 @@ const ResidentialBuyEdit: React.FC = () => {
                         placeholder="Select possession end date"
                         label=""
                       />
-                      {errors.possessionEnd && (
-                        <p className="text-red-500 text-sm mt-1">{errors.possessionEnd}</p>
-                      )}
+                      {errors.possessionEnd && <p className="text-red-500 text-sm mt-1">{errors.possessionEnd}</p>}
                     </div>
                   )}
                 </>
               )}
 
-              {/* BHK (Apartment, Independent House, Independent Villa) */}
               {(formData.propertySubType === "Apartment" ||
                 formData.propertySubType === "Independent House" ||
                 formData.propertySubType === "Independent Villa") && (
@@ -858,7 +714,6 @@ const ResidentialBuyEdit: React.FC = () => {
                 </div>
               )}
 
-              {/* Bathroom (Apartment) */}
               {formData.propertySubType === "Apartment" && (
                 <div>
                   <Label htmlFor="bedroom">Bathroom *</Label>
@@ -878,13 +733,10 @@ const ResidentialBuyEdit: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  {errors.bedroom && (
-                    <p className="text-red-500 text-sm mt-1">{errors.bedroom}</p>
-                  )}
+                  {errors.bedroom && <p className="text-red-500 text-sm mt-1">{errors.bedroom}</p>}
                 </div>
               )}
 
-              {/* Balcony (Apartment) */}
               {formData.propertySubType === "Apartment" && (
                 <div>
                   <Label htmlFor="balcony">Balcony *</Label>
@@ -904,13 +756,10 @@ const ResidentialBuyEdit: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  {errors.balcony && (
-                    <p className="text-red-500 text-sm mt-1">{errors.balcony}</p>
-                  )}
+                  {errors.balcony && <p className="text-red-500 text-sm mt-1">{errors.balcony}</p>}
                 </div>
               )}
 
-              {/* Furnish Type (Apartment, Independent House, Independent Villa) */}
               {(formData.propertySubType === "Apartment" ||
                 formData.propertySubType === "Independent House" ||
                 formData.propertySubType === "Independent Villa") && (
@@ -932,13 +781,10 @@ const ResidentialBuyEdit: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  {errors.furnishType && (
-                    <p className="text-red-500 text-sm mt-1">{errors.furnishType}</p>
-                  )}
+                  {errors.furnishType && <p className="text-red-500 text-sm mt-1">{errors.furnishType}</p>}
                 </div>
               )}
 
-              {/* Area Units (All Sub Types) */}
               <div>
                 <Label htmlFor="areaUnits">Area Units</Label>
                 <Select
@@ -950,39 +796,80 @@ const ResidentialBuyEdit: React.FC = () => {
                 />
               </div>
 
-              {/* Built-up Area (All Sub Types) */}
-              <div>
-                <Label htmlFor="builtUpArea">Built-up Area ({areaUnitLabel}) *</Label>
-                <Input
-                  type="number"
-                  id="builtUpArea"
-                  name="builtUpArea"
-                  value={formData.builtUpArea}
-                  onChange={handleInputChange}
-                  className="dark:bg-dark-900"
-                />
-                {errors.builtUpArea && (
-                  <p className="text-red-500 text-sm mt-1">{errors.builtUpArea}</p>
-                )}
-              </div>
+              {(formData.propertySubType === "Apartment" ||
+                formData.propertySubType === "Independent House" ||
+                formData.propertySubType === "Independent Villa") && (
+                <>
+                  <div>
+                    <Label htmlFor="builtUpArea">Built-up Area ({areaUnitLabel}) *</Label>
+                    <Input
+                      type="number"
+                      id="builtUpArea"
+                      name="builtUpArea"
+                      value={formData.builtUpArea}
+                      onChange={handleInputChange}
+                      className="dark:bg-dark-900"
+                    />
+                    {errors.builtUpArea && <p className="text-red-500 text-sm mt-1">{errors.builtUpArea}</p>}
+                  </div>
 
-              {/* Carpet Area (All Sub Types) */}
-              <div>
-                <Label htmlFor="carpetArea">Carpet Area ({areaUnitLabel})</Label>
-                <Input
-                  type="number"
-                  id="carpetArea"
-                  name="carpetArea"
-                  value={formData.carpetArea}
-                  onChange={handleInputChange}
-                  className="dark:bg-dark-900"
-                />
-                {errors.carpetArea && (
-                  <p className="text-red-500 text-sm mt-1">{errors.carpetArea}</p>
-                )}
-              </div>
+                  <div>
+                    <Label htmlFor="carpetArea">Carpet Area ({areaUnitLabel})</Label>
+                    <Input
+                      type="number"
+                      id="carpetArea"
+                      name="carpetArea"
+                      value={formData.carpetArea}
+                      onChange={handleInputChange}
+                      className="dark:bg-dark-900"
+                    />
+                  </div>
+                </>
+              )}
 
-              {/* Total Project Area (All Sub Types) */}
+              {formData.propertySubType === "Plot" && (
+                <>
+                  <div>
+                    <Label htmlFor="plotArea">Plot Area ({areaUnitLabel}) *</Label>
+                    <Input
+                      type="number"
+                      id="plotArea"
+                      name="plotArea"
+                      value={formData.plotArea}
+                      onChange={handleInputChange}
+                      className="dark:bg-dark-900"
+                    />
+                    {errors.plotArea && <p className="text-red-500 text-sm mt-1">{errors.plotArea}</p>}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="lengthArea">Length Area (meters) *</Label>
+                    <Input
+                      type="number"
+                      id="lengthArea"
+                      name="lengthArea"
+                      value={formData.lengthArea}
+                      onChange={handleInputChange}
+                      className="dark:bg-dark-900"
+                    />
+                    {errors.lengthArea && <p className="text-red-500 text-sm mt-1">{errors.lengthArea}</p>}
+                  </div>
+
+                  <div>
+                    <Label htmlFor="widthArea">Width Area (meters) *</Label>
+                    <Input
+                      type="number"
+                      id="widthArea"
+                      name="widthArea"
+                      value={formData.widthArea}
+                      onChange={handleInputChange}
+                      className="dark:bg-dark-900"
+                    />
+                    {errors.widthArea && <p className="text-red-500 text-sm mt-1">{errors.widthArea}</p>}
+                  </div>
+                </>
+              )}
+
               <div>
                 <Label htmlFor="totalProjectArea">Total Project Area (Acres) *</Label>
                 <Input
@@ -994,12 +881,9 @@ const ResidentialBuyEdit: React.FC = () => {
                   placeholder="Enter total project area"
                   className="dark:bg-dark-900"
                 />
-                {errors.totalProjectArea && (
-                  <p className="text-red-500 text-sm mt-1">{errors.totalProjectArea}</p>
-                )}
+                {errors.totalProjectArea && <p className="text-red-500 text-sm mt-1">{errors.totalProjectArea}</p>}
               </div>
 
-              {/* Unit Cost (All Sub Types) */}
               <div>
                 <Label htmlFor="unitCost">Unit Cost (₹) *</Label>
                 <div className="flex items-center space-x-2">
@@ -1013,12 +897,9 @@ const ResidentialBuyEdit: React.FC = () => {
                     className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
-                {errors.unitCost && (
-                  <p className="text-red-500 text-sm mt-1">{errors.unitCost}</p>
-                )}
+                {errors.unitCost && <p className="text-red-500 text-sm mt-1">{errors.unitCost}</p>}
               </div>
 
-              {/* Pent House (Independent House, Independent Villa) */}
               {(formData.propertySubType === "Independent House" ||
                 formData.propertySubType === "Independent Villa") && (
                 <div>
@@ -1042,7 +923,6 @@ const ResidentialBuyEdit: React.FC = () => {
                 </div>
               )}
 
-              {/* Property Cost (All Sub Types) */}
               <div>
                 <Label htmlFor="propertyCost">Property Cost *</Label>
                 <Input
@@ -1054,17 +934,14 @@ const ResidentialBuyEdit: React.FC = () => {
                   className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
                 <p className="text-gray-500 text-sm mt-1">One Thousand Five Rupees</p>
-                {errors.propertyCost && (
-                  <p className="text-red-500 text-sm mt-1">{errors.propertyCost}</p>
-                )}
+                {errors.propertyCost && <p className="text-red-500 text-sm mt-1">{errors.propertyCost}</p>}
               </div>
 
-              {/* Possession Status (Plot, Land) */}
               {(formData.propertySubType === "Plot" || formData.propertySubType === "Land") && (
                 <div>
                   <Label htmlFor="possessionStatus">Possession Status</Label>
                   <div className="flex space-x-4">
-                    {["Intermediate", "Future"].map((option) => (
+                    {["Immediate", "Future"].map((option) => (
                       <button
                         key={option}
                         type="button"
@@ -1082,7 +959,6 @@ const ResidentialBuyEdit: React.FC = () => {
                 </div>
               )}
 
-              {/* Facilities (Apartment, Independent House, Independent Villa) */}
               {(formData.propertySubType === "Apartment" ||
                 formData.propertySubType === "Independent House" ||
                 formData.propertySubType === "Independent Villa") && (
@@ -1104,7 +980,6 @@ const ResidentialBuyEdit: React.FC = () => {
                 </div>
               )}
 
-              {/* Investor Property (Apartment, Independent Villa, Plot) */}
               {(formData.propertySubType === "Apartment" ||
                 formData.propertySubType === "Independent Villa" ||
                 formData.propertySubType === "Plot") && (
@@ -1126,13 +1001,10 @@ const ResidentialBuyEdit: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  {errors.investorProperty && (
-                    <p className="text-red-500 text-sm mt-1">{errors.investorProperty}</p>
-                  )}
+                  {errors.investorProperty && <p className="text-red-500 text-sm mt-1">{errors.investorProperty}</p>}
                 </div>
               )}
 
-              {/* Loan Facility (Apartment, Independent House, Independent Villa, Plot, Land) */}
               {(formData.propertySubType === "Apartment" ||
                 formData.propertySubType === "Independent House" ||
                 formData.propertySubType === "Independent Villa" ||
@@ -1156,19 +1028,12 @@ const ResidentialBuyEdit: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  {errors.loanFacility && (
-                    <p className="text-red-500 text-sm mt-1">{errors.loanFacility}</p>
-                  )}
+                  {errors.loanFacility && <p className="text-red-500 text-sm mt-1">{errors.loanFacility}</p>}
                 </div>
               )}
 
-              {/* Additional Details Section (All Sub Types) */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                  Additional Details
-                </h3>
-
-                {/* Facing (All Sub Types) */}
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Additional Details</h3>
                 <div>
                   <Label htmlFor="facing">Facing</Label>
                   <div className="flex space-x-4">
@@ -1189,65 +1054,47 @@ const ResidentialBuyEdit: React.FC = () => {
                   </div>
                 </div>
 
-                {/* Car Parking (Apartment, Independent House, Independent Villa) */}
                 {(formData.propertySubType === "Apartment" ||
                   formData.propertySubType === "Independent House" ||
                   formData.propertySubType === "Independent Villa") && (
-                  <div>
-                    <Label htmlFor="carParking" className="mt-2">
-                      Car Parking
-                    </Label>
-                    <Select
-                      options={carParkingOptions}
-                      placeholder="Select car parking"
-                      onChange={handleSelectChange("carParking")}
-                      value={formData.carParking}
-                      className="dark:bg-dark-900"
-                    />
-                  </div>
+                  <>
+                    <div>
+                      <Label htmlFor="carParking" className="mt-2">Car Parking</Label>
+                      <Select
+                        options={carParkingOptions}
+                        placeholder="Select car parking"
+                        onChange={handleSelectChange("carParking")}
+                        value={formData.carParking}
+                        className="dark:bg-dark-900"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="bikeParking" className="mt-2">Bike Parking</Label>
+                      <Select
+                        options={bikeParkingOptions}
+                        placeholder="Select bike parking"
+                        onChange={handleSelectChange("bikeParking")}
+                        value={formData.bikeParking}
+                        className="dark:bg-dark-900"
+                      />
+                    </div>
+
+                    <div>
+                      <Label htmlFor="openParking" className="mt-2">Open Parking</Label>
+                      <Select
+                        options={openParkingOptions}
+                        placeholder="Select open parking"
+                        onChange={handleSelectChange("openParking")}
+                        value={formData.openParking}
+                        className="dark:bg-dark-900"
+                      />
+                    </div>
+                  </>
                 )}
 
-                {/* Bike Parking (Apartment, Independent House, Independent Villa) */}
-                {(formData.propertySubType === "Apartment" ||
-                  formData.propertySubType === "Independent House" ||
-                  formData.propertySubType === "Independent Villa") && (
-                  <div>
-                    <Label htmlFor="bikeParking" className="mt-2">
-                      Bike Parking
-                    </Label>
-                    <Select
-                      options={bikeParkingOptions}
-                      placeholder="Select bike parking"
-                      onChange={handleSelectChange("bikeParking")}
-                      value={formData.bikeParking}
-                      className="dark:bg-dark-900"
-                    />
-                  </div>
-                )}
-
-                {/* Open Parking (Apartment, Independent House, Independent Villa) */}
-                {(formData.propertySubType === "Apartment" ||
-                  formData.propertySubType === "Independent House" ||
-                  formData.propertySubType === "Independent Villa") && (
-                  <div>
-                    <Label htmlFor="openParking" className="mt-2">
-                      Open Parking
-                    </Label>
-                    <Select
-                      options={openParkingOptions}
-                      placeholder="Select open parking"
-                      onChange={handleSelectChange("openParking")}
-                      value={formData.openParking}
-                      className="dark:bg-dark-900"
-                    />
-                  </div>
-                )}
-
-                {/* Around This Property (All Sub Types) */}
                 <div>
-                  <Label htmlFor="aroundProperty" className="mt-4">
-                    Around This Property *
-                  </Label>
+                  <Label htmlFor="aroundProperty" className="mt-4">Around This Property *</Label>
                   <div className="flex space-x-6 my-4 w-full">
                     <Input
                       type="text"
@@ -1271,9 +1118,7 @@ const ResidentialBuyEdit: React.FC = () => {
                       Add
                     </button>
                   </div>
-                  {errors.aroundProperty && (
-                    <p className="text-red-500 text-sm mt-1">{errors.aroundProperty}</p>
-                  )}
+                  {errors.aroundProperty && <p className="text-red-500 text-sm mt-1">{errors.aroundProperty}</p>}
                   {formData.aroundProperty.length > 0 && (
                     <div className="mt-4">
                       <ul className="space-y-2">
@@ -1282,17 +1127,13 @@ const ResidentialBuyEdit: React.FC = () => {
                             key={index}
                             className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
                           >
-                            <span>
-                              {entry.place} - {entry.distance}
-                            </span>
+                            <span>{entry.place} - {entry.distance}</span>
                             <button
                               type="button"
                               onClick={() =>
                                 setFormData((prev) => ({
                                   ...prev,
-                                  aroundProperty: prev.aroundProperty.filter(
-                                    (_, i) => i !== index
-                                  ),
+                                  aroundProperty: prev.aroundProperty.filter((_, i) => i !== index),
                                 }))
                               }
                               className="text-red-500 hover:text-red-700"
@@ -1306,7 +1147,6 @@ const ResidentialBuyEdit: React.FC = () => {
                   )}
                 </div>
 
-                {/* Servant Room (Apartment, Independent House, Independent Villa) */}
                 {(formData.propertySubType === "Apartment" ||
                   formData.propertySubType === "Independent House" ||
                   formData.propertySubType === "Independent Villa") && (
@@ -1328,17 +1168,12 @@ const ResidentialBuyEdit: React.FC = () => {
                         </button>
                       ))}
                     </div>
-                    {errors.servantRoom && (
-                      <p className="text-red-500 text-sm mt-1">{errors.servantRoom}</p>
-                    )}
+                    {errors.servantRoom && <p className="text-red-500 text-sm mt-1">{errors.servantRoom}</p>}
                   </div>
                 )}
 
-                {/* Property Description (All Sub Types) */}
                 <div>
-                  <Label htmlFor="propertyDescription" className="mt-5">
-                    Property Description *
-                  </Label>
+                  <Label htmlFor="propertyDescription" className="mt-5">Property Description *</Label>
                   <textarea
                     id="propertyDescription"
                     name="propertyDescription"
@@ -1355,14 +1190,13 @@ const ResidentialBuyEdit: React.FC = () => {
               </div>
             </>
           )}
-          
-         {/* Use the common PropertyLocationFields component */}
-         <PropertyLocationFields
+
+          <PropertyLocationFields
             formData={{
               city: formData.city,
               propertyName: formData.propertyName,
               locality: formData.locality,
-              flatNo: formData.flatNo,
+              flatNo: formData.propertySubType !== "Plot" ? formData.flatNo : formData.plotNumber,
               floorNo: formData.floorNo,
               totalFloors: formData.totalFloors,
             }}
@@ -1370,18 +1204,16 @@ const ResidentialBuyEdit: React.FC = () => {
               city: errors.city,
               propertyName: errors.propertyName,
               locality: errors.locality,
-              flatNo: errors.flatNo,
+              flatNo: formData.propertySubType !== "Plot" ? errors.flatNo : errors.plotNumber,
               floorNo: errors.floorNo,
               totalFloors: errors.totalFloors,
             }}
             handleInputChange={handleInputChange}
+            isPlot={formData.propertySubType === "Plot" || formData.propertySubType === 'Land'}
           />
-       
-                     {/* Media Upload Section */}
+
           <div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-              Upload Media
-            </h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Upload Media</h3>
             <MediaUploadSection
               photos={formData.photos}
               setPhotos={(photos) => setFormData((prev) => ({ ...prev, photos }))}
@@ -1400,7 +1232,6 @@ const ResidentialBuyEdit: React.FC = () => {
             />
           </div>
 
-          {/* Submit Button */}
           <div className="flex justify-end">
             <button
               type="submit"

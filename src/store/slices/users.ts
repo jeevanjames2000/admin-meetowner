@@ -76,6 +76,7 @@ export const fetchUsersByType = createAsyncThunk(
       });
 
       const response = await promise;
+      console.log(response.data);
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;

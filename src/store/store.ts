@@ -4,6 +4,7 @@ import propertyDetails from "./slices/propertyDetails";
 import authentication from './slices/authSlice';
 import listingReducer from './slices/listings';
 import usersReducers from './slices/users';
+import leadsReducers from './slices/leads';
 import { initializeAuthState } from "../utils/authutils";
 
 const preloadedState = {
@@ -15,7 +16,8 @@ const store =  configureStore({
         property:propertyDetails,
         auth:authentication,
         listings: listingReducer,
-        users:usersReducers
+        users:usersReducers,
+        leads:leadsReducers
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),

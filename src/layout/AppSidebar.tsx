@@ -12,7 +12,7 @@ import {
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import { FaFileInvoice } from "react-icons/fa";
+import { FaFileInvoice, FaSearchLocation } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { AuthState } from "../store/slices/authSlice";
 // import { RootState } from "../types/auth";
@@ -29,9 +29,11 @@ type NavItem = {
     nestedItems?: {
       name: string;
       path?: string;
+      
       nestedItems?: {
         name: string;
         path: string;
+        data?: { property_in: string; property_for: string; status: number };
       }[];
     }[];
   }[];
@@ -53,8 +55,18 @@ const navItems: NavItem[] = [
           {
             name: "Buy",
             nestedItems: [
-              { name: "Review", path: "/resendetial-buy" }, 
-              { name: "Approved", path: "/residential-buy-approve" },
+              { name: "Review", path:  "/residential/buy/0", 
+                data: { 
+                "property_in": "Residential", 
+                "property_for": "Sell", 
+                "status": 0 
+              }  }, 
+              { name: "Approved", path:  "/residential/buy/1",
+                data: { 
+                "property_in": "Residential", 
+                "property_for": "Sell", 
+                "status": 1
+              }  },
               { name: "Deleted", path: "/listings/residential/buy/deleted" },
               { name: "Expired", path: "/listings/residential/buy/expired" },
               { name: "Rejected", path: "/listings/residential/buy/rejected" },
@@ -63,8 +75,18 @@ const navItems: NavItem[] = [
           {
             name: "Rent",
             nestedItems: [
-              { name: "Review", path: "/resendetial-rent" }, 
-              { name: "Approved", path: "/listings/residential/rent/approved" },
+              { name: "Review", path: "/residential/rent/0",
+                data: { 
+                "property_in": "Residential", 
+                "property_for": "Rent", 
+                "status": 0 
+              } }, 
+              { name: "Approved", path: "/residential/rent/1",
+                data: { 
+                "property_in": "Residential", 
+                "property_for": "Rent", 
+                "status": 1
+              }   },
               { name: "Deleted", path: "/listings/residential/rent/deleted" },
               { name: "Expired", path: "/listings/residential/rent/expired" },
               { name: "Rejected", path: "/listings/residential/rent/rejected" },
@@ -78,8 +100,16 @@ const navItems: NavItem[] = [
           {
             name: "Buy",
             nestedItems: [
-              { name: "Review", path: "/commercial-buy" },
-              { name: "Approved", path: "/listings/commercial/buy/approved" },
+              { name: "Review", path: "/commercial/buy/0",  data: { 
+                "property_in": "Commercial", 
+                "property_for": "Sell", 
+                "status": 0 
+              } },
+              { name: "Approved", path: "/commercial/buy/1",  data: { 
+                "property_in": "Commercial", 
+                "property_for": "Sell", 
+                "status":  1
+              }  },
               { name: "Deleted", path: "/listings/commercial/buy/deleted" },
               { name: "Expired", path: "/listings/commercial/buy/expired" },
               { name: "Rejected", path: "/listings/commercial/buy/rejected" },
@@ -88,8 +118,16 @@ const navItems: NavItem[] = [
           {
             name: "Rent",
             nestedItems: [
-              { name: "Review", path: "/commercial-rent" },
-              { name: "Approved", path: "/listings/commercial/rent/approved" },
+              { name: "Review", path: "/commercial/Rent/0", data: { 
+                "property_in": "Commercial", 
+                "property_for": "Sell", 
+                "status": 0 
+              }  },
+              { name: "Approved", path: "/commercial/Rent/1", data: { 
+                "property_in": "Commercial", 
+                "property_for": "Sell", 
+                "status": 0 
+              } },
               { name: "Deleted", path: "/listings/commercial/rent/deleted" },
               { name: "Expired", path: "/listings/commercial/rent/expired" },
               { name: "Rejected", path: "/listings/commercial/rent/rejected" },
@@ -103,8 +141,8 @@ const navItems: NavItem[] = [
     icon: <CalenderIcon />,
     name: "Lead Management",
     subItems: [
-      { name: "Buy", path: "/lead-buy" },
-      { name: "Rent", path: "/listings/plot/approved" },
+      { name: "Buy", path: "/leads/buy/1" },
+      { name: "Rent", path: "leads/rent/2" },
     ],
   },
   {
@@ -177,6 +215,16 @@ const navItems: NavItem[] = [
       { name: "Create Employee", path: "/create-employee", pro: false },
       { name: "All Employees", path: "/all-employees", pro: false },
       {name :"Invoice Generator", path:'/invoice', pro:false}
+    ],
+  },
+
+  {
+    name: "Maps",
+    icon: <FaSearchLocation />,
+    subItems: [
+      { name: "States", path: "/maps/states", pro: false },
+      { name: "Cities", path: "/maps/cities", pro: false },
+      {name :"Locality", path:'/maps/locality', pro:false}
     ],
   },
 ];

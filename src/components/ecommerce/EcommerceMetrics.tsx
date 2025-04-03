@@ -43,8 +43,7 @@ export default function Home() {
   // Handle card click (optional, customize as needed)
   const handleCardClick = (item: UserCountItem) => {
     console.log(`Clicked on ${userTypeMap[item.user_type]} with count ${item.count}`);
-    navigate('/basic-tables');
-    
+      navigate(`/basic-tables-one?userType=${item.user_type}`);
   };
 
   if (loading) return <div>Loading...</div>;

@@ -12,15 +12,15 @@ import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import AboutUsPage from "./pages/Forms/AboutUs";
 import ServicesPage from "./pages/Forms/Services";
-import PropertyLeadsBuy from "./pages/LeadManagement/LeadBuy";
-import ResidentialBuyReview from "./pages/Residential/Buy/ResidentialBuyReview";
+import PropertyLeads from "./pages/LeadManagement/Leads";
+import ResidentialTypes from "./pages/Residential/Buy/ResidentialTypes";
 import ResidentialRentReview from "./pages/Residential/Rent/ResidentialRentReview";
 import ResidentialBuyEdit from "./pages/Residential/Buy/ResidentialBuyEdit";
 import ResidentialRentEdit from "./pages/Residential/Rent/ResidentialRentEdit";
 import CareersPage from "./pages/Forms/Careers";
 import TermsPage from "./pages/Forms/Terms";
 import PrivacyPage from "./pages/Forms/privacy";
-import CommercialBuyReview from "./pages/Commercial/Buy/CommercialBuyReview";
+import CommercialTypes from "./pages/Commercial/Buy/CommercialType";
 import CommercialRentReview from "./pages/Commercial/Rent/CommercialRentReview";
 import CommercialBuyEdit from "./pages/Commercial/Buy/CommercialBuyEdit";
 import CommercialRentEdit from "./pages/Commercial/Rent/CommercialRentEdit";
@@ -29,12 +29,13 @@ import AllEmployees from "./pages/Employee/AllEmployees";
 import PaymentSuccessUsers from "./pages/Accounts/Users/paymentSuccess";
 import PaymentSuccessAgents from "./pages/Accounts/Agents/PaymentSuccess";
 import InvoiceDownload from "./pages/Employee/Invoice";
-import ResidentialBuyApprove from "./pages/Residential/Buy/ResidentialBuyApprove";
+
 import BasicTables from "./pages/Tables/BasicTables";
 import { ProtectedRouteProps,  } from "./types/auth";
 
 import { AppDispatch, RootState } from "./store/store";
 import { isTokenExpired, logout } from "./store/slices/authSlice";
+import BasicTableOne from "./components/tables/BasicTables/BasicTableOne";
 
 
 
@@ -86,14 +87,24 @@ export default function App() {
               }
             />
 
+             <Route
+              index
+              path="/basic-tables-one"
+              element={
+                <ProtectedRoute>
+                  <BasicTableOne />
+                </ProtectedRoute>
+              }
+            />
+
 
             {/* listing pages */}
             {/* residential */}
             <Route
-              path="/resendetial-buy"
+               path="/residential/:property_for/:status"
               element={
                 <ProtectedRoute>
-                  <ResidentialBuyReview />
+                  <ResidentialTypes />
                 </ProtectedRoute>
               }
             />
@@ -113,14 +124,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="residential-buy-approve"
-              element={
-                <ProtectedRoute>
-                  <ResidentialBuyApprove />
-                </ProtectedRoute>
-              }
-            />
+           
 
             <Route
               path="residential-rent-edit"
@@ -132,10 +136,10 @@ export default function App() {
             />
             {/* commercial */}
             <Route
-              path="/commercial-buy"
+              path="/commercial/:property_for/:status"
               element={
                 <ProtectedRoute>
-                  <CommercialBuyReview />
+                  <CommercialTypes />
                 </ProtectedRoute>
               }
             />
@@ -192,10 +196,10 @@ export default function App() {
 
             {/* Lead Management */}
             <Route
-              path="/lead-buy"
+              path="/leads/:property_for/:status"
               element={
                 <ProtectedRoute>
-                  <PropertyLeadsBuy />
+                  <PropertyLeads />
                 </ProtectedRoute>
               }
             />

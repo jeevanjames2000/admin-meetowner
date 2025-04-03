@@ -1,3 +1,8 @@
+import { useEffect, useState } from "react";
+import { useLocation } from "react-router";
+import { useDispatch, useSelector } from "react-redux";
+import { fetchUsersByType } from "../../../store/slices/users";
+import { RootState, AppDispatch } from "../../../store/store";
 import {
   Table,
   TableBody,
@@ -5,217 +10,240 @@ import {
   TableHeader,
   TableRow,
 } from "../../ui/table";
+import Button from "../../ui/button/Button";
+import { MoreVertical } from "lucide-react";
+import ComponentCard from "../../common/ComponentCard";
+import PageBreadcrumb from "../../common/PageBreadCrumb";
 
-import Badge from "../../ui/badge/Badge";
+// User type mapping
+const userTypeMap: { [key: number]: string } = {
+  1: "Admin",
+  2: "User",
+  3: "Builder",
+  4: "Agent",
+  5: "Owner",
+  6: "Channel Partner",
+};
 
-interface Order {
-  id: number;
-  user: {
-    image: string;
-    name: string;
-    role: string;
-  };
-  projectName: string;
-  team: {
-    images: string[];
-  };
-  status: string;
-  budget: string;
-}
-
-// Define the table data using the interface
-const tableData: Order[] = [
-  {
-    id: 1,
-    user: {
-      image: "/images/user/user-17.jpg",
-      name: "Lindsey Curtis",
-      role: "Web Designer",
-    },
-    projectName: "Agency Website",
-    team: {
-      images: [
-        "/images/user/user-22.jpg",
-        "/images/user/user-23.jpg",
-        "/images/user/user-24.jpg",
-      ],
-    },
-    budget: "3.9K",
-    status: "Active",
-  },
-  {
-    id: 2,
-    user: {
-      image: "/images/user/user-18.jpg",
-      name: "Kaiya George",
-      role: "Project Manager",
-    },
-    projectName: "Technology",
-    team: {
-      images: ["/images/user/user-25.jpg", "/images/user/user-26.jpg"],
-    },
-    budget: "24.9K",
-    status: "Pending",
-  },
-  {
-    id: 3,
-    user: {
-      image: "/images/user/user-17.jpg",
-      name: "Zain Geidt",
-      role: "Content Writing",
-    },
-    projectName: "Blog Writing",
-    team: {
-      images: ["/images/user/user-27.jpg"],
-    },
-    budget: "12.7K",
-    status: "Active",
-  },
-  {
-    id: 4,
-    user: {
-      image: "/images/user/user-20.jpg",
-      name: "Abram Schleifer",
-      role: "Digital Marketer",
-    },
-    projectName: "Social Media",
-    team: {
-      images: [
-        "/images/user/user-28.jpg",
-        "/images/user/user-29.jpg",
-        "/images/user/user-30.jpg",
-      ],
-    },
-    budget: "2.8K",
-    status: "Cancel",
-  },
-  {
-    id: 5,
-    user: {
-      image: "/images/user/user-21.jpg",
-      name: "Carla George",
-      role: "Front-end Developer",
-    },
-    projectName: "Website",
-    team: {
-      images: [
-        "/images/user/user-31.jpg",
-        "/images/user/user-32.jpg",
-        "/images/user/user-33.jpg",
-      ],
-    },
-    budget: "4.5K",
-    status: "Active",
-  },
-];
+// Function to format date
+const formatDate = (dateString: string): string => {
+  const date = new Date(dateString);
+  return date.toISOString().split("T")[0];
+};
 
 export default function BasicTableOne() {
-  return (
-    <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-      <div className="max-w-full overflow-x-auto">
-        <Table>
-          {/* Table Header */}
-          <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
-            <TableRow>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                User
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Project Name
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Team
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Status
-              </TableCell>
-              <TableCell
-                isHeader
-                className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-              >
-                Budget
-              </TableCell>
-            </TableRow>
-          </TableHeader>
+  const location = useLocation();
+  const dispatch = useDispatch<AppDispatch>();
+  const { users, loading, error } = useSelector((state: RootState) => state.users);
+  const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const [filterValue, setFilterValue] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1); // Pagination: Current page
+  const [itemsPerPage] = useState<number>(10); // Pagination: Items per page (you can adjust this)
 
-          {/* Table Body */}
-          <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-            {tableData.map((order) => (
-              <TableRow key={order.id}>
-                <TableCell className="px-5 py-4 sm:px-6 text-start">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 overflow-hidden rounded-full">
-                      <img
-                        width={40}
-                        height={40}
-                        src={order.user.image}
-                        alt={order.user.name}
-                      />
-                    </div>
-                    <div>
-                      <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        {order.user.name}
-                      </span>
-                      <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                        {order.user.role}
-                      </span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  {order.projectName}
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  <div className="flex -space-x-2">
-                    {order.team.images.map((teamImage, index) => (
-                      <div
-                        key={index}
-                        className="w-6 h-6 overflow-hidden border-2 border-white rounded-full dark:border-gray-900"
-                      >
-                        <img
-                          width={24}
-                          height={24}
-                          src={teamImage}
-                          alt={`Team member ${index + 1}`}
-                          className="w-full size-6"
-                        />
-                      </div>
+  const queryParams = new URLSearchParams(location.search);
+  const userType = queryParams.get("userType");
+
+  const categoryLabel = userTypeMap[parseInt(userType || "0")] || "User";
+
+  const showGstNumber = userType && parseInt(userType) !== 1 && parseInt(userType) !== 2;
+  const showReraNumber = userType && parseInt(userType) !== 1 && parseInt(userType) !== 2;
+
+  useEffect(() => {
+    if (userType) {
+      dispatch(fetchUsersByType({ user_type: parseInt(userType) }));
+    }
+  }, [dispatch, userType]);
+
+  // Filter users based on filterValue
+  const filteredUsers = users.filter((user) =>
+    [user.name, user.mobile, user.email, user.city, user.state]
+      .map((field) => field?.toLowerCase() || "")
+      .some((field) => field.includes(filterValue.toLowerCase()))
+  );
+
+  // Pagination logic
+  const totalItems = filteredUsers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
+  const handleEdit = (id: number) => {
+    console.log(`Edit user with ID: ${id}`);
+    setActiveMenu(null);
+  };
+
+  const handleDelete = (id: number) => {
+    console.log(`Delete user with ID: ${id}`);
+    setActiveMenu(null);
+  };
+
+  const handleSuspend = (id: number) => {
+    console.log(`Suspend user with ID: ${id}`);
+    setActiveMenu(null);
+  };
+
+  const toggleMenu = (id: number) => {
+    setActiveMenu(activeMenu === id ? null : id);
+  };
+
+  const handleFilter = (value: string) => {
+    setFilterValue(value);
+    setCurrentPage(1); // Reset to first page when filter changes
+  };
+
+  // Pagination handlers
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  if (loading) return <div>Loading users...</div>;
+  if (error) return <div>Error: {error}</div>;
+
+  return (
+    <div className="relative min-h-screen">
+      <div>
+        <PageBreadcrumb
+          pageTitle={`${categoryLabel} Table`}
+          pagePlacHolder="Filter users by name, mobile, email, city, or state"
+          onFilter={handleFilter}
+        />
+        <div className="space-y-6">
+          <ComponentCard title={`${categoryLabel} Table`}>
+            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+              <div className="max-w-full overflow-x-auto">
+                <Table>
+                  <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+                    <TableRow>
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl.No</TableCell>
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User</TableCell>
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Mobile</TableCell>
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Address</TableCell>
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">City</TableCell>
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">State</TableCell>
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Pincode</TableCell>
+                      {showGstNumber && <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">GST Number</TableCell>}
+                      {showReraNumber && <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">RERA Number</TableCell>}
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Since</TableCell>
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                    {paginatedUsers.map((user) => (
+                      <TableRow key={user.id}>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.id}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">{user.name}</span>
+                              <span className="block text-gray-500 text-theme-xs dark:text-gray-400">{userTypeMap[user.user_type] || "Unknown"}</span>
+                            </div>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.mobile}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.email}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.address}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.city}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.state}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.pincode}</TableCell>
+                        {showGstNumber && <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.gst_number || "N/A"}</TableCell>}
+                        {showReraNumber && <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.rera_number || "N/A"}</TableCell>}
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{formatDate(user.created_date)}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          <span
+                            className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                              user.status === 0
+                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                                : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                            }`}
+                          >
+                            {user.status === 0 ? "Inactive" : "Active"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                          <Button variant="outline" size="sm" onClick={() => toggleMenu(user.id)}>
+                            <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
+                          </Button>
+                          {activeMenu === user.id && (
+                            <div className="absolute right-2 top-10 z-10 w-32 rounded-lg shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                              <div className="py-2">
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => handleEdit(user.id)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => handleDelete(user.id)}
+                                >
+                                  Delete
+                                </button>
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => handleSuspend(user.id)}
+                                >
+                                  {user.status === 0 ? "Activate" : "Suspend"}
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
                     ))}
-                  </div>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
-                  <Badge
+                  </TableBody>
+                </Table>
+              </div>
+            </div>
+
+            {/* Pagination Controls (only show if totalItems > 20) */}
+            {totalItems > 20 && (
+              <div className="flex justify-between items-center mt-4 px-4 py-2">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} entries
+                </div>
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
                     size="sm"
-                    color={
-                      order.status === "Active"
-                        ? "success"
-                        : order.status === "Pending"
-                        ? "warning"
-                        : "error"
-                    }
+                    onClick={goToPreviousPage}
+                    disabled={currentPage === 1}
                   >
-                    {order.status}
-                  </Badge>
-                </TableCell>
-                <TableCell className="px-4 py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {order.budget}
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
+                    Previous
+                  </Button>
+                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
+                    <Button
+                      key={page}
+                      variant="outline"
+                      size="sm"
+                      onClick={() => goToPage(page)}
+                    >
+                      {page}
+                    </Button>
+                  ))}
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={goToNextPage}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
+              </div>
+            )}
+          </ComponentCard>
+        </div>
       </div>
     </div>
   );

@@ -7,7 +7,7 @@ interface PropertyLocationFieldsProps {
     city: string;
     propertyName: string;
     locality: string;
-    flatNo: string;
+    flatNo: string; // This will represent either Flat No. or Plot No. based on isPlot
     floorNo: string;
     totalFloors: string;
   };
@@ -15,17 +15,19 @@ interface PropertyLocationFieldsProps {
     city: string;
     propertyName: string;
     locality: string;
-    flatNo: string;
+    flatNo: string; // This will represent errors for either Flat No. or Plot No.
     floorNo: string;
     totalFloors: string;
   };
   handleInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
+  isPlot: boolean; // Added isPlot prop to determine if it's a Plot/Land type
 }
 
 const PropertyLocationFields: React.FC<PropertyLocationFieldsProps> = ({
   formData,
   errors,
   handleInputChange,
+  isPlot,
 }) => {
   return (
     <>
@@ -78,16 +80,16 @@ const PropertyLocationFields: React.FC<PropertyLocationFieldsProps> = ({
         )}
       </div>
 
-      {/* Flat No. */}
+      {/* Flat No. or Plot No. based on isPlot */}
       <div>
-        <Label htmlFor="flatNo">Flat No. *</Label>
+        <Label htmlFor="flatNo">{isPlot ? "Plot No. *" : "Flat No. *"}</Label>
         <Input
           type="text"
           id="flatNo"
-          name="flatNo"
-          value={formData.flatNo}
+          name={isPlot ? "plotNumber" : "flatNo"} // Use appropriate name based on isPlot
+          value={formData.flatNo} // Value remains the same, just the label and name change
           onChange={handleInputChange}
-          placeholder="Enter flat number"
+          placeholder={isPlot ? "Enter plot number" : "Enter flat number"}
           className="dark:bg-dark-900"
         />
         {errors.flatNo && (
@@ -95,39 +97,43 @@ const PropertyLocationFields: React.FC<PropertyLocationFieldsProps> = ({
         )}
       </div>
 
-      {/* Floor No. */}
-      <div>
-        <Label htmlFor="floorNo">Floor No. *</Label>
-        <Input
-          type="number"
-          id="floorNo"
-          name="floorNo"
-          value={formData.floorNo}
-          onChange={handleInputChange}
-          placeholder="Enter floor number"
-          className="dark:bg-dark-900"
-        />
-        {errors.floorNo && (
-          <p className="text-red-500 text-sm mt-1">{errors.floorNo}</p>
-        )}
-      </div>
+      {/* Floor No. - Hidden for Plot/Land */}
+      {!isPlot && (
+        <div>
+          <Label htmlFor="floorNo">Floor No. *</Label>
+          <Input
+            type="number"
+            id="floorNo"
+            name="floorNo"
+            value={formData.floorNo}
+            onChange={handleInputChange}
+            placeholder="Enter floor number"
+            className="dark:bg-dark-900"
+          />
+          {errors.floorNo && (
+            <p className="text-red-500 text-sm mt-1">{errors.floorNo}</p>
+          )}
+        </div>
+      )}
 
-      {/* Total Floors */}
-      <div>
-        <Label htmlFor="totalFloors">Total Floors *</Label>
-        <Input
-          type="number"
-          id="totalFloors"
-          name="totalFloors"
-          value={formData.totalFloors}
-          onChange={handleInputChange}
-          placeholder="Enter total floors"
-          className="dark:bg-dark-900"
-        />
-        {errors.totalFloors && (
-          <p className="text-red-500 text-sm mt-1">{errors.totalFloors}</p>
-        )}
-      </div>
+      {/* Total Floors - Hidden for Plot/Land */}
+      {!isPlot && (
+        <div>
+          <Label htmlFor="totalFloors">Total Floors *</Label>
+          <Input
+            type="number"
+            id="totalFloors"
+            name="totalFloors"
+            value={formData.totalFloors}
+            onChange={handleInputChange}
+            placeholder="Enter total floors"
+            className="dark:bg-dark-900"
+          />
+          {errors.totalFloors && (
+            <p className="text-red-500 text-sm mt-1">{errors.totalFloors}</p>
+          )}
+        </div>
+      )}
     </>
   );
 };

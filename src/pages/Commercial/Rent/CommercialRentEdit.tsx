@@ -1,4 +1,5 @@
 import { useState, ChangeEvent, FormEvent } from "react";
+import { useLocation } from "react-router";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Label from "../../../components/form/Label";
 import Input from "../../../components/form/input/InputField";
@@ -32,7 +33,7 @@ interface CommercialRentFormData {
   maintenanceCharge: string;
   securityDeposit: string;
   lockInPeriod: string;
-  chargeBrokerage: "None" | "15 Days" | "30 Days"; // Updated type
+  chargeBrokerage: "None" | "15 Days" | "30 Days";
   areaUnits: "Sq.ft" | "Sq.yd" | "Acres";
   builtUpArea: string;
   carpetArea: string;
@@ -42,6 +43,7 @@ interface CommercialRentFormData {
   widthArea: string;
   facilities: string[];
   flatNo: string;
+  plotNumber: string;
   zoneType: "Industrial" | "Commercial" | "Special Economic Zone" | "Open Spaces" | "Agricultural Zone" | "Other";
   suitable: "Jewellery" | "Grocery" | "Clinic" | "Footwear" | "Electronics" | "Clothing" | "Others";
   facing: "East" | "West" | "South" | "North" | "";
@@ -69,51 +71,138 @@ interface SelectOption {
 }
 
 const CommercialRentEdit: React.FC = () => {
-  const [formData, setFormData] = useState<CommercialRentFormData>({
-    propertyType: "Commercial",
-    lookingTo: "Rent",
-    location: "",
-    propertySubType: "Office",
-    passengerLifts: "",
-    serviceLifts: "",
-    stairCases: "",
-    privateParking: "",
-    publicParking: "",
-    privateWashrooms: "",
-    publicWashrooms: "",
-    availableFrom: "",
-    monthlyRent: "",
-    maintenanceCharge: "",
-    securityDeposit: "",
-    lockInPeriod: "",
-    chargeBrokerage: "None", // Updated to match new options
-    areaUnits: "Sq.ft",
-    builtUpArea: "",
-    carpetArea: "",
-    totalProjectArea: "",
-    plotArea: "",
-    lengthArea: "",
-    widthArea: "",
-    facilities: [],
-    flatNo: "",
-    zoneType: "Commercial",
-    suitable: "Others",
-    facing: "",
-    carParking: "0",
-    bikeParking: "0",
-    openParking: "0",
-    aroundProperty: [],
-    pantryRoom: "No",
-    propertyDescription: "",
-    city: "",
-    propertyName: "",
-    locality: "",
-    floorNo: "",
-    totalFloors: "",
-    photos: [],
-    video: null,
-    floorPlan: null,
-    featuredImageIndex: null,
+  const location = useLocation();
+  const property = location.state?.property;
+
+  const [formData, setFormData] = useState<CommercialRentFormData>(() => {
+    if (property) {
+      const availableFromDate = property.available_from
+        ? new Date(property.available_from).toISOString().split("T")[0]
+        : "";
+      // Convert parking values > 4 to "4+"
+      const carParkingValue = property.car_parking
+        ? parseInt(property.car_parking) > 4
+          ? "4+"
+          : String(property.car_parking)
+        : "0";
+      const bikeParkingValue = property.bike_parking
+        ? parseInt(property.bike_parking) > 4
+          ? "4+"
+          : String(property.bike_parking)
+        : "0";
+      const openParkingValue = property.open_parking
+        ? parseInt(property.open_parking) > 4
+          ? "4+"
+          : String(property.open_parking)
+        : "0";
+        const securityDepositValue = property.security_deposit
+        ? `${parseInt(property.security_deposit)} Months`
+        : "";
+      // Normalize brokerage_charge (e.g., "30.00" -> "30 Days")
+      const chargeBrokerageValue = property.brokerage_charge
+        ? `${parseInt(property.brokerage_charge)} Days`
+        : "None";
+        const lockInPeriodValue = property.lock_in
+        ? parseInt(property.lock_in) === 1
+          ? "1 Month"
+          : `${parseInt(property.lock_in)} Months`
+        : "";
+
+      return {
+        propertyType: property.property_in || "Commercial",
+        lookingTo: property.property_for || "Rent",
+        location: property.google_address || "",
+        propertySubType: property.sub_type || "Others",
+        passengerLifts: property.passenger_lifts ? String(property.passenger_lifts) : "",
+        serviceLifts: property.service_lifts ? String(property.service_lifts) : "",
+        stairCases: property.stair_cases ? String(property.stair_cases) : "",
+        privateParking: property.private_parking ? String(property.private_parking) : "",
+        publicParking: property.public_parking ? String(property.public_parking) : "",
+        privateWashrooms: property.private_washrooms ? String(property.private_washrooms) : "",
+        publicWashrooms: property.public_washrooms ? String(property.public_washrooms) : "",
+        availableFrom: availableFromDate,
+        monthlyRent: property.monthly_rent ? String(property.monthly_rent) : "",
+        maintenanceCharge: property.maintenance ? String(property.maintenance) : "",
+        securityDeposit: securityDepositValue,
+        lockInPeriod: lockInPeriodValue,
+        chargeBrokerage: chargeBrokerageValue as "None" | "15 Days" | "30 Days",
+        areaUnits: property.area_units || "Sq.ft",
+        builtUpArea: property.builtup_area ? String(property.builtup_area) : "",
+        carpetArea: property.carpet_area ? String(property.carpet_area) : "",
+        totalProjectArea: property.total_project_area ? String(property.total_project_area) : "",
+        plotArea: property.plot_area ? String(property.plot_area) : "",
+        lengthArea: property.length_area ? String(property.length_area) : "",
+        widthArea: property.width_area ? String(property.width_area) : "",
+        facilities: property.facilities ? property.facilities.split(", ") : [],
+        flatNo: property.unit_flat_house_no || "",
+        plotNumber: property.plot_number || "",
+        zoneType: property.zone_types || "Commercial",
+        suitable: property.business_types || "Others",
+        facing: property.facing || "",
+        carParking: carParkingValue as "0" | "1" | "2" | "3" | "4+",
+        bikeParking: bikeParkingValue as "0" | "1" | "2" | "3" | "4+",
+        openParking: openParkingValue as "0" | "1" | "2" | "3" | "4+",
+        aroundProperty: [], // You might need to map this if available in response
+        pantryRoom: property.pantry_room || "No",
+        propertyDescription: property.description || "",
+        city: property.city_id || "",
+        propertyName: property.property_name || "",
+        locality: property.location_id || "",
+        floorNo: property.floors || "",
+        totalFloors: property.total_floors || "",
+        photos: [], // Files need to be handled separately
+        video: null,
+        floorPlan: null,
+        featuredImageIndex: null,
+      };
+    }
+    return {
+      propertyType: "Commercial",
+      lookingTo: "Rent",
+      location: "",
+      propertySubType: "Office",
+      passengerLifts: "",
+      serviceLifts: "",
+      stairCases: "",
+      privateParking: "",
+      publicParking: "",
+      privateWashrooms: "",
+      publicWashrooms: "",
+      availableFrom: "",
+      monthlyRent: "",
+      maintenanceCharge: "",
+      securityDeposit: "",
+      lockInPeriod: "",
+      chargeBrokerage: "None",
+      areaUnits: "Sq.ft",
+      builtUpArea: "",
+      carpetArea: "",
+      totalProjectArea: "",
+      plotArea: "",
+      lengthArea: "",
+      widthArea: "",
+      facilities: [],
+      flatNo: "",
+      plotNumber: "",
+      zoneType: "Commercial",
+      suitable: "Others",
+      facing: "",
+      carParking: "0",
+      bikeParking: "0",
+      openParking: "0",
+      aroundProperty: [],
+      pantryRoom: "No",
+      propertyDescription: "",
+      city: "",
+      propertyName: "",
+      locality: "",
+      floorNo: "",
+      totalFloors: "",
+      photos: [],
+      video: null,
+      floorPlan: null,
+      featuredImageIndex: null,
+    };
   });
 
   const [errors, setErrors] = useState({
@@ -140,6 +229,7 @@ const CommercialRentEdit: React.FC = () => {
     lengthArea: "",
     widthArea: "",
     flatNo: "",
+    plotNumber: "",
     zoneType: "",
     suitable: "",
     aroundProperty: "",
@@ -248,195 +338,101 @@ const CommercialRentEdit: React.FC = () => {
   ];
 
   const facilitiesOptions: string[] = [
-    "Lift",
-    "CCTV",
-    "Gym",
-    "Garden",
-    "Club House",
-    "Sports",
-    "Swimming Pool",
-    "Intercom",
-    "Power Backup",
-    "Gated Community",
-    "Regular Water",
-    "Community Hall",
-    "Pet Allowed",
-    "Entry / Exit",
-    "Outdoor Fitness Station",
-    "Half Basket Ball Court",
-    "Gazebo",
-    "Badminton Court",
-    "Children Play Area",
-    "Ample Greenery",
-    "Water Harvesting Pit",
-    "Water Softner",
-    "Solar Fencing",
-    "Security Cabin",
-    "Lawn",
-    "Transformer Yard",
-    "Amphitheatre",
-    "Lawn with Stepping Stones",
-    "None",
+    "Lift", "CCTV", "Gym", "Garden", "Club House", "Sports", "Swimming Pool",
+    "Intercom", "Power Backup", "Gated Community", "Regular Water", "Community Hall",
+    "Pet Allowed", "Entry / Exit", "Outdoor Fitness Station", "Half Basket Ball Court",
+    "Gazebo", "Badminton Court", "Children Play Area", "Ample Greenery",
+    "Water Harvesting Pit", "Water Softner", "Solar Fencing", "Security Cabin",
+    "Lawn", "Transformer Yard", "Amphitheatre", "Lawn with Stepping Stones", "None",
   ];
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Validation for address details
     if (name === "city") {
-      if (!value) {
-        setErrors((prev) => ({ ...prev, city: "City is required" }));
-      } else {
-        setErrors((prev) => ({ ...prev, city: "" }));
-      }
+      setErrors((prev) => ({ ...prev, city: !value ? "City is required" : "" }));
     }
 
     if (name === "propertyName") {
-      if (!value) {
-        setErrors((prev) => ({ ...prev, propertyName: "Property name is required" }));
-      } else {
-        setErrors((prev) => ({ ...prev, propertyName: "" }));
-      }
+      setErrors((prev) => ({ ...prev, propertyName: !value ? "Property name is required" : "" }));
     }
 
     if (name === "locality") {
-      if (!value) {
-        setErrors((prev) => ({ ...prev, locality: "Locality is required" }));
-      } else {
-        setErrors((prev) => ({ ...prev, locality: "" }));
-      }
+      setErrors((prev) => ({ ...prev, locality: !value ? "Locality is required" : "" }));
     }
 
     if (name === "flatNo") {
-      if (!value) {
-        setErrors((prev) => ({ ...prev, flatNo: "Flat number is required" }));
-      } else {
-        setErrors((prev) => ({ ...prev, flatNo: "" }));
-      }
+      setErrors((prev) => ({ ...prev, flatNo: !value ? "Flat number is required" : "" }));
+
+    }
+
+    if (name === "plotNumber") {
+      setErrors((prev) => ({ ...prev, plotNumber: !value ? "Plot number is required" : "" }));
     }
 
     if (name === "floorNo") {
-      if (!value) {
-        setErrors((prev) => ({ ...prev, floorNo: "Floor number is required" }));
-      } else {
-        setErrors((prev) => ({ ...prev, floorNo: "" }));
-      }
+      setErrors((prev) => ({ ...prev, floorNo: !value ? "Floor number is required" : "" }));
     }
 
     if (name === "totalFloors") {
-      if (!value) {
-        setErrors((prev) => ({ ...prev, totalFloors: "Total floors is required" }));
-      } else {
-        setErrors((prev) => ({ ...prev, totalFloors: "" }));
-      }
+      setErrors((prev) => ({ ...prev, totalFloors: !value ? "Total floors is required" : "" }));
     }
 
-    // Validation for Built-up Area
     if (name === "builtUpArea") {
-      if (!value) {
-        setErrors((prev) => ({
-          ...prev,
-          builtUpArea: "Built-up area is required",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, builtUpArea: "" }));
-      }
+      setErrors((prev) => ({ ...prev, builtUpArea: !value ? "Built-up area is required" : "" }));
     }
 
-    // Validation for Total Project Area
     if (name === "totalProjectArea") {
-      if (!value) {
-        setErrors((prev) => ({
-          ...prev,
-          totalProjectArea: "Total project area is required",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, totalProjectArea: "" }));
-      }
+      setErrors((prev) => ({ ...prev, totalProjectArea: !value ? "Total project area is required" : "" }));
     }
 
-    // Validation for Monthly Rent
     if (name === "monthlyRent") {
-      if (!value) {
-        setErrors((prev) => ({
-          ...prev,
-          monthlyRent: "Monthly rent is required",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, monthlyRent: "" }));
-      }
+      setErrors((prev) => ({ ...prev, monthlyRent: !value ? "Monthly rent is required" : "" }));
     }
 
-    // Validation for Property Description
     if (name === "propertyDescription") {
-      if (!value) {
-        setErrors((prev) => ({
-          ...prev,
-          propertyDescription: "Property description is required",
-        }));
-      } else {
-        setErrors((prev) => ({ ...prev, propertyDescription: "" }));
-      }
+      setErrors((prev) => ({ ...prev, propertyDescription: !value ? "Property description is required" : "" }));
     }
   };
 
   const handleSelectChange = (name: keyof CommercialRentFormData) => (value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
 
-    // Validation for required select fields
-    if (name === "propertyType" && !value) {
-      setErrors((prev) => ({ ...prev, propertyType: "Property type is required" }));
-    } else if (name === "propertyType") {
-      setErrors((prev) => ({ ...prev, propertyType: "" }));
+    if (name === "propertyType") {
+      setErrors((prev) => ({ ...prev, propertyType: !value ? "Property type is required" : "" }));
     }
 
-    if (name === "lookingTo" && !value) {
-      setErrors((prev) => ({ ...prev, lookingTo: "Looking to is required" }));
-    } else if (name === "lookingTo") {
-      setErrors((prev) => ({ ...prev, lookingTo: "" }));
+    if (name === "lookingTo") {
+      setErrors((prev) => ({ ...prev, lookingTo: !value ? "Looking to is required" : "" }));
     }
 
-    if (name === "propertySubType" && !value) {
-      setErrors((prev) => ({ ...prev, propertySubType: "Property sub type is required" }));
-    } else if (name === "propertySubType") {
-      setErrors((prev) => ({ ...prev, propertySubType: "" }));
+    if (name === "propertySubType") {
+      setErrors((prev) => ({ ...prev, propertySubType: !value ? "Property sub type is required" : "" }));
     }
 
-    if (name === "zoneType" && !value) {
-      setErrors((prev) => ({ ...prev, zoneType: "Zone type is required" }));
-    } else if (name === "zoneType") {
-      setErrors((prev) => ({ ...prev, zoneType: "" }));
+    if (name === "zoneType") {
+      setErrors((prev) => ({ ...prev, zoneType: !value ? "Zone type is required" : "" }));
     }
 
-    if (name === "suitable" && !value) {
-      setErrors((prev) => ({ ...prev, suitable: "Suitable for is required" }));
-    } else if (name === "suitable") {
-      setErrors((prev) => ({ ...prev, suitable: "" }));
+    if (name === "suitable") {
+      setErrors((prev) => ({ ...prev, suitable: !value ? "Suitable for is required" : "" }));
     }
 
-    if (name === "securityDeposit" && !value) {
-      setErrors((prev) => ({ ...prev, securityDeposit: "Security deposit is required" }));
-    } else if (name === "securityDeposit") {
-      setErrors((prev) => ({ ...prev, securityDeposit: "" }));
+    if (name === "securityDeposit") {
+      setErrors((prev) => ({ ...prev, securityDeposit: !value ? "Security deposit is required" : "" }));
     }
 
-    if (name === "lockInPeriod" && !value) {
-      setErrors((prev) => ({ ...prev, lockInPeriod: "Lock in period is required" }));
-    } else if (name === "lockInPeriod") {
-      setErrors((prev) => ({ ...prev, lockInPeriod: "" }));
+    if (name === "lockInPeriod") {
+      setErrors((prev) => ({ ...prev, lockInPeriod: !value ? "Lock in period is required" : "" }));
     }
 
-    if (name === "chargeBrokerage" && !value) {
-      setErrors((prev) => ({ ...prev, chargeBrokerage: "Brokerage charge is required" }));
-    } else if (name === "chargeBrokerage") {
-      setErrors((prev) => ({ ...prev, chargeBrokerage: "" }));
+    if (name === "chargeBrokerage") {
+      setErrors((prev) => ({ ...prev, chargeBrokerage: !value ? "Brokerage charge is required" : "" }));
     }
 
-    if (name === "pantryRoom" && !value) {
-      setErrors((prev) => ({ ...prev, pantryRoom: "Pantry room is required" }));
-    } else if (name === "pantryRoom") {
-      setErrors((prev) => ({ ...prev, pantryRoom: "" }));
+    if (name === "pantryRoom") {
+      setErrors((prev) => ({ ...prev, pantryRoom: !value ? "Pantry room is required" : "" }));
     }
   };
 
@@ -453,237 +449,73 @@ const CommercialRentEdit: React.FC = () => {
     if (placeAroundProperty && distanceFromProperty) {
       setFormData((prev) => ({
         ...prev,
-        aroundProperty: [
-          ...prev.aroundProperty,
-          { place: placeAroundProperty, distance: distanceFromProperty },
-        ],
+        aroundProperty: [...prev.aroundProperty, { place: placeAroundProperty, distance: distanceFromProperty }],
       }));
       setPlaceAroundProperty("");
       setDistanceFromProperty("");
       setErrors((prev) => ({ ...prev, aroundProperty: "" }));
     } else {
-      setErrors((prev) => ({
-        ...prev,
-        aroundProperty: "Both place and distance are required",
-      }));
+      setErrors((prev) => ({ ...prev, aroundProperty: "Both place and distance are required" }));
     }
   };
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-
-    // Validate all required fields before submission
     const newErrors: any = {};
 
-    if (!formData.propertyType) {
-      newErrors.propertyType = "Property type is required";
+    if (!formData.propertyType) newErrors.propertyType = "Property type is required";
+    if (!formData.lookingTo) newErrors.lookingTo = "Looking to is required";
+    if (!formData.propertySubType) newErrors.propertySubType = "Property sub type is required";
+
+    if (["Office", "Retail Shop", "Show Room"].includes(formData.propertySubType)) {
+      if (!formData.passengerLifts) newErrors.passengerLifts = "Passenger lifts are required";
+      if (!formData.serviceLifts) newErrors.serviceLifts = "Service lifts are required";
+      if (!formData.stairCases) newErrors.stairCases = "Stair cases are required";
+      if (!formData.privateParking) newErrors.privateParking = "Private parking is required";
+      if (!formData.publicParking) newErrors.publicParking = "Public parking is required";
+      if (!formData.privateWashrooms) newErrors.privateWashrooms = "Private washrooms are required";
+      if (!formData.publicWashrooms) newErrors.publicWashrooms = "Public washrooms are required";
+      if (!formData.builtUpArea) newErrors.builtUpArea = "Built-up area is required";
     }
-    if (!formData.lookingTo) {
-      newErrors.lookingTo = "Looking to is required";
-    }
-    if (!formData.propertySubType) {
-      newErrors.propertySubType = "Property sub type is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room") &&
-      !formData.passengerLifts
-    ) {
-      newErrors.passengerLifts = "Passenger lifts are required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room") &&
-      !formData.serviceLifts
-    ) {
-      newErrors.serviceLifts = "Service lifts are required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room") &&
-      !formData.stairCases
-    ) {
-      newErrors.stairCases = "Stair cases are required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room") &&
-      !formData.privateParking
-    ) {
-      newErrors.privateParking = "Private parking is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room") &&
-      !formData.publicParking
-    ) {
-      newErrors.publicParking = "Public parking is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room") &&
-      !formData.privateWashrooms
-    ) {
-      newErrors.privateWashrooms = "Private washrooms are required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room") &&
-      !formData.publicWashrooms
-    ) {
-      newErrors.publicWashrooms = "Public washrooms are required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room" ||
-        formData.propertySubType === "Warehouse" ||
-        formData.propertySubType === "Plot" ||
-        formData.propertySubType === "Others") &&
-      !formData.availableFrom
-    ) {
-      newErrors.availableFrom = "Available from date is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room" ||
-        formData.propertySubType === "Warehouse" ||
-        formData.propertySubType === "Plot" ||
-        formData.propertySubType === "Others") &&
-      !formData.monthlyRent
-    ) {
-      newErrors.monthlyRent = "Monthly rent is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room" ||
-        formData.propertySubType === "Warehouse" ||
-        formData.propertySubType === "Plot" ||
-        formData.propertySubType === "Others") &&
-      !formData.securityDeposit
-    ) {
-      newErrors.securityDeposit = "Security deposit is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room" ||
-        formData.propertySubType === "Warehouse" ||
-        formData.propertySubType === "Plot" ||
-        formData.propertySubType === "Others") &&
-      !formData.lockInPeriod
-    ) {
-      newErrors.lockInPeriod = "Lock in period is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room" ||
-        formData.propertySubType === "Warehouse" ||
-        formData.propertySubType === "Plot" ||
-        formData.propertySubType === "Others") &&
-      !formData.chargeBrokerage
-    ) {
-      newErrors.chargeBrokerage = "Brokerage charge is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room") &&
-      !formData.builtUpArea
-    ) {
-      newErrors.builtUpArea = "Built-up area is required";
-    }
-    if (
-      (formData.propertySubType === "Warehouse" ||
-        formData.propertySubType === "Plot" ||
-        formData.propertySubType === "Others") &&
-      !formData.plotArea
-    ) {
+
+    if (["Warehouse", "Plot", "Others"].includes(formData.propertySubType) && !formData.plotArea) {
       newErrors.plotArea = "Plot area is required";
     }
-    if (formData.propertySubType === "Plot" && !formData.lengthArea) {
-      newErrors.lengthArea = "Length area is required";
+
+    if (formData.propertySubType === "Plot") {
+      if (!formData.lengthArea) newErrors.lengthArea = "Length area is required";
+      if (!formData.widthArea) newErrors.widthArea = "Width area is required";
     }
-    if (formData.propertySubType === "Plot" && !formData.widthArea) {
-      newErrors.widthArea = "Width area is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room" ||
-        formData.propertySubType === "Warehouse" ||
-        formData.propertySubType === "Plot" ||
-        formData.propertySubType === "Others") &&
-      !formData.totalProjectArea
-    ) {
-      newErrors.totalProjectArea = "Total project area is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room" ||
-        formData.propertySubType === "Warehouse" ||
-        formData.propertySubType === "Plot" ||
-        formData.propertySubType === "Others") &&
-      !formData.flatNo
-    ) {
-      newErrors.flatNo = "Flat number is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Warehouse") &&
-      !formData.zoneType
-    ) {
+
+    if (!formData.availableFrom) newErrors.availableFrom = "Available from date is required";
+    if (!formData.monthlyRent) newErrors.monthlyRent = "Monthly rent is required";
+    if (!formData.securityDeposit) newErrors.securityDeposit = "Security deposit is required";
+    if (!formData.lockInPeriod) newErrors.lockInPeriod = "Lock in period is required";
+    if (!formData.chargeBrokerage) newErrors.chargeBrokerage = "Brokerage charge is required";
+    if (!formData.totalProjectArea) newErrors.totalProjectArea = "Total project area is required";
+    if (!formData.flatNo) newErrors.flatNo = "Flat number is required";
+
+    if (["Office", "Warehouse"].includes(formData.propertySubType) && !formData.zoneType) {
       newErrors.zoneType = "Zone type is required";
     }
-    if (
-      (formData.propertySubType === "Retail Shop" ||
-        formData.propertySubType === "Show Room" ||
-        formData.propertySubType === "Plot" ||
-        formData.propertySubType === "Others") &&
-      !formData.suitable
-    ) {
+
+    if (["Retail Shop", "Show Room", "Plot", "Others"].includes(formData.propertySubType) && !formData.suitable) {
       newErrors.suitable = "Suitable for is required";
     }
-    if (formData.aroundProperty.length === 0) {
-      newErrors.aroundProperty = "At least one place around property is required";
-    }
-    if (
-      (formData.propertySubType === "Office" ||
-        formData.propertySubType === "Show Room" ||
-        formData.propertySubType === "Others") &&
-      !formData.pantryRoom
-    ) {
+
+    if (formData.aroundProperty.length === 0) newErrors.aroundProperty = "At least one place around property is required";
+
+    if (["Office", "Show Room", "Others"].includes(formData.propertySubType) && !formData.pantryRoom) {
       newErrors.pantryRoom = "Pantry room is required";
     }
-    if (!formData.propertyDescription) {
-      newErrors.propertyDescription = "Property description is required";
-    }
-    if (!formData.city) {
-      newErrors.city = "City is required";
-    }
-    if (!formData.propertyName) {
-      newErrors.propertyName = "Property name is required";
-    }
-    if (!formData.locality) {
-      newErrors.locality = "Locality is required";
-    }
-    if (!formData.floorNo) {
-      newErrors.floorNo = "Floor number is required";
-    }
-    if (!formData.totalFloors) {
-      newErrors.totalFloors = "Total floors is required";
-    }
+
+    if (!formData.propertyDescription) newErrors.propertyDescription = "Property description is required";
+    if (!formData.city) newErrors.city = "City is required";
+    if (!formData.propertyName) newErrors.propertyName = "Property name is required";
+    if (!formData.locality) newErrors.locality = "Locality is required";
+    if (!formData.floorNo) newErrors.floorNo = "Floor number is required";
+    if (!formData.totalFloors) newErrors.totalFloors = "Total floors is required";
+
     if (formData.photos.length === 0) {
       newErrors.photos = "At least one photo is required";
     } else if (formData.photos.length < 5) {
@@ -694,17 +526,11 @@ const CommercialRentEdit: React.FC = () => {
       newErrors.featuredImage = "You must select a featured image when 5 photos are uploaded";
     }
 
-    if (!formData.video) {
-      newErrors.video = "Video upload is required";
-    }
-
-    if (!formData.floorPlan) {
-      newErrors.floorPlan = "Floor plan upload is required";
-    }
+    if (!formData.video) newErrors.video = "Video upload is required";
+    if (!formData.floorPlan) newErrors.floorPlan = "Floor plan upload is required";
 
     setErrors((prev) => ({ ...prev, ...newErrors }));
 
-    // If there are no errors, proceed with submission
     if (Object.values(newErrors).every((error) => !error)) {
       console.log("Form Data:", formData);
       // Add your form submission logic here (e.g., API call)
@@ -712,16 +538,13 @@ const CommercialRentEdit: React.FC = () => {
   };
 
   const areaUnitLabel = formData.areaUnits || "Sq.ft";
-
-  // Check if the form should render the specific fields (Commercial -> Rent)
   const shouldRenderFields = formData.propertyType === "Commercial" && formData.lookingTo === "Rent";
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-2 sm:px-6 lg:px-8">
-      <PageBreadcrumb pageTitle="Commercial Rent Review" pagePlacHolder="Filter listings" />
-      <ComponentCard title="Add Basic Details">
+      <PageBreadcrumb pageTitle="Commercial Rent Edit" pagePlacHolder="Edit property details" />
+      <ComponentCard title="Edit Basic Details">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Property Type */}
           <div>
             <Label htmlFor="propertyType">Property Type *</Label>
             <div className="flex space-x-4">
@@ -740,12 +563,9 @@ const CommercialRentEdit: React.FC = () => {
                 </button>
               ))}
             </div>
-            {errors.propertyType && (
-              <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>
-            )}
+            {errors.propertyType && <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>}
           </div>
 
-          {/* Looking to */}
           <div>
             <Label htmlFor="lookingTo">Looking to *</Label>
             <div className="flex space-x-4">
@@ -764,12 +584,9 @@ const CommercialRentEdit: React.FC = () => {
                 </button>
               ))}
             </div>
-            {errors.lookingTo && (
-              <p className="text-red-500 text-sm mt-1">{errors.lookingTo}</p>
-            )}
+            {errors.lookingTo && <p className="text-red-500 text-sm mt-1">{errors.lookingTo}</p>}
           </div>
 
-          {/* Location */}
           <div>
             <Label htmlFor="location">Search location</Label>
             <Input
@@ -783,7 +600,6 @@ const CommercialRentEdit: React.FC = () => {
             />
           </div>
 
-          {/* Property Sub Type */}
           <div>
             <Label htmlFor="propertySubType">Property Sub Type *</Label>
             <div className="flex space-x-4">
@@ -802,22 +618,16 @@ const CommercialRentEdit: React.FC = () => {
                 </button>
               ))}
             </div>
-            {errors.propertySubType && (
-              <p className="text-red-500 text-sm mt-1">{errors.propertySubType}</p>
-            )}
+            {errors.propertySubType && <p className="text-red-500 text-sm mt-1">{errors.propertySubType}</p>}
           </div>
 
-          {/* Conditionally Render Fields Based on Property Sub Type */}
           {shouldRenderFields && (
             <>
-              {/* Lift & Stair Cases (Office, Retail Shop, Show Room) */}
               {(formData.propertySubType === "Office" ||
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                    Lift & Stair Cases
-                  </h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Lift & Stair Cases</h3>
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="passengerLifts">Passenger Lifts *</Label>
@@ -828,12 +638,9 @@ const CommercialRentEdit: React.FC = () => {
                         value={formData.passengerLifts}
                         onChange={handleInputChange}
                         placeholder="Enter passenger lifts"
-                        className="dark:bg-dark-900 no-spinner"
-                        min="0"
+                        className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      {errors.passengerLifts && (
-                        <p className="text-red-500 text-sm mt-1">{errors.passengerLifts}</p>
-                      )}
+                      {errors.passengerLifts && <p className="text-red-500 text-sm mt-1">{errors.passengerLifts}</p>}
                     </div>
                     <div>
                       <Label htmlFor="serviceLifts">Service Lifts *</Label>
@@ -844,12 +651,9 @@ const CommercialRentEdit: React.FC = () => {
                         value={formData.serviceLifts}
                         onChange={handleInputChange}
                         placeholder="Enter service lifts"
-                        className="dark:bg-dark-900 no-spinner"
-                        min="0"
+                        className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      {errors.serviceLifts && (
-                        <p className="text-red-500 text-sm mt-1">{errors.serviceLifts}</p>
-                      )}
+                      {errors.serviceLifts && <p className="text-red-500 text-sm mt-1">{errors.serviceLifts}</p>}
                     </div>
                     <div>
                       <Label htmlFor="stairCases">Stair Cases *</Label>
@@ -860,25 +664,19 @@ const CommercialRentEdit: React.FC = () => {
                         value={formData.stairCases}
                         onChange={handleInputChange}
                         placeholder="Enter stair cases"
-                        className="dark:bg-dark-900 no-spinner"
-                        min="0"
+                        className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      {errors.stairCases && (
-                        <p className="text-red-500 text-sm mt-1">{errors.stairCases}</p>
-                      )}
+                      {errors.stairCases && <p className="text-red-500 text-sm mt-1">{errors.stairCases}</p>}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Parking (Office, Retail Shop, Show Room) */}
               {(formData.propertySubType === "Office" ||
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                    Parking
-                  </h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Parking</h3>
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="privateParking">Private Parking *</Label>
@@ -889,12 +687,9 @@ const CommercialRentEdit: React.FC = () => {
                         value={formData.privateParking}
                         onChange={handleInputChange}
                         placeholder="Enter private parking"
-                        className="dark:bg-dark-900 no-spinner"
-                        min="0"
+                        className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      {errors.privateParking && (
-                        <p className="text-red-500 text-sm mt-1">{errors.privateParking}</p>
-                      )}
+                      {errors.privateParking && <p className="text-red-500 text-sm mt-1">{errors.privateParking}</p>}
                     </div>
                     <div>
                       <Label htmlFor="publicParking">Public Parking *</Label>
@@ -905,25 +700,19 @@ const CommercialRentEdit: React.FC = () => {
                         value={formData.publicParking}
                         onChange={handleInputChange}
                         placeholder="Enter public parking"
-                        className="dark:bg-dark-900 no-spinner"
-                        min="0"
+                        className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      {errors.publicParking && (
-                        <p className="text-red-500 text-sm mt-1">{errors.publicParking}</p>
-                      )}
+                      {errors.publicParking && <p className="text-red-500 text-sm mt-1">{errors.publicParking}</p>}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Washrooms (Office, Retail Shop, Show Room) */}
               {(formData.propertySubType === "Office" ||
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                    Washrooms
-                  </h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Washrooms</h3>
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="privateWashrooms">Private Washrooms *</Label>
@@ -934,12 +723,9 @@ const CommercialRentEdit: React.FC = () => {
                         value={formData.privateWashrooms}
                         onChange={handleInputChange}
                         placeholder="Enter private washrooms"
-                        className="dark:bg-dark-900 no-spinner"
-                        min="0"
+                        className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      {errors.privateWashrooms && (
-                        <p className="text-red-500 text-sm mt-1">{errors.privateWashrooms}</p>
-                      )}
+                      {errors.privateWashrooms && <p className="text-red-500 text-sm mt-1">{errors.privateWashrooms}</p>}
                     </div>
                     <div>
                       <Label htmlFor="publicWashrooms">Public Washrooms *</Label>
@@ -950,46 +736,29 @@ const CommercialRentEdit: React.FC = () => {
                         value={formData.publicWashrooms}
                         onChange={handleInputChange}
                         placeholder="Enter public washrooms"
-                        className="dark:bg-dark-900 no-spinner"
-                        min="0"
+                        className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                       />
-                      {errors.publicWashrooms && (
-                        <p className="text-red-500 text-sm mt-1">{errors.publicWashrooms}</p>
-                      )}
+                      {errors.publicWashrooms && <p className="text-red-500 text-sm mt-1">{errors.publicWashrooms}</p>}
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* Available From (All Sub Types) */}
               <div>
                 <Label htmlFor="availableFrom">Available From *</Label>
                 <DatePicker
                   id="availableFrom"
-                  mode="single"
-                  onChange={(date) => {
-                    const formattedDate = date ? date.toString().split("T")[0] : "";
-                    setFormData((prev) => ({ ...prev, availableFrom: formattedDate }));
-
-                    if (!formattedDate) {
-                      setErrors((prev) => ({
-                        ...prev,
-                        availableFrom: "Available from date is required",
-                      }));
-                    } else {
-                      setErrors((prev) => ({ ...prev, availableFrom: "" }));
-                    }
+                  placeholder="Select available date"
+                  onChange={(selectedDates) => {
+                    const date = selectedDates[0]?.toISOString().split("T")[0] || "";
+                    setFormData((prev) => ({ ...prev, availableFrom: date }));
+                    setErrors((prev) => ({ ...prev, availableFrom: !date ? "Available from date is required" : "" }));
                   }}
-                  defaultDate={formData.availableFrom ? new Date(formData.availableFrom) : ""}
-                  placeholder="Select Available date"
-                  label=""
+                  defaultDate={formData.availableFrom ? new Date(formData.availableFrom) : undefined}
                 />
-                {errors.availableFrom && (
-                  <p className="text-red-500 text-sm mt-1">{errors.availableFrom}</p>
-                )}
+                {errors.availableFrom && <p className="text-red-500 text-sm mt-1">{errors.availableFrom}</p>}
               </div>
 
-              {/* Monthly Rent (All Sub Types) */}
               <div>
                 <Label htmlFor="monthlyRent">Monthly Rent (₹) *</Label>
                 <div className="flex items-center space-x-2">
@@ -1000,16 +769,12 @@ const CommercialRentEdit: React.FC = () => {
                     name="monthlyRent"
                     value={formData.monthlyRent}
                     onChange={handleInputChange}
-                    className="dark:bg-dark-900 no-spinner"
-                    min="0"
+                    className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
                 </div>
-                {errors.monthlyRent && (
-                  <p className="text-red-500 text-sm mt-1">{errors.monthlyRent}</p>
-                )}
+                {errors.monthlyRent && <p className="text-red-500 text-sm mt-1">{errors.monthlyRent}</p>}
               </div>
 
-              {/* Maintenance Charge (All Sub Types) */}
               <div>
                 <Label htmlFor="maintenanceCharge">Maintenance Charge (Per Month)</Label>
                 <Input
@@ -1018,15 +783,10 @@ const CommercialRentEdit: React.FC = () => {
                   name="maintenanceCharge"
                   value={formData.maintenanceCharge}
                   onChange={handleInputChange}
-                  className="dark:bg-dark-900 no-spinner"
-                  min="0"
+                  className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                {errors.maintenanceCharge && (
-                  <p className="text-red-500 text-sm mt-1">{errors.maintenanceCharge}</p>
-                )}
               </div>
 
-              {/* Security Deposit (All Sub Types) */}
               <div>
                 <Label htmlFor="securityDeposit">Security Deposit *</Label>
                 <div className="flex space-x-4">
@@ -1045,12 +805,9 @@ const CommercialRentEdit: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                {errors.securityDeposit && (
-                  <p className="text-red-500 text-sm mt-1">{errors.securityDeposit}</p>
-                )}
+                {errors.securityDeposit && <p className="text-red-500 text-sm mt-1">{errors.securityDeposit}</p>}
               </div>
 
-              {/* Lock In Period (All Sub Types) */}
               <div>
                 <Label htmlFor="lockInPeriod">Lock In Period *</Label>
                 <div className="flex space-x-4">
@@ -1069,12 +826,9 @@ const CommercialRentEdit: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                {errors.lockInPeriod && (
-                  <p className="text-red-500 text-sm mt-1">{errors.lockInPeriod}</p>
-                )}
+                {errors.lockInPeriod && <p className="text-red-500 text-sm mt-1">{errors.lockInPeriod}</p>}
               </div>
 
-              {/* Do you Charge Brokerage? (All Sub Types) */}
               <div>
                 <Label htmlFor="chargeBrokerage">Do you Charge Brokerage? *</Label>
                 <div className="flex space-x-4">
@@ -1093,12 +847,9 @@ const CommercialRentEdit: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                {errors.chargeBrokerage && (
-                  <p className="text-red-500 text-sm mt-1">{errors.chargeBrokerage}</p>
-                )}
+                {errors.chargeBrokerage && <p className="text-red-500 text-sm mt-1">{errors.chargeBrokerage}</p>}
               </div>
 
-              {/* Area Units (All Sub Types) */}
               <div>
                 <Label htmlFor="areaUnits">Area Units</Label>
                 <Select
@@ -1109,8 +860,8 @@ const CommercialRentEdit: React.FC = () => {
                   className="dark:bg-dark-900"
                 />
               </div>
+              
 
-              {/* Length Area (Plot) */}
               {formData.propertySubType === "Plot" && (
                 <div>
                   <Label htmlFor="lengthArea">Length Area *</Label>
@@ -1121,16 +872,12 @@ const CommercialRentEdit: React.FC = () => {
                     value={formData.lengthArea}
                     onChange={handleInputChange}
                     placeholder="Enter length area"
-                    className="dark:bg-dark-900 no-spinner"
-                    min="0"
+                    className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
-                  {errors.lengthArea && (
-                    <p className="text-red-500 text-sm mt-1">{errors.lengthArea}</p>
-                  )}
+                  {errors.lengthArea && <p className="text-red-500 text-sm mt-1">{errors.lengthArea}</p>}
                 </div>
               )}
 
-              {/* Width Area (Plot) */}
               {formData.propertySubType === "Plot" && (
                 <div>
                   <Label htmlFor="widthArea">Width Area *</Label>
@@ -1141,16 +888,12 @@ const CommercialRentEdit: React.FC = () => {
                     value={formData.widthArea}
                     onChange={handleInputChange}
                     placeholder="Enter width area"
-                    className="dark:bg-dark-900 no-spinner"
-                    min="0"
+                    className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
-                  {errors.widthArea && (
-                    <p className="text-red-500 text-sm mt-1">{errors.widthArea}</p>
-                  )}
+                  {errors.widthArea && <p className="text-red-500 text-sm mt-1">{errors.widthArea}</p>}
                 </div>
               )}
 
-              {/* Plot Area (Warehouse, Plot, Others) */}
               {(formData.propertySubType === "Warehouse" ||
                 formData.propertySubType === "Plot" ||
                 formData.propertySubType === "Others") && (
@@ -1163,16 +906,12 @@ const CommercialRentEdit: React.FC = () => {
                     value={formData.plotArea}
                     onChange={handleInputChange}
                     placeholder="Enter plot area"
-                    className="dark:bg-dark-900 no-spinner"
-                    min="0"
+                    className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
-                  {errors.plotArea && (
-                    <p className="text-red-500 text-sm mt-1">{errors.plotArea}</p>
-                  )}
+                  {errors.plotArea && <p className="text-red-500 text-sm mt-1">{errors.plotArea}</p>}
                 </div>
               )}
 
-              {/* Built-up Area (Office, Retail Shop, Show Room) */}
               {(formData.propertySubType === "Office" ||
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
@@ -1184,16 +923,12 @@ const CommercialRentEdit: React.FC = () => {
                     name="builtUpArea"
                     value={formData.builtUpArea}
                     onChange={handleInputChange}
-                    className="dark:bg-dark-900 no-spinner"
-                    min="0"
+                    className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
-                  {errors.builtUpArea && (
-                    <p className="text-red-500 text-sm mt-1">{errors.builtUpArea}</p>
-                  )}
+                  {errors.builtUpArea && <p className="text-red-500 text-sm mt-1">{errors.builtUpArea}</p>}
                 </div>
               )}
 
-              {/* Carpet Area (Office, Retail Shop, Show Room) */}
               {(formData.propertySubType === "Office" ||
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
@@ -1205,16 +940,12 @@ const CommercialRentEdit: React.FC = () => {
                     name="carpetArea"
                     value={formData.carpetArea}
                     onChange={handleInputChange}
-                    className="dark:bg-dark-900 no-spinner"
-                    min="0"
+                    className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
-                  {errors.carpetArea && (
-                    <p className="text-red-500 text-sm mt-1">{errors.carpetArea}</p>
-                  )}
+                  {errors.carpetArea && <p className="text-red-500 text-sm mt-1">{errors.carpetArea}</p>}
                 </div>
               )}
 
-              {/* Total Project Area (All Sub Types) */}
               <div>
                 <Label htmlFor="totalProjectArea">Total Project Area (Acres) *</Label>
                 <Input
@@ -1224,15 +955,11 @@ const CommercialRentEdit: React.FC = () => {
                   value={formData.totalProjectArea}
                   onChange={handleInputChange}
                   placeholder="Enter total project area"
-                  className="dark:bg-dark-900 no-spinner"
-                  min="0"
+                  className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                {errors.totalProjectArea && (
-                  <p className="text-red-500 text-sm mt-1">{errors.totalProjectArea}</p>
-                )}
+                {errors.totalProjectArea && <p className="text-red-500 text-sm mt-1">{errors.totalProjectArea}</p>}
               </div>
 
-              {/* Facilities (Office, Retail Shop, Show Room) */}
               {(formData.propertySubType === "Office" ||
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
@@ -1254,7 +981,6 @@ const CommercialRentEdit: React.FC = () => {
                 </div>
               )}
 
-              {/* Flat No (All Sub Types) */}
               <div>
                 <Label htmlFor="flatNo">Flat No. *</Label>
                 <Input
@@ -1266,14 +992,10 @@ const CommercialRentEdit: React.FC = () => {
                   placeholder="Flat Number"
                   className="dark:bg-dark-900"
                 />
-                {errors.flatNo && (
-                  <p className="text-red-500 text-sm mt-1">{errors.flatNo}</p>
-                )}
+                {errors.flatNo && <p className="text-red-500 text-sm mt-1">{errors.flatNo}</p>}
               </div>
 
-              {/* Zone Type (Office, Warehouse) */}
-              {(formData.propertySubType === "Office" ||
-                formData.propertySubType === "Warehouse") && (
+              {(formData.propertySubType === "Office" || formData.propertySubType === "Warehouse") && (
                 <div>
                   <Label htmlFor="zoneType">Zone Type *</Label>
                   <Select
@@ -1283,13 +1005,10 @@ const CommercialRentEdit: React.FC = () => {
                     value={formData.zoneType}
                     className="dark:bg-dark-900"
                   />
-                  {errors.zoneType && (
-                    <p className="text-red-500 text-sm mt-1">{errors.zoneType}</p>
-                  )}
+                  {errors.zoneType && <p className="text-red-500 text-sm mt-1">{errors.zoneType}</p>}
                 </div>
               )}
 
-              {/* Suitable (Retail Shop, Show Room, Plot, Others) */}
               {(formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room" ||
                 formData.propertySubType === "Plot" ||
@@ -1303,19 +1022,13 @@ const CommercialRentEdit: React.FC = () => {
                     value={formData.suitable}
                     className="dark:bg-dark-900"
                   />
-                  {errors.suitable && (
-                    <p className="text-red-500 text-sm mt-1">{errors.suitable}</p>
-                  )}
+                  {errors.suitable && <p className="text-red-500 text-sm mt-1">{errors.suitable}</p>}
                 </div>
               )}
 
-              {/* Additional Details Section (All Sub Types) */}
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-                  Additional Details
-                </h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Additional Details</h3>
 
-                {/* Facing (All Sub Types except Plot) */}
                 {(formData.propertySubType === "Office" ||
                   formData.propertySubType === "Retail Shop" ||
                   formData.propertySubType === "Show Room" ||
@@ -1342,16 +1055,13 @@ const CommercialRentEdit: React.FC = () => {
                   </div>
                 )}
 
-                {/* Car Parking (All Sub Types except Plot) */}
                 {(formData.propertySubType === "Office" ||
                   formData.propertySubType === "Retail Shop" ||
                   formData.propertySubType === "Show Room" ||
                   formData.propertySubType === "Warehouse" ||
                   formData.propertySubType === "Others") && (
                   <div>
-                    <Label htmlFor="carParking" className="mt-2">
-                      Car Parking
-                    </Label>
+                    <Label htmlFor="carParking" className="mt-2">Car Parking</Label>
                     <Select
                       options={carParkingOptions}
                       placeholder="Select car parking"
@@ -1362,16 +1072,13 @@ const CommercialRentEdit: React.FC = () => {
                   </div>
                 )}
 
-                {/* Bike Parking (All Sub Types except Plot) */}
                 {(formData.propertySubType === "Office" ||
                   formData.propertySubType === "Retail Shop" ||
                   formData.propertySubType === "Show Room" ||
                   formData.propertySubType === "Warehouse" ||
                   formData.propertySubType === "Others") && (
                   <div>
-                    <Label htmlFor="bikeParking" className="mt-2">
-                      Bike Parking
-                    </Label>
+                    <Label htmlFor="bikeParking" className="mt-2">Bike Parking</Label>
                     <Select
                       options={bikeParkingOptions}
                       placeholder="Select bike parking"
@@ -1382,16 +1089,13 @@ const CommercialRentEdit: React.FC = () => {
                   </div>
                 )}
 
-                {/* Open Parking (All Sub Types except Plot) */}
                 {(formData.propertySubType === "Office" ||
                   formData.propertySubType === "Retail Shop" ||
                   formData.propertySubType === "Show Room" ||
                   formData.propertySubType === "Warehouse" ||
                   formData.propertySubType === "Others") && (
                   <div>
-                    <Label htmlFor="openParking" className="mt-2">
-                      Open Parking
-                    </Label>
+                    <Label htmlFor="openParking" className="mt-2">Open Parking</Label>
                     <Select
                       options={openParkingOptions}
                       placeholder="Select open parking"
@@ -1402,11 +1106,8 @@ const CommercialRentEdit: React.FC = () => {
                   </div>
                 )}
 
-                {/* Around This Property (All Sub Types) */}
                 <div>
-                  <Label htmlFor="aroundProperty" className="mt-4">
-                    Around This Property *
-                  </Label>
+                  <Label htmlFor="aroundProperty" className="mt-4">Around This Property *</Label>
                   <div className="flex space-x-6 my-4 w-full">
                     <Input
                       type="text"
@@ -1430,9 +1131,7 @@ const CommercialRentEdit: React.FC = () => {
                       Add
                     </button>
                   </div>
-                  {errors.aroundProperty && (
-                    <p className="text-red-500 text-sm mt-1">{errors.aroundProperty}</p>
-                  )}
+                  {errors.aroundProperty && <p className="text-red-500 text-sm mt-1">{errors.aroundProperty}</p>}
                   {formData.aroundProperty.length > 0 && (
                     <div className="mt-4">
                       <ul className="space-y-2">
@@ -1441,17 +1140,13 @@ const CommercialRentEdit: React.FC = () => {
                             key={index}
                             className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
                           >
-                            <span>
-                              {entry.place} - {entry.distance}
-                            </span>
+                            <span>{entry.place} - {entry.distance}</span>
                             <button
                               type="button"
                               onClick={() =>
                                 setFormData((prev) => ({
                                   ...prev,
-                                  aroundProperty: prev.aroundProperty.filter(
-                                    (_, i) => i !== index
-                                  ),
+                                  aroundProperty: prev.aroundProperty.filter((_, i) => i !== index),
                                 }))
                               }
                               className="text-red-500 hover:text-red-700"
@@ -1465,7 +1160,6 @@ const CommercialRentEdit: React.FC = () => {
                   )}
                 </div>
 
-                {/* Pantry Room (Office, Show Room, Others) */}
                 {(formData.propertySubType === "Office" ||
                   formData.propertySubType === "Show Room" ||
                   formData.propertySubType === "Others") && (
@@ -1487,17 +1181,12 @@ const CommercialRentEdit: React.FC = () => {
                         </button>
                       ))}
                     </div>
-                    {errors.pantryRoom && (
-                      <p className="text-red-500 text-sm mt-1">{errors.pantryRoom}</p>
-                    )}
+                    {errors.pantryRoom && <p className="text-red-500 text-sm mt-1">{errors.pantryRoom}</p>}
                   </div>
                 )}
 
-                {/* Property Description (All Sub Types) */}
                 <div>
-                  <Label htmlFor="propertyDescription" className="mt-5">
-                    Property Description *
-                  </Label>
+                  <Label htmlFor="propertyDescription" className="mt-5">Property Description *</Label>
                   <textarea
                     id="propertyDescription"
                     name="propertyDescription"
@@ -1515,13 +1204,12 @@ const CommercialRentEdit: React.FC = () => {
             </>
           )}
 
-          {/* Use the common PropertyLocationFields component */}
           <PropertyLocationFields
             formData={{
               city: formData.city,
               propertyName: formData.propertyName,
               locality: formData.locality,
-              flatNo: formData.flatNo,
+              flatNo: formData.propertySubType !== "Plot" ? formData.flatNo : formData.plotNumber,
               floorNo: formData.floorNo,
               totalFloors: formData.totalFloors,
             }}
@@ -1529,18 +1217,16 @@ const CommercialRentEdit: React.FC = () => {
               city: errors.city,
               propertyName: errors.propertyName,
               locality: errors.locality,
-              flatNo: errors.flatNo,
+              flatNo: formData.propertySubType !== "Plot" ? errors.flatNo : errors.plotNumber,
               floorNo: errors.floorNo,
               totalFloors: errors.totalFloors,
             }}
             handleInputChange={handleInputChange}
+            isPlot={formData.propertySubType === "Plot"}
           />
 
-          {/* Media Upload Section */}
           <div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-              Upload Media
-            </h3>
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Upload Media</h3>
             <MediaUploadSection
               photos={formData.photos}
               setPhotos={(photos) => setFormData((prev) => ({ ...prev, photos }))}
@@ -1549,9 +1235,7 @@ const CommercialRentEdit: React.FC = () => {
               floorPlan={formData.floorPlan}
               setFloorPlan={(floorPlan) => setFormData((prev) => ({ ...prev, floorPlan }))}
               featuredImageIndex={formData.featuredImageIndex}
-              setFeaturedImageIndex={(index) =>
-                setFormData((prev) => ({ ...prev, featuredImageIndex: index }))
-              }
+              setFeaturedImageIndex={(index) => setFormData((prev) => ({ ...prev, featuredImageIndex: index }))}
               photoError={errors.photos}
               videoError={errors.video}
               floorPlanError={errors.floorPlan}
@@ -1559,7 +1243,6 @@ const CommercialRentEdit: React.FC = () => {
             />
           </div>
 
-          {/* Submit Button */}
           <div className="flex justify-end">
             <button
               type="submit"
