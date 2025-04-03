@@ -36,6 +36,7 @@ import { ProtectedRouteProps,  } from "./types/auth";
 import { AppDispatch, RootState } from "./store/store";
 import { isTokenExpired, logout } from "./store/slices/authSlice";
 import BasicTableOne from "./components/tables/BasicTables/BasicTableOne";
+import LocationManager from "./pages/maps/locality";
 
 
 
@@ -298,7 +299,23 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
+
+          <Route
+              path="/maps/locality"
+              element={
+                <ProtectedRoute>
+                  <LocationManager />
+                </ProtectedRoute>
+              }
+            />
           </Route>
+
+        
+
+          {/* locations   */}
+
+         
+          
 
           {/* Auth Layout - Keep these public */}
           <Route path="/signin" element={<SignIn />} />
