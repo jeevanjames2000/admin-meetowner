@@ -234,7 +234,7 @@ const ResidentialTypes: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property Type</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Type</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Listing Time & Date</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                 {(filters.status === 0 || filters.status === 1) &&  <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>}  
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -263,47 +263,50 @@ const ResidentialTypes: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {item.created_date && item.created_time ? `${item.created_date} ${item.created_time}` : "N/A"}
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => setDropdownOpen(dropdownOpen === item.id.toString() ? null : item.id.toString())}
-                        >
-                          <svg
-                            className="w-5 h-5 text-gray-500 dark:text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
+                      {/* Show Actions column only for Review (0) and Approved (1) */}
+                      {(filters.status === 0 || filters.status === 1) && (
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => setDropdownOpen(dropdownOpen === item.id.toString() ? null : item.id.toString())}
                           >
-                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                        </Button>
-                        {dropdownOpen === item.id.toString() && (
-                          <div
-                            ref={dropdownRef}
-                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
-                          >
-                            <button
-                              onClick={() => handleEdit(item)}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            <svg
+                              className="w-5 h-5 text-gray-500 dark:text-gray-400"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                              xmlns="http://www.w3.org/2000/svg"
                             >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDelete(item.unique_property_id)}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          </Button>
+                          {dropdownOpen === item.id.toString() && (
+                            <div
+                              ref={dropdownRef}
+                              className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
                             >
-                              Delete
-                            </button>
-                            <button
-                             onClick={() => handleApprove(item.unique_property_id)}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              {filters.status === 0 ? "Approve" : "Reject"}
-                            </button>
-                          </div>
-                        )}
-                      </TableCell>
+                              <button
+                                onClick={() => handleEdit(item)}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => handleDelete(item.unique_property_id)}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                Delete
+                              </button>
+                              <button
+                                onClick={() => handleApprove(item.unique_property_id)}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                {filters.status === 0 ? "Approve" : "Reject"}
+                              </button>
+                            </div>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

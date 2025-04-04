@@ -217,10 +217,10 @@ const CommercialTypes: React.FC = () => {
     <div className="relative min-h-screen">
       <PageMeta
       title={`Residential ${filters.property_for} ${getPageTitle()}`}
-        description={`This is the Commercial ${filters.property_for} ${filters.status === 0 ? "Review" : "Approved"} Table page`}
+        description={`This is the Commercial  Table page`}
       />
       <PageBreadcrumb
-        pageTitle={`Commercial ${filters.property_for} ${filters.status === 0 ? "Review" : "Approved"}`}
+        pageTitle={`Commercial ${filters.property_for}`}
         pagePlacHolder="Search by ID, Project Name, or User Type"
         onFilter={handleFilter}
       />
@@ -237,7 +237,8 @@ const CommercialTypes: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property SubType</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Type</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Listing Time & Date</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    {(filters.status === 0 || filters.status === 1) && <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>}
+                    
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -266,6 +267,7 @@ const CommercialTypes: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {item.created_date && item.created_time ? `${item.created_date} ${item.created_time}` : "N/A"}
                       </TableCell>
+                      {(filters.status === 0 || filters.status === 1) && (
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                         <Button
                           variant="outline"
@@ -307,6 +309,7 @@ const CommercialTypes: React.FC = () => {
                           </div>
                         )}
                       </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>
