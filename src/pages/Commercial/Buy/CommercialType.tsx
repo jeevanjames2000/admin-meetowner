@@ -12,11 +12,21 @@ import {
   TableRow,
 } from "../../../components/ui/table";
 import Button from "../../../components/ui/button/Button";
-import { fetchListings, ListingState } from "../../../store/slices/listings"; // Assuming same Redux slice
+import { fetchListings, ListingState,deleteListing,updatePropertyStatus } from "../../../store/slices/listings"; // Assuming same Redux slice
 import { AppDispatch, RootState } from "../../../store/store";
 
+
+
+
+const statusMap: { [key: number]: string } = {
+  0: "Review",
+  1: "Approved",
+  2: "Rejected",
+  3: "Deleted",
+};
 const CommercialTypes: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+  const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   const { property_for, status } = useParams<{ property_for: string; status: string }>(); // Extract params
@@ -37,11 +47,14 @@ const CommercialTypes: React.FC = () => {
     status: parseInt(status || "0", 10), // Convert status to number, default to 0
   };
 
+  const getPageTitle = () => {
+    const baseTitle = `Commercial ${filters.property_for}`;
+    return `${baseTitle} ${statusMap[filters.status] || "Unknown"}`;
+  };
   // Fetch listings when component mounts or page/property_for/status changes
   useEffect(() => {
     dispatch(fetchListings(filters));
-  }, [dispatch, currentPage, property_for, status]);
-
+  }, [dispatch, currentPage, property_for, status, refreshTrigger]);
   // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -64,13 +77,34 @@ const CommercialTypes: React.FC = () => {
     setDropdownOpen(null);
   };
 
-  const handleDelete = (id: number) => {
-    console.log("Delete:", id);
+  const handleDelete = (unique_property_id: string) => {
+    dispatch(deleteListing({ unique_property_id }))
+      .unwrap()
+      .then(() => {
+        setRefreshTrigger((prev) => prev + 1); // Trigger refetch
+      })
+      .catch((err) => {
+        console.error("Delete failed:", err);
+      });
     setDropdownOpen(null);
   };
 
-  const handleApprove = (item: any) => {
-    console.log("Approve:", item);
+
+  const handleApprove = (unique_property_id: string) => {
+    const property_status = filters.status === 0 ? 1 : 2; // 1 for Approve, 2 for Reject
+    dispatch(
+      updatePropertyStatus({
+        property_status,
+        unique_property_id,
+      })
+    )
+      .unwrap()
+      .then(() => {
+        setRefreshTrigger((prev) => prev + 1); // Trigger refetch
+      })
+      .catch((err) => {
+        console.error("Status update failed:", err);
+      });
     setDropdownOpen(null);
   };
 
@@ -182,7 +216,7 @@ const CommercialTypes: React.FC = () => {
   return (
     <div className="relative min-h-screen">
       <PageMeta
-        title={`Commercial ${filters.property_for} ${filters.status === 0 ? "Review" : "Approved"}`}
+      title={`Residential ${filters.property_for} ${getPageTitle()}`}
         description={`This is the Commercial ${filters.property_for} ${filters.status === 0 ? "Review" : "Approved"} Table page`}
       />
       <PageBreadcrumb
@@ -191,7 +225,7 @@ const CommercialTypes: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        <ComponentCard title={`Commercial ${filters.property_for} ${filters.status === 0 ? "Review" : "Approved"}`}>
+        <ComponentCard title={getPageTitle()}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
               <Table>
@@ -259,16 +293,16 @@ const CommercialTypes: React.FC = () => {
                               Edit
                             </button>
                             <button
-                              onClick={() => handleDelete(item.id)}
+                            onClick={() => handleDelete(item.unique_property_id)}
                               className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
                               Delete
                             </button>
                             <button
-                              onClick={() => handleApprove(item)}
+                              onClick={() => handleApprove(item.unique_property_id)}
                               className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
-                              Approve
+                            {filters.status === 0 ? "Approve" : "Reject"}
                             </button>
                           </div>
                         )}
@@ -281,51 +315,53 @@ const CommercialTypes: React.FC = () => {
           </div>
 
           {totalItems > itemsPerPage && (
-            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} entries
-              </div>
-              <div className="flex gap-2 flex-wrap justify-center">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToPreviousPage}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
+  <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
+    <div className="text-sm text-gray-500 dark:text-gray-400">
+      Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of{" "}
+      {totalItems} entries
+    </div>
+    <div className="flex gap-2 flex-wrap justify-center">
+      <Button
+        variant={currentPage === 1 ? "outline" : "primary"} // Outline when disabled, primary (blue) when not
+        size="sm"
+        onClick={goToPreviousPage}
+        disabled={currentPage === 1}
+      >
+        Previous
+      </Button>
 
-                {getPaginationItems().map((page, index) =>
-                  page === "..." ? (
-                    <span
-                      key={index}
-                      className="px-3 py-1 text-gray-500 dark:text-gray-400"
-                    >
-                      ...
-                    </span>
-                  ) : (
-                    <Button
-                      key={page}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => goToPage(page as number)}
-                    >
-                      {page}
-                    </Button>
-                  )
-                )}
+      {getPaginationItems().map((page, index) =>
+        page === "..." ? (
+          <span
+            key={index}
+            className="px-3 py-1 text-gray-500 dark:text-gray-400"
+          >
+            ...
+          </span>
+        ) : (
+          <Button
+            key={page}
+            variant="outline"
+            size="sm"
+            onClick={() => goToPage(page as number)}
+            isActive={page === currentPage} // Highlight current page
+          >
+            {page}
+          </Button>
+        )
+      )}
 
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={goToNextPage}
-                  disabled={currentPage === effectiveTotalPages}
-                >
-                  Next
-                </Button>
-              </div>
-            </div>
-          )}
+      <Button
+        variant={currentPage === effectiveTotalPages ? "outline" : "primary"} // Outline when disabled, primary (blue) when not
+        size="sm"
+        onClick={goToNextPage}
+        disabled={currentPage === effectiveTotalPages}
+      >
+        Next
+      </Button>
+    </div>
+  </div>
+)}
         </ComponentCard>
       </div>
     </div>

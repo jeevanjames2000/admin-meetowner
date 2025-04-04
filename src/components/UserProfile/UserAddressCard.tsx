@@ -38,7 +38,7 @@ export default function UserAddressCard() {
                   City/State
                 </p>
                 <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                  {user?.city},{user?.state}
+                  {localStorage.getItem('city')},{localStorage.getItem('state')}
                 </p>
               </div>
 

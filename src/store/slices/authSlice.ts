@@ -2,6 +2,7 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axios, { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import {jwtDecode} from "jwt-decode";
+import axiosIstance from "../../utils/axiosInstance";
 
 interface LoginRequest {
   mobile: string;
@@ -60,8 +61,8 @@ export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
-      const promise = axios.post<LoginResponse>(
-        "https://2c82-60-243-187-202.ngrok-free.app/auth/v1/login",
+      const promise = axiosIstance.post<LoginResponse>(
+        "/auth/v1/login",
         credentials
       );
       
@@ -92,8 +93,8 @@ export const getAllUsersCount = createAsyncThunk(
   "auth/getAllUsersCount",
   async (_, { rejectWithValue }) => {
     try {
-      const promise = axios.get<UserCount[]>(
-        "https://2c82-60-243-187-202.ngrok-free.app/user/getAllUsersCount",
+      const promise = axiosIstance.get<UserCount[]>(
+        "/user/getAllUsersCount",
         {
           headers: {
             "ngrok-skip-browser-warning": "true",
@@ -148,6 +149,10 @@ const authSlice = createSlice({
       localStorage.removeItem('name');
       localStorage.removeItem('userType');
       localStorage.removeItem('email');
+      localStorage.removeItem('mobile');
+      localStorage.removeItem('city');
+      localStorage.removeItem('state');
+      
     },
   },
   extraReducers: (builder) => {
@@ -166,6 +171,10 @@ const authSlice = createSlice({
         localStorage.setItem('name', action.payload.user.name);
         localStorage.setItem('userType', action.payload.user.user_type.toString());
         localStorage.setItem('email', action.payload.user.email);
+        localStorage.setItem('mobile',action.payload.user.mobile);
+        localStorage.setItem('city',action.payload.user.city);
+        localStorage.setItem('state',action.payload.user.state);
+       
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;

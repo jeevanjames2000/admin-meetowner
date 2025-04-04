@@ -37,6 +37,7 @@ import { AppDispatch, RootState } from "./store/store";
 import { isTokenExpired, logout } from "./store/slices/authSlice";
 import BasicTableOne from "./components/tables/BasicTables/BasicTableOne";
 import LocationManager from "./pages/maps/locality";
+import { Toaster } from "react-hot-toast"; 
 
 
 
@@ -324,6 +325,7 @@ export default function App() {
           {/* Fallback Route - Keep this public */}
           <Route path="*" element={<NotFound />} />
         </Routes>
+        <Toaster /> 
       </Router>
     </>
   );

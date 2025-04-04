@@ -69,11 +69,20 @@ export default function SignInForm() {
       ).unwrap();
 
       navigate("/");
-    } catch (err) {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        password: "Invalid mobile number or password",
-      }));
+    } catch (err: any) {
+      // Check if the error is due to server unavailability
+      if (err.message === "Network Error" || err.code === "ECONNABORTED") {
+        // Server is down, redirect to signup page
+        navigate("/signup", {
+          state: { message: "Server is unavailable. Please sign up or try again later." },
+        });
+      } else {
+        // Handle other errors (e.g., invalid credentials)
+        setErrors((prevErrors) => ({
+          ...prevErrors,
+          password: "Invalid mobile number or password",
+        }));
+      }
     }
   };
 

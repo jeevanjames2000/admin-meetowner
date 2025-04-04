@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from "react";
-import { useParams } from "react-router"; // Fixed import typo
+import { useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -12,8 +12,8 @@ import {
   TableRow,
 } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
-import { AppDispatch, RootState } from "../../store/store"; // Adjust path to your store types
-import { fetchLeads, LeadsState } from "../../store/slices/leads"; // Adjust path to your slice
+import { AppDispatch, RootState } from "../../store/store";
+import { fetchLeads, LeadsState } from "../../store/slices/leads";
 
 const PropertyLeadsBuy: React.FC = () => {
   const { property_for, status } = useParams<{ property_for: string; status: string }>();
@@ -44,9 +44,7 @@ const PropertyLeadsBuy: React.FC = () => {
   };
 
   const formatTime = (timeString: string | null) => {
-    if (!timeString) {
-      return "null";
-    }
+    if (!timeString) return "null";
     const [hours, minutes] = timeString.split(":");
     const hour = parseInt(hours, 10);
     const period = hour >= 12 ? "PM" : "AM";
@@ -67,13 +65,13 @@ const PropertyLeadsBuy: React.FC = () => {
   );
 
   const totalItems = filteredLeads.length;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const effectiveTotalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
   const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
 
   const goToPage = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
+    if (page >= 1 && page <= effectiveTotalPages) {
       setCurrentPage(page);
     }
   };
@@ -83,25 +81,25 @@ const PropertyLeadsBuy: React.FC = () => {
   };
 
   const goToNextPage = () => {
-    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+    if (currentPage < effectiveTotalPages) setCurrentPage(currentPage + 1);
   };
 
   const getPaginationItems = () => {
     const pages = [];
     const totalVisiblePages = 7;
     let startPage = 1;
-    let endPage = totalPages;
+    let endPage = effectiveTotalPages;
 
-    if (totalPages > totalVisiblePages) {
+    if (effectiveTotalPages > totalVisiblePages) {
       const halfVisible = Math.floor(totalVisiblePages / 2);
       startPage = Math.max(1, currentPage - halfVisible);
-      endPage = Math.min(totalPages, currentPage + halfVisible);
+      endPage = Math.min(effectiveTotalPages, currentPage + halfVisible);
 
       if (currentPage - halfVisible < 1) {
         endPage = totalVisiblePages;
       }
-      if (currentPage + halfVisible > totalPages) {
-        startPage = totalPages - totalVisiblePages + 1;
+      if (currentPage + halfVisible > effectiveTotalPages) {
+        startPage = effectiveTotalPages - totalVisiblePages + 1;
       }
     }
 
@@ -112,8 +110,8 @@ const PropertyLeadsBuy: React.FC = () => {
       pages.push(i);
     }
 
-    if (endPage < totalPages - 1) pages.push("...");
-    if (endPage < totalPages) pages.push(totalPages);
+    if (endPage < effectiveTotalPages - 1) pages.push("...");
+    if (endPage < effectiveTotalPages) pages.push(effectiveTotalPages);
 
     return pages;
   };
@@ -141,8 +139,7 @@ const PropertyLeadsBuy: React.FC = () => {
     );
   }
 
-  // Handle error or no data state
-  if (error || leads.length === 0) {
+  if (error || !leads || leads.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
         <PageMeta
@@ -156,9 +153,7 @@ const PropertyLeadsBuy: React.FC = () => {
         />
         <ComponentCard title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {error 
-              ? `Error: ${error}` 
-              : `No Data Available in ${filters.property_for}`}
+            {error ? `Error: ${error}` : "No Data Available"}
           </h2>
         </ComponentCard>
       </div>
@@ -236,16 +231,20 @@ const PropertyLeadsBuy: React.FC = () => {
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
                 <Button
-                  variant="outline"
+                  variant={currentPage === 1 ? "outline" : "primary"}
                   size="sm"
                   onClick={goToPreviousPage}
                   disabled={currentPage === 1}
                 >
                   Previous
                 </Button>
+
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
-                    <span key={index} className="px-3 py-1 text-gray-500 dark:text-gray-400">
+                    <span
+                      key={index}
+                      className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                    >
                       ...
                     </span>
                   ) : (
@@ -254,16 +253,18 @@ const PropertyLeadsBuy: React.FC = () => {
                       variant="outline"
                       size="sm"
                       onClick={() => goToPage(page as number)}
+                      isActive={page === currentPage}
                     >
                       {page}
                     </Button>
                   )
                 )}
+
                 <Button
-                  variant="outline"
+                  variant={currentPage === effectiveTotalPages ? "outline" : "primary"}
                   size="sm"
                   onClick={goToNextPage}
-                  disabled={currentPage === totalPages}
+                  disabled={currentPage === effectiveTotalPages}
                 >
                   Next
                 </Button>

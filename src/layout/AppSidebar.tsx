@@ -67,9 +67,18 @@ const navItems: NavItem[] = [
                 "property_for": "Sell", 
                 "status": 1
               }  },
-              { name: "Deleted", path: "/listings/residential/buy/deleted" },
+              { name: "Rejected", path: "/residential/buy/2",data: { 
+                "property_in": "Residential", 
+                "property_for": "Sell", 
+                "status": 2
+              } },
+              { name: "Deleted", path: "/residential/buy/3",data: { 
+                "property_in": "Residential", 
+                "property_for": "Sell", 
+                "status": 3
+              }  },
               { name: "Expired", path: "/listings/residential/buy/expired" },
-              { name: "Rejected", path: "/listings/residential/buy/rejected" },
+              
             ],
           },
           {
@@ -87,9 +96,19 @@ const navItems: NavItem[] = [
                 "property_for": "Rent", 
                 "status": 1
               }   },
-              { name: "Deleted", path: "/listings/residential/rent/deleted" },
+              { name: "Rejected", path: "/residential/rent/2",
+                data: { 
+                  "property_in": "Residential", 
+                  "property_for": "Rent", 
+                  "status": 2
+              } },
+              { name: "Deleted", path: "/residential/rent/3", data: { 
+                "property_in": "Residential", 
+                "property_for": "Rent", 
+                "status": 3
+             }  },
               { name: "Expired", path: "/listings/residential/rent/expired" },
-              { name: "Rejected", path: "/listings/residential/rent/rejected" },
+             
             ],
           },
         ],
@@ -110,9 +129,18 @@ const navItems: NavItem[] = [
                 "property_for": "Sell", 
                 "status":  1
               }  },
-              { name: "Deleted", path: "/listings/commercial/buy/deleted" },
+              { name: "Rejected", path: "commercial/buy/2",data:{
+                "property_in": "Commercial", 
+                "property_for": "Sell", 
+                "status":  2
+              }},
+              { name: "Deleted", path: "/commercial/buy/3",data:{
+                "property_in": "Commercial", 
+                "property_for": "Sell", 
+                "status":  3
+              } },
               { name: "Expired", path: "/listings/commercial/buy/expired" },
-              { name: "Rejected", path: "/listings/commercial/buy/rejected" },
+              
             ],
           },
           {
@@ -126,11 +154,20 @@ const navItems: NavItem[] = [
               { name: "Approved", path: "/commercial/Rent/1", data: { 
                 "property_in": "Commercial", 
                 "property_for": "Sell", 
-                "status": 0 
+                "status": 1 
               } },
-              { name: "Deleted", path: "/listings/commercial/rent/deleted" },
+              { name: "Rejected", path: "/commercial/Rent/2",data:{
+                "property_in": "Commercial", 
+                "property_for": "Sell", 
+                "status": 2 
+              } },
+              { name: "Deleted", path: "/commercial/Rent/3",data:{
+                "property_in": "Commercial", 
+                "property_for": "Sell", 
+                "status": 3 
+              } },
               { name: "Expired", path: "/listings/commercial/rent/expired" },
-              { name: "Rejected", path: "/listings/commercial/rent/rejected" },
+              
             ],
           },
         ],

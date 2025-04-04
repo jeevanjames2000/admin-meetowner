@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios, { AxiosError } from "axios";
+import  { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
+import axiosIstance from "../../utils/axiosInstance";
 
 // Define interfaces for the user and API response
 interface User {
@@ -57,8 +58,8 @@ export const fetchUsersByType = createAsyncThunk(
   async (filter: UserFilter, { rejectWithValue }) => {
     try {
       const { user_type } = filter;
-      const promise = axios.get<UsersResponse>(
-        `https://2c82-60-243-187-202.ngrok-free.app/user/getAllUsersByType`,
+      const promise = axiosIstance.get<UsersResponse>(
+        "/user/getAllUsersByType",
         {
           params: {
             user_type,

@@ -108,6 +108,39 @@ export default function BasicTableOne() {
   if (loading) return <div>Loading users...</div>;
   if (error) return <div>Error: {error}</div>;
 
+  const getPaginationItems = () => {
+    const pages = [];
+    const totalVisiblePages = 7;
+    let startPage = 1;
+    let endPage = totalPages;
+
+    if (totalPages > totalVisiblePages) {
+      const halfVisible = Math.floor(totalVisiblePages / 2);
+      startPage = Math.max(1, currentPage - halfVisible);
+      endPage = Math.min(totalPages, currentPage + halfVisible);
+
+      if (currentPage - halfVisible < 1) {
+        endPage = totalVisiblePages;
+      }
+      if (currentPage + halfVisible > totalPages) {
+        startPage = totalPages - totalVisiblePages + 1;
+      }
+    }
+
+    if (startPage > 1) pages.push(1);
+    if (startPage > 2) pages.push("...");
+
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i);
+    }
+
+    if (endPage < totalPages - 1) pages.push("...");
+    if (endPage < totalPages) pages.push(totalPages);
+
+    return pages;
+  };
+
+
   return (
     <div className="relative min-h-screen">
       <div>
@@ -207,32 +240,45 @@ export default function BasicTableOne() {
             </div>
 
             {/* Pagination Controls (only show if totalItems > 20) */}
-            {totalItems > 20 && (
-              <div className="flex justify-between items-center mt-4 px-4 py-2">
+            {totalItems > itemsPerPage && (
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
                 <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} entries
+                  Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of{" "}
+                  {totalItems} entries
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-2 flex-wrap justify-center">
                   <Button
-                    variant="outline"
+                    variant={currentPage === 1 ? "outline" : "primary"}
                     size="sm"
                     onClick={goToPreviousPage}
                     disabled={currentPage === 1}
                   >
                     Previous
                   </Button>
-                  {Array.from({ length: totalPages }, (_, index) => index + 1).map((page) => (
-                    <Button
-                      key={page}
-                      variant="outline"
-                      size="sm"
-                      onClick={() => goToPage(page)}
-                    >
-                      {page}
-                    </Button>
-                  ))}
+
+                  {getPaginationItems().map((page, index) =>
+                    page === "..." ? (
+                      <span
+                        key={index}
+                        className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                      >
+                        ...
+                      </span>
+                    ) : (
+                      <Button
+                        key={page}
+                        variant="outline"
+                        size="sm"
+                        onClick={() => goToPage(page as number)}
+                        isActive={page === currentPage}
+                      >
+                        {page}
+                      </Button>
+                    )
+                  )}
+
                   <Button
-                    variant="outline"
+                    variant={currentPage === totalPages ? "outline" : "primary"}
                     size="sm"
                     onClick={goToNextPage}
                     disabled={currentPage === totalPages}

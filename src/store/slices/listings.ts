@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
-
+import axiosInstance from "../../utils/axiosInstance";
 
 interface Property {
   id: number;
@@ -106,11 +106,20 @@ interface ListingsResponse {
   properties: Property[];
 }
 
+interface UpdateStatusResponse {
+  message: string;
+}
+
+interface DeleteListingResponse {
+  message: string;
+  unique_property_id: string;
+  property_name: string | null;
+}
+
 interface ErrorResponse {
   message?: string;
 }
 
-// Define the state interface
 export interface ListingState {
   listings: Property[];
   totalCount: number;
@@ -120,7 +129,6 @@ export interface ListingState {
   error: string | null;
 }
 
-// Define the filter parameters for the API request
 interface ListingFilters {
   page: number;
   property_in: string;
@@ -128,14 +136,23 @@ interface ListingFilters {
   status: number;
 }
 
-// Create async thunk for fetching listings
+interface UpdateStatusPayload {
+  property_status: number;
+  unique_property_id: string;
+}
+
+interface DeleteListingPayload {
+  unique_property_id: string;
+}
+
+// Async thunk for fetching listings
 export const fetchListings = createAsyncThunk(
   "listings/fetchListings",
   async (filters: ListingFilters, { rejectWithValue }) => {
     try {
       const { page, property_in, property_for, status } = filters;
-      const promise = axios.get<ListingsResponse>(
-        `https://2c82-60-243-187-202.ngrok-free.app/listings/getListingsFilters`,
+      const promise = axiosInstance.get<ListingsResponse>(
+        "/listings/getListingsFilters",
         {
           params: {
             page,
@@ -167,6 +184,119 @@ export const fetchListings = createAsyncThunk(
   }
 );
 
+// Async thunk for updating property status
+export const updatePropertyStatus = createAsyncThunk(
+  "listings/updatePropertyStatus",
+  async (payload: UpdateStatusPayload, { rejectWithValue }) => {
+    try {
+      const promise = axiosInstance.post<UpdateStatusResponse>(
+        "/listings/updateStatus",
+        payload,
+        {
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      toast.promise(promise, {
+        loading: "Updating property status...",
+        success: (response) => response.data.message, // Changed to response.data.message
+        error: "Failed to update property status",
+      });
+
+      const response = await promise;
+      return { ...response.data, unique_property_id: payload.unique_property_id };
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error("Update status error:", axiosError);
+      return rejectWithValue(
+        axiosError.response?.data || { message: "Failed to update status" }
+      );
+    }
+  }
+);
+
+// Async thunk for deleting a listing
+export const deleteListing = createAsyncThunk(
+  "listings/deleteListing",
+  async (payload: DeleteListingPayload, { rejectWithValue }) => {
+    try {
+      const { unique_property_id } = payload;
+      const promise = axiosInstance.delete<DeleteListingResponse>(
+        "/listings/deleteListing",
+        {
+          params: { unique_property_id },
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+          },
+        }
+      );
+
+      toast.promise(promise, {
+        loading: "Deleting property...",
+        success: (response) => response.data.message, 
+        error: "Failed to delete property",
+      });
+
+      const response = await promise;
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error("Delete listing error:", axiosError);
+      return rejectWithValue(
+        axiosError.response?.data || { message: "Failed to delete listing" }
+      );
+    }
+  }
+);
+
+//updating the edited values 
+interface UpdateListingPayload {
+  unique_property_id: string;
+  updates: Partial<Property>; // Allows any subset of Property fields
+}
+
+// Define the response interface
+interface UpdateListingResponse {
+  message: string;
+}
+
+export const updateListing = createAsyncThunk(
+  "listings/updateListing",
+  async (payload: UpdateListingPayload, { rejectWithValue }) => {
+    try {
+      const { unique_property_id, updates } = payload;
+      const promise = axiosInstance.post<UpdateListingResponse>(
+        `/listings/updateListing?unique_property_id=${unique_property_id}`,
+        updates,
+        {
+          headers: {
+            "ngrok-skip-browser-warning": "true",
+            "Content-Type": "application/json",
+          },
+        }
+      );
+
+      toast.promise(promise, {
+        loading: "Updating property...",
+        success: (response) => response.data.message,
+        error: "Failed to update property",
+      });
+
+      const response = await promise;
+      return { ...response.data, unique_property_id, updates };
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error("Update listing error:", axiosError);
+      return rejectWithValue(
+        axiosError.response?.data || { message: "Failed to update listing" }
+      );
+    }
+  }
+);
+
 // Create the slice
 const listingSlice = createSlice({
   name: "listings",
@@ -175,11 +305,10 @@ const listingSlice = createSlice({
     totalCount: 0,
     totalPages: 0,
     currentPage: 1,
-    loading: false,
+    loading: false, 
     error: null,
   } as ListingState,
   reducers: {
-    // Optional: Add any synchronous reducers if needed
     clearListings: (state) => {
       state.listings = [];
       state.totalCount = 0;
@@ -189,6 +318,7 @@ const listingSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
+    // Fetch Listings
     builder
       .addCase(fetchListings.pending, (state) => {
         state.loading = true;
@@ -202,6 +332,61 @@ const listingSlice = createSlice({
         state.currentPage = action.payload.current_page;
       })
       .addCase(fetchListings.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Update Property Status
+      .addCase(updatePropertyStatus.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updatePropertyStatus.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedProperty = state.listings.find(
+          (listing) => listing.unique_property_id === action.payload.unique_property_id
+        );
+        if (updatedProperty) {
+          updatedProperty.property_status = action.meta.arg.property_status;
+        }
+      })
+      .addCase(updatePropertyStatus.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      // Delete Listing
+      .addCase(deleteListing.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(deleteListing.fulfilled, (state, action) => {
+        state.loading = false;
+        state.listings = state.listings.filter(
+          (listing) => listing.unique_property_id !== action.payload.unique_property_id
+        );
+        state.totalCount -= 1;
+      })
+      .addCase(deleteListing.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+
+      .addCase(updateListing.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(updateListing.fulfilled, (state, action) => {
+        state.loading = false;
+        const updatedProperty = state.listings.find(
+          (listing) => listing.unique_property_id === action.payload.unique_property_id
+        );
+        if (updatedProperty) {
+          // Merge the updated fields into the existing property
+          Object.assign(updatedProperty, action.payload.updates);
+        }
+      })
+      .addCase(updateListing.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

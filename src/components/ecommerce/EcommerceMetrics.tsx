@@ -5,7 +5,7 @@ import { RootState, AppDispatch } from "../../store/store";
 
 import { GroupIcon } from "../../icons";
 import { BoxIconLine } from "../../icons";
-import { ArrowUpIcon ,ArrowDownIcon} from "lucide-react";
+import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import Badge from "../ui/badge/Badge";
 import { useNavigate } from "react-router";
 
@@ -40,10 +40,10 @@ export default function Home() {
     }
   }, [dispatch, userCounts]);
 
-  // Handle card click (optional, customize as needed)
+  // Handle card click (only for non-"Total" user types)
   const handleCardClick = (item: UserCountItem) => {
     console.log(`Clicked on ${userTypeMap[item.user_type]} with count ${item.count}`);
-      navigate(`/basic-tables-one?userType=${item.user_type}`);
+    navigate(`/basic-tables-one?userType=${item.user_type}`);
   };
 
   if (loading) return <div>Loading...</div>;
@@ -59,8 +59,10 @@ export default function Home() {
           userCounts.map((item, index) => (
             <div
               key={item.user_type}
-              onClick={() => handleCardClick(item)}
-              className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 cursor-pointer hover:shadow-lg transition-shadow duration-200"
+              onClick={item.user_type !== "Total" ? () => handleCardClick(item) : undefined} // Disable onClick for "Total"
+              className={`rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 ${
+                item.user_type !== "Total" ? "cursor-pointer hover:shadow-lg" : "cursor-default"
+              } transition-shadow duration-200`}
             >
               <div className="flex items-center justify-center w-12 h-12 bg-gray-100 rounded-xl dark:bg-gray-800">
                 {index % 2 === 0 ? (

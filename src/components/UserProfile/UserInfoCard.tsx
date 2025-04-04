@@ -48,7 +48,7 @@ export default function UserInfoCard() {
                 Phone
               </p>
               <p className="text-sm font-medium text-gray-800 dark:text-white/90">
-                +91 {user?.mobile}
+                +91 {localStorage.getItem('mobile')}
               </p>
             </div>
 

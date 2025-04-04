@@ -1,5 +1,6 @@
-import { useState, ChangeEvent, FormEvent } from "react";
-import { useLocation } from "react-router";
+import { useState, ChangeEvent, FormEvent, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router";
+import { useDispatch } from "react-redux";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Label from "../../../components/form/Label";
 import Input from "../../../components/form/input/InputField";
@@ -8,6 +9,8 @@ import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import PropertyLocationFields from "../../Residential/components/propertyLocationFields";
 import MediaUploadSection from "../../Residential/components/MediaUploadSection";
 import DatePicker from "../../../components/form/date-picker";
+import { updateListing } from "../../../store/slices/listings";
+import { AppDispatch } from "../../../store/store";
 
 // Define the type for the Around Property entries
 interface AroundProperty {
@@ -72,14 +75,16 @@ interface SelectOption {
 
 const CommercialRentEdit: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
   const property = location.state?.property;
 
+  const [originalData, setOriginalData] = useState<any>(property || {});
   const [formData, setFormData] = useState<CommercialRentFormData>(() => {
     if (property) {
       const availableFromDate = property.available_from
         ? new Date(property.available_from).toISOString().split("T")[0]
         : "";
-      // Convert parking values > 4 to "4+"
       const carParkingValue = property.car_parking
         ? parseInt(property.car_parking) > 4
           ? "4+"
@@ -95,14 +100,13 @@ const CommercialRentEdit: React.FC = () => {
           ? "4+"
           : String(property.open_parking)
         : "0";
-        const securityDepositValue = property.security_deposit
+      const securityDepositValue = property.security_deposit
         ? `${parseInt(property.security_deposit)} Months`
         : "";
-      // Normalize brokerage_charge (e.g., "30.00" -> "30 Days")
       const chargeBrokerageValue = property.brokerage_charge
         ? `${parseInt(property.brokerage_charge)} Days`
         : "None";
-        const lockInPeriodValue = property.lock_in
+      const lockInPeriodValue = property.lock_in
         ? parseInt(property.lock_in) === 1
           ? "1 Month"
           : `${parseInt(property.lock_in)} Months`
@@ -142,7 +146,7 @@ const CommercialRentEdit: React.FC = () => {
         carParking: carParkingValue as "0" | "1" | "2" | "3" | "4+",
         bikeParking: bikeParkingValue as "0" | "1" | "2" | "3" | "4+",
         openParking: openParkingValue as "0" | "1" | "2" | "3" | "4+",
-        aroundProperty: [], // You might need to map this if available in response
+        aroundProperty: [], // Adjust if API provides this data
         pantryRoom: property.pantry_room || "No",
         propertyDescription: property.description || "",
         city: property.city_id || "",
@@ -150,7 +154,7 @@ const CommercialRentEdit: React.FC = () => {
         locality: property.location_id || "",
         floorNo: property.floors || "",
         totalFloors: property.total_floors || "",
-        photos: [], // Files need to be handled separately
+        photos: [],
         video: null,
         floorPlan: null,
         featuredImageIndex: null,
@@ -246,7 +250,6 @@ const CommercialRentEdit: React.FC = () => {
     featuredImage: "",
   });
 
-  // State for Around Property inputs
   const [placeAroundProperty, setPlaceAroundProperty] = useState("");
   const [distanceFromProperty, setDistanceFromProperty] = useState("");
 
@@ -353,44 +356,42 @@ const CommercialRentEdit: React.FC = () => {
     if (name === "city") {
       setErrors((prev) => ({ ...prev, city: !value ? "City is required" : "" }));
     }
-
     if (name === "propertyName") {
       setErrors((prev) => ({ ...prev, propertyName: !value ? "Property name is required" : "" }));
     }
-
     if (name === "locality") {
       setErrors((prev) => ({ ...prev, locality: !value ? "Locality is required" : "" }));
     }
-
-    if (name === "flatNo") {
+    if (name === "flatNo" && formData.propertySubType !== "Plot") {
       setErrors((prev) => ({ ...prev, flatNo: !value ? "Flat number is required" : "" }));
-
     }
-
-    if (name === "plotNumber") {
+    if (name === "plotNumber" && formData.propertySubType === "Plot") {
       setErrors((prev) => ({ ...prev, plotNumber: !value ? "Plot number is required" : "" }));
     }
-
-    if (name === "floorNo") {
+    if (name === "floorNo" && formData.propertySubType !== "Plot") {
       setErrors((prev) => ({ ...prev, floorNo: !value ? "Floor number is required" : "" }));
     }
-
-    if (name === "totalFloors") {
+    if (name === "totalFloors" && formData.propertySubType !== "Plot") {
       setErrors((prev) => ({ ...prev, totalFloors: !value ? "Total floors is required" : "" }));
     }
-
-    if (name === "builtUpArea") {
+    if (name === "builtUpArea" && ["Office", "Retail Shop", "Show Room"].includes(formData.propertySubType)) {
       setErrors((prev) => ({ ...prev, builtUpArea: !value ? "Built-up area is required" : "" }));
     }
-
+    if (name === "plotArea" && ["Warehouse", "Plot", "Others"].includes(formData.propertySubType)) {
+      setErrors((prev) => ({ ...prev, plotArea: !value ? "Plot area is required" : "" }));
+    }
+    if (name === "lengthArea" && formData.propertySubType === "Plot") {
+      setErrors((prev) => ({ ...prev, lengthArea: !value ? "Length area is required" : "" }));
+    }
+    if (name === "widthArea" && formData.propertySubType === "Plot") {
+      setErrors((prev) => ({ ...prev, widthArea: !value ? "Width area is required" : "" }));
+    }
     if (name === "totalProjectArea") {
       setErrors((prev) => ({ ...prev, totalProjectArea: !value ? "Total project area is required" : "" }));
     }
-
     if (name === "monthlyRent") {
       setErrors((prev) => ({ ...prev, monthlyRent: !value ? "Monthly rent is required" : "" }));
     }
-
     if (name === "propertyDescription") {
       setErrors((prev) => ({ ...prev, propertyDescription: !value ? "Property description is required" : "" }));
     }
@@ -402,35 +403,27 @@ const CommercialRentEdit: React.FC = () => {
     if (name === "propertyType") {
       setErrors((prev) => ({ ...prev, propertyType: !value ? "Property type is required" : "" }));
     }
-
     if (name === "lookingTo") {
       setErrors((prev) => ({ ...prev, lookingTo: !value ? "Looking to is required" : "" }));
     }
-
     if (name === "propertySubType") {
       setErrors((prev) => ({ ...prev, propertySubType: !value ? "Property sub type is required" : "" }));
     }
-
     if (name === "zoneType") {
       setErrors((prev) => ({ ...prev, zoneType: !value ? "Zone type is required" : "" }));
     }
-
     if (name === "suitable") {
       setErrors((prev) => ({ ...prev, suitable: !value ? "Suitable for is required" : "" }));
     }
-
     if (name === "securityDeposit") {
       setErrors((prev) => ({ ...prev, securityDeposit: !value ? "Security deposit is required" : "" }));
     }
-
     if (name === "lockInPeriod") {
       setErrors((prev) => ({ ...prev, lockInPeriod: !value ? "Lock in period is required" : "" }));
     }
-
     if (name === "chargeBrokerage") {
       setErrors((prev) => ({ ...prev, chargeBrokerage: !value ? "Brokerage charge is required" : "" }));
     }
-
     if (name === "pantryRoom") {
       setErrors((prev) => ({ ...prev, pantryRoom: !value ? "Pantry room is required" : "" }));
     }
@@ -459,6 +452,115 @@ const CommercialRentEdit: React.FC = () => {
     }
   };
 
+  const handleDateChange = (selectedDates: Date[]) => {
+    const date = selectedDates[0] ? selectedDates[0].toISOString().split("T")[0] : "";
+    setFormData((prev) => ({ ...prev, availableFrom: date }));
+    setErrors((prev) => ({ ...prev, availableFrom: !date ? "Available from date is required" : "" }));
+  };
+
+  // Function to get changed fields
+  const getChangedFields = () => {
+    const changedFields: Partial<any> = {};
+
+    const fieldMappings: {
+      [key in keyof CommercialRentFormData]?: {
+        apiField: string;
+        transform?: (value: any) => any;
+        applicableTo: string[];
+      };
+    } = {
+      propertyType: { apiField: "property_in", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      lookingTo: { apiField: "property_for", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      location: { apiField: "google_address", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      propertySubType: { apiField: "sub_type", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      passengerLifts: { apiField: "passenger_lifts", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
+      serviceLifts: { apiField: "service_lifts", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
+      stairCases: { apiField: "stair_cases", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
+      privateParking: { apiField: "private_parking", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
+      publicParking: { apiField: "public_parking", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
+      privateWashrooms: { apiField: "private_washrooms", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
+      publicWashrooms: { apiField: "public_washrooms", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
+      availableFrom: { apiField: "available_from", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      monthlyRent: { apiField: "monthly_rent", transform: (value: string) => parseFloat(value), applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      maintenanceCharge: { apiField: "maintenance", transform: (value: string) => parseFloat(value), applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      securityDeposit: {
+        apiField: "security_deposit",
+        transform: (value: string) => parseInt(value.split(" ")[0]),
+        applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"],
+      },
+      lockInPeriod: {
+        apiField: "lock_in",
+        transform: (value: string) => parseInt(value.split(" ")[0]),
+        applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"],
+      },
+      chargeBrokerage: {
+        apiField: "brokerage_charge",
+        transform: (value: string) => (value === "None" ? 0 : parseInt(value.split(" ")[0])),
+        applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"],
+      },
+      areaUnits: { apiField: "area_units", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      builtUpArea: { apiField: "builtup_area", applicableTo: ["Office", "Retail Shop", "Show Room"] },
+      carpetArea: { apiField: "carpet_area", applicableTo: ["Office", "Retail Shop", "Show Room"] },
+      totalProjectArea: { apiField: "total_project_area", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      plotArea: { apiField: "plot_area", applicableTo: ["Warehouse", "Plot", "Others"] },
+      lengthArea: { apiField: "length_area", applicableTo: ["Plot"] },
+      widthArea: { apiField: "width_area", applicableTo: ["Plot"] },
+      // facilities: {
+      //   apiField: "facilities",
+      //   transform: (value: string[]) => (Array.isArray(value) ? value.join(", ") : ""),
+      //   applicableTo: ["Office", "Retail Shop", "Show Room", "Others"],
+      // },
+      flatNo: { apiField: "unit_flat_house_no", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
+      plotNumber: { apiField: "plot_number", applicableTo: ["Plot"] },
+      zoneType: { apiField: "zone_types", applicableTo: ["Office", "Warehouse"] },
+      suitable: { apiField: "business_types", applicableTo: ["Retail Shop", "Show Room", "Plot", "Others"] },
+      facing: { apiField: "facing", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
+      carParking: { apiField: "car_parking", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
+      bikeParking: { apiField: "bike_parking", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
+      openParking: { apiField: "open_parking", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
+      pantryRoom: { apiField: "pantry_room", applicableTo: ["Office", "Show Room", "Others"] },
+      propertyDescription: { apiField: "description", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      city: { apiField: "city_id", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      propertyName: { apiField: "property_name", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      locality: { apiField: "location_id", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      floorNo: { apiField: "floors", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
+      totalFloors: { apiField: "total_floors", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
+    };
+
+    Object.keys(formData).forEach((key) => {
+      const mapping = fieldMappings[key as keyof CommercialRentFormData];
+      if (!mapping) return;
+
+      const { apiField, transform, applicableTo } = mapping;
+
+      if (!applicableTo.includes(formData.propertySubType)) return;
+
+      const originalValue = originalData[apiField];
+      let newValue = formData[key as keyof CommercialRentFormData];
+
+      if (transform) {
+        newValue = transform(newValue);
+      }
+
+      // Commented out facilities handling to prevent sending it in the payload
+      // if (key === "facilities") {
+      //   const originalFacilities = originalValue ? originalValue.split(", ") : [];
+      //   const newFacilities = Array.isArray(newValue) ? newValue : [];
+      //   if (JSON.stringify(originalFacilities.sort()) !== JSON.stringify(newFacilities.sort())) {
+      //     changedFields[apiField] = newFacilities.join(", ");
+      //   }
+      // } else {
+        const original = originalValue === null || originalValue === undefined ? "" : String(originalValue);
+        const current = newValue === null || newValue === undefined ? "" : String(newValue);
+        if (original !== current) {
+          changedFields[apiField] = newValue;
+        }
+      // }
+    });
+
+    return changedFields;
+  };
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const newErrors: any = {};
@@ -485,6 +587,7 @@ const CommercialRentEdit: React.FC = () => {
     if (formData.propertySubType === "Plot") {
       if (!formData.lengthArea) newErrors.lengthArea = "Length area is required";
       if (!formData.widthArea) newErrors.widthArea = "Width area is required";
+      if (!formData.plotNumber) newErrors.plotNumber = "Plot number is required";
     }
 
     if (!formData.availableFrom) newErrors.availableFrom = "Available from date is required";
@@ -493,7 +596,10 @@ const CommercialRentEdit: React.FC = () => {
     if (!formData.lockInPeriod) newErrors.lockInPeriod = "Lock in period is required";
     if (!formData.chargeBrokerage) newErrors.chargeBrokerage = "Brokerage charge is required";
     if (!formData.totalProjectArea) newErrors.totalProjectArea = "Total project area is required";
-    if (!formData.flatNo) newErrors.flatNo = "Flat number is required";
+
+    if (["Office", "Retail Shop", "Show Room", "Warehouse", "Others"].includes(formData.propertySubType) && !formData.flatNo) {
+      newErrors.flatNo = "Flat number is required";
+    }
 
     if (["Office", "Warehouse"].includes(formData.propertySubType) && !formData.zoneType) {
       newErrors.zoneType = "Zone type is required";
@@ -513,29 +619,46 @@ const CommercialRentEdit: React.FC = () => {
     if (!formData.city) newErrors.city = "City is required";
     if (!formData.propertyName) newErrors.propertyName = "Property name is required";
     if (!formData.locality) newErrors.locality = "Locality is required";
-    if (!formData.floorNo) newErrors.floorNo = "Floor number is required";
-    if (!formData.totalFloors) newErrors.totalFloors = "Total floors is required";
+    if (formData.propertySubType !== "Plot" && !formData.floorNo) newErrors.floorNo = "Floor number is required";
+    if (formData.propertySubType !== "Plot" && !formData.totalFloors) newErrors.totalFloors = "Total floors is required";
 
-    if (formData.photos.length === 0) {
-      newErrors.photos = "At least one photo is required";
-    } else if (formData.photos.length < 5) {
-      newErrors.photos = "You must upload exactly 5 photos";
-    }
-
-    if (formData.photos.length === 5 && formData.featuredImageIndex === null) {
-      newErrors.featuredImage = "You must select a featured image when 5 photos are uploaded";
-    }
-
-    if (!formData.video) newErrors.video = "Video upload is required";
-    if (!formData.floorPlan) newErrors.floorPlan = "Floor plan upload is required";
+    if (formData.photos.length === 0) newErrors.photos = "At least one photo is required";
 
     setErrors((prev) => ({ ...prev, ...newErrors }));
 
     if (Object.values(newErrors).every((error) => !error)) {
-      console.log("Form Data:", formData);
-      // Add your form submission logic here (e.g., API call)
+      const changedFields = getChangedFields();
+
+      if (Object.keys(changedFields).length > 0) {
+        const payload = {
+          unique_property_id: property.unique_property_id,
+          updates: changedFields,
+        };
+
+        console.log("API Call: Post /listings/updateListing");
+        console.log("Payload:", JSON.stringify(payload, null, 2));
+
+        dispatch(updateListing(payload))
+          .unwrap()
+          .then((response) => {
+            console.log("API Response:", JSON.stringify(response, null, 2));
+            navigate(-1);
+          })
+          .catch((err) => {
+            console.error("Update failed:", err);
+          });
+      } else {
+        console.log("No changes detected.");
+        navigate(-1);
+      }
     }
   };
+
+  useEffect(() => {
+    if (property) {
+      setOriginalData(property);
+    }
+  }, [property]);
 
   const areaUnitLabel = formData.areaUnits || "Sq.ft";
   const shouldRenderFields = formData.propertyType === "Commercial" && formData.lookingTo === "Rent";
@@ -749,11 +872,7 @@ const CommercialRentEdit: React.FC = () => {
                 <DatePicker
                   id="availableFrom"
                   placeholder="Select available date"
-                  onChange={(selectedDates) => {
-                    const date = selectedDates[0]?.toISOString().split("T")[0] || "";
-                    setFormData((prev) => ({ ...prev, availableFrom: date }));
-                    setErrors((prev) => ({ ...prev, availableFrom: !date ? "Available from date is required" : "" }));
-                  }}
+                  onChange={handleDateChange}
                   defaultDate={formData.availableFrom ? new Date(formData.availableFrom) : undefined}
                 />
                 {errors.availableFrom && <p className="text-red-500 text-sm mt-1">{errors.availableFrom}</p>}
@@ -860,7 +979,6 @@ const CommercialRentEdit: React.FC = () => {
                   className="dark:bg-dark-900"
                 />
               </div>
-              
 
               {formData.propertySubType === "Plot" && (
                 <div>
@@ -942,7 +1060,6 @@ const CommercialRentEdit: React.FC = () => {
                     onChange={handleInputChange}
                     className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                   />
-                  {errors.carpetArea && <p className="text-red-500 text-sm mt-1">{errors.carpetArea}</p>}
                 </div>
               )}
 
@@ -982,17 +1099,23 @@ const CommercialRentEdit: React.FC = () => {
               )}
 
               <div>
-                <Label htmlFor="flatNo">Flat No. *</Label>
+                <Label htmlFor={formData.propertySubType === "Plot" ? "plotNumber" : "flatNo"}>
+                  {formData.propertySubType === "Plot" ? "Plot No. *" : "Flat No. *"}
+                </Label>
                 <Input
                   type="text"
-                  id="flatNo"
-                  name="flatNo"
-                  value={formData.flatNo}
+                  id={formData.propertySubType === "Plot" ? "plotNumber" : "flatNo"}
+                  name={formData.propertySubType === "Plot" ? "plotNumber" : "flatNo"}
+                  value={formData.propertySubType === "Plot" ? formData.plotNumber : formData.flatNo}
                   onChange={handleInputChange}
-                  placeholder="Flat Number"
+                  placeholder={formData.propertySubType === "Plot" ? "Plot Number" : "Flat Number"}
                   className="dark:bg-dark-900"
                 />
-                {errors.flatNo && <p className="text-red-500 text-sm mt-1">{errors.flatNo}</p>}
+                {formData.propertySubType === "Plot" ? (
+                  errors.plotNumber && <p className="text-red-500 text-sm mt-1">{errors.plotNumber}</p>
+                ) : (
+                  errors.flatNo && <p className="text-red-500 text-sm mt-1">{errors.flatNo}</p>
+                )}
               </div>
 
               {(formData.propertySubType === "Office" || formData.propertySubType === "Warehouse") && (

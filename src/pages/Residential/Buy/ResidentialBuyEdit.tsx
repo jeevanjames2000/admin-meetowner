@@ -1,5 +1,6 @@
 import { useState, ChangeEvent, FormEvent, useEffect } from "react";
-import { useLocation } from "react-router"; // Corrected import
+import { useLocation, useNavigate } from "react-router";
+import { useDispatch } from "react-redux";
 import ComponentCard from "../../../components/common/ComponentCard";
 import Label from "../../../components/form/Label";
 import Input from "../../../components/form/input/InputField";
@@ -8,6 +9,8 @@ import DatePicker from "../../../components/form/date-picker";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import PropertyLocationFields from "../components/propertyLocationFields";
 import MediaUploadSection from "../components/MediaUploadSection";
+import { updateListing } from "../../../store/slices/listings";
+import { AppDispatch } from "../../../store/store";
 
 interface AroundProperty {
   place: string;
@@ -26,7 +29,7 @@ interface ResidentialBuyFormData {
   bedroom: "1" | "2" | "3" | "4" | "4+";
   balcony: "1" | "2" | "3" | "4" | "4+";
   furnishType: "Fully" | "Semi" | "Unfurnished";
-  ageOfProperty: "0-5" | "5-10" | "Above 10";
+  ageOfProperty: "5" | "10" | "11"; // Updated to match API values
   areaUnits: "Sq.ft" | "Sq.yd" | "Acres";
   builtUpArea: string;
   carpetArea: string;
@@ -68,14 +71,16 @@ interface SelectOption {
 
 const ResidentialBuyEdit: React.FC = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+  const dispatch = useDispatch<AppDispatch>();
   const property = location.state?.property;
 
+  const [originalData, setOriginalData] = useState<any>(property || {});
   const [formData, setFormData] = useState<ResidentialBuyFormData>(() => {
     if (property) {
       const possessionEndDate = property.under_construction
         ? new Date(property.under_construction).toISOString().split("T")[0]
         : "";
-
       return {
         propertyType: property.property_in || "Residential",
         lookingTo: property.property_for || "Sell",
@@ -87,28 +92,28 @@ const ResidentialBuyEdit: React.FC = () => {
         bhk: property.bedrooms ? `${property.bedrooms}BHK` : "1BHK",
         bedroom: property.bathroom ? String(property.bathroom) as "1" | "2" | "3" | "4" | "4+" : "1",
         balcony: property.balconies ? String(property.balconies) as "1" | "2" | "3" | "4" | "4+" : "1",
-        furnishType: property.furnished_status === "Unfurnished" ? "Unfurnished" : property.furnished_status === "Semi" ? "Semi" : "Fully",
-        ageOfProperty: property.property_age === "0.00" ? "0-5" : "5-10",
-        areaUnits: property.area_units || "Sq.ft",
+        furnishType: property.furnished_status || "Fully",
+        ageOfProperty: property.property_age ? String(property.property_age) as "5" | "10" | "11" : "5", // Adjusted for API
+        areaUnits: property.area_units || "Sq.yd",
         builtUpArea: property.builtup_area || "",
         carpetArea: property.carpet_area || "",
         plotArea: property.plot_area || "",
         lengthArea: property.length_area || "",
         widthArea: property.width_area || "",
         totalProjectArea: property.total_project_area || "",
-        unitCost: "",
-        pentHouse: property.pent_house === "Yes" ? "Yes" : "No",
+        unitCost: property.builtup_unit || "6800.00", // Default example value
+        pentHouse: property.pent_house || "No",
         propertyCost: property.property_cost || "",
         possessionStatus: property.possession_status || "Immediate",
         facilities: property.facilities ? property.facilities.split(",") : [],
-        investorProperty: property.investor_property === "Yes" ? "Yes" : "No",
-        loanFacility: property.loan_facility === "Yes" ? "Yes" : "No",
+        investorProperty: property.investor_property || "No",
+        loanFacility: property.loan_facility || "No",
         facing: property.facing || "",
         carParking: property.car_parking || "0",
         bikeParking: property.bike_parking || "0",
         openParking: property.open_parking || "0",
-        aroundProperty: [],
-        servantRoom: property.servant_room === "Yes" ? "Yes" : "No",
+        aroundProperty: [], // Assuming this isn't pre-populated
+        servantRoom: property.servant_room || "No",
         propertyDescription: property.description || "",
         city: property.city_id || "",
         propertyName: property.property_name || "",
@@ -128,28 +133,28 @@ const ResidentialBuyEdit: React.FC = () => {
       lookingTo: "Sell",
       transactionType: "New",
       location: "",
-      propertySubType: "Apartment",
+      propertySubType: "Plot",
       constructionStatus: "Ready to move",
       possessionEnd: "",
-      bhk: "2BHK",
-      bedroom: "3",
-      balcony: "3",
-      furnishType: "Semi",
-      ageOfProperty: "5-10",
+      bhk: "1BHK",
+      bedroom: "1",
+      balcony: "1",
+      furnishType: "Fully",
+      ageOfProperty: "5", // Default to match API value
       areaUnits: "Sq.yd",
-      builtUpArea: "2000",
+      builtUpArea: "",
       carpetArea: "",
-      plotArea: "183.00",
-      lengthArea: "9.14",
-      widthArea: "18.24",
+      plotArea: "",
+      lengthArea: "",
+      widthArea: "",
       totalProjectArea: "",
-      unitCost: "100",
+      unitCost: "6800.00", // Default example value
       pentHouse: "No",
-      propertyCost: "1005",
+      propertyCost: "",
       possessionStatus: "Immediate",
-      facilities: ["Lift", "Regular Water", "Gazebo", "Water Harvesting Pit", "Security Cabin"],
-      investorProperty: "Yes",
-      loanFacility: "Yes",
+      facilities: [],
+      investorProperty: "No",
+      loanFacility: "No",
       facing: "",
       carParking: "0",
       bikeParking: "0",
@@ -161,7 +166,7 @@ const ResidentialBuyEdit: React.FC = () => {
       propertyName: "",
       locality: "",
       flatNo: "",
-      plotNumber: "87",
+      plotNumber: "",
       floorNo: "",
       totalFloors: "",
       photos: [],
@@ -209,7 +214,7 @@ const ResidentialBuyEdit: React.FC = () => {
   const [placeAroundProperty, setPlaceAroundProperty] = useState("");
   const [distanceFromProperty, setDistanceFromProperty] = useState("");
 
-  // Updated Select options
+  // Select options
   const propertyTypeOptions: SelectOption[] = [
     { value: "Residential", label: "Residential" },
     { value: "Commercial", label: "Commercial" },
@@ -261,9 +266,9 @@ const ResidentialBuyEdit: React.FC = () => {
     { value: "Unfurnished", label: "Unfurnished" },
   ];
   const ageOfPropertyOptions: SelectOption[] = [
-    { value: "0-5", label: "0-5" },
-    { value: "5-10", label: "5-10" },
-    { value: "Above 10", label: "Above 10" },
+    { value: "5", label: "0-5" }, // Updated to send 5
+    { value: "10", label: "5-10" }, // Updated to send 10
+    { value: "11", label: "Above 10" }, // Updated to send 11
   ];
   const areaUnitsOptions: SelectOption[] = [
     { value: "Sq.ft", label: "Sq.ft" },
@@ -383,9 +388,9 @@ const ResidentialBuyEdit: React.FC = () => {
 
   const handleSelectChange = (name: keyof ResidentialBuyFormData) => (value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
-    // Add validation as needed
   };
 
+  // Commented out to keep UI functionality but prevent sending to API
   const handleFacilityChange = (facility: string) => {
     setFormData((prev) => {
       const updatedFacilities = prev.facilities.includes(facility)
@@ -415,8 +420,116 @@ const ResidentialBuyEdit: React.FC = () => {
     setErrors((prev) => ({ ...prev, possessionEnd: !date ? "Possession end date is required" : "" }));
   };
 
+  // Function to get changed fields
+  const getChangedFields = () => {
+    const changedFields: Partial<any> = {};
+
+    const fieldMappings: {
+      [key in keyof ResidentialBuyFormData]?: {
+        apiField: string;
+        transform?: (value: any) => any;
+        applicableTo: string[];
+      };
+    } = {
+      propertyType: { apiField: "property_in", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      lookingTo: { apiField: "property_for", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      transactionType: { apiField: "transaction_type", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      location: { apiField: "google_address", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      propertySubType: { apiField: "sub_type", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      constructionStatus: { apiField: "occupancy", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      possessionEnd: { apiField: "under_construction", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      bhk: {
+        apiField: "bedrooms",
+        transform: (value: string) => value.replace("BHK", ""),
+        applicableTo: ["Apartment", "Independent House", "Independent Villa"],
+      },
+      bedroom: {
+        apiField: "bathroom",
+        transform: (value: string) => parseInt(value),
+        applicableTo: ["Apartment"],
+      },
+      balcony: {
+        apiField: "balconies",
+        transform: (value: string) => parseInt(value),
+        applicableTo: ["Apartment"],
+      },
+      furnishType: { apiField: "furnished_status", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      ageOfProperty: { apiField: "property_age", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      areaUnits: { apiField: "area_units", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      builtUpArea: { apiField: "builtup_area", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      carpetArea: { apiField: "carpet_area", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      plotArea: { apiField: "plot_area", applicableTo: ["Plot"] },
+      lengthArea: { apiField: "length_area", applicableTo: ["Plot"] },
+      widthArea: { apiField: "width_area", applicableTo: ["Plot"] },
+      totalProjectArea: { apiField: "total_project_area", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      unitCost: { 
+        apiField: "builtup_unit", 
+        transform: (value: string) => value, // Keep as string for "6800.00"
+        applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] 
+      },
+      pentHouse: { apiField: "pent_house", applicableTo: ["Independent House", "Independent Villa"] },
+      propertyCost: { apiField: "property_cost", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      possessionStatus: { apiField: "possession_status", applicableTo: ["Plot", "Land"] },
+      // facilities: {
+      //   apiField: "facilities",
+      //   transform: (value: string[]) => (Array.isArray(value) ? value.join(",") : ""),
+      //   applicableTo: ["Apartment", "Independent House", "Independent Villa"],
+      // },
+      investorProperty: { apiField: "investor_property", applicableTo: ["Apartment", "Independent Villa", "Plot"] },
+      loanFacility: { apiField: "loan_facility", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      facing: { apiField: "facing", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      carParking: { apiField: "car_parking", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      bikeParking: { apiField: "bike_parking", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      openParking: { apiField: "open_parking", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      servantRoom: { apiField: "servant_room", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      propertyDescription: { apiField: "description", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      city: { apiField: "city_id", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      propertyName: { apiField: "property_name", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      locality: { apiField: "location_id", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
+      flatNo: { apiField: "unit_flat_house_no", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      plotNumber: { apiField: "plot_number", applicableTo: ["Plot"] },
+      floorNo: { apiField: "floors", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      totalFloors: { apiField: "total_floors", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+    };
+
+    Object.keys(formData).forEach((key) => {
+      const mapping = fieldMappings[key as keyof ResidentialBuyFormData];
+      if (!mapping) return;
+
+      const { apiField, transform, applicableTo } = mapping;
+
+      if (!applicableTo.includes(formData.propertySubType)) return;
+
+      const originalValue = originalData[apiField];
+      let newValue = formData[key as keyof ResidentialBuyFormData];
+
+      if (transform) {
+        newValue = transform(newValue);
+      }
+
+      // Commented out facilities handling to prevent sending it in the payload
+      // if (key === "facilities") {
+      //   const originalFacilities = originalValue ? originalValue.split(",") : [];
+      //   const newFacilities = Array.isArray(newValue) ? newValue : [];
+      //   if (JSON.stringify(originalFacilities.sort()) !== JSON.stringify(newFacilities.sort())) {
+      //     changedFields[apiField] = newFacilities.join(",");
+      //   }
+      // } else {
+        const original = originalValue === null || originalValue === undefined ? "" : String(originalValue);
+        const current = newValue === null || newValue === undefined ? "" : String(newValue);
+
+        if (original !== current) {
+          changedFields[apiField] = newValue;
+        }
+      // }
+    });
+
+    return changedFields;
+  };
+
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+
     const newErrors: any = {};
     if (!formData.propertyType) newErrors.propertyType = "Property type is required";
     if (!formData.lookingTo) newErrors.lookingTo = "Looking to is required";
@@ -521,9 +634,38 @@ const ResidentialBuyEdit: React.FC = () => {
     setErrors((prev) => ({ ...prev, ...newErrors }));
 
     if (Object.values(newErrors).every((error) => !error)) {
-      console.log("Form Data:", formData);
+      const changedFields = getChangedFields();
+
+      if (Object.keys(changedFields).length > 0) {
+        const payload = {
+          unique_property_id: property.unique_property_id,
+          updates: changedFields,
+        };
+
+        console.log("API Call: Post /listings/updateListing");
+        console.log("Payload:", JSON.stringify(payload, null, 2));
+
+        dispatch(updateListing(payload))
+          .unwrap()
+          .then((response) => {
+            console.log("API Response:", JSON.stringify(response, null, 2));
+            navigate(-1);
+          })
+          .catch((err) => {
+            console.error("Update failed:", err);
+          });
+      } else {
+        console.log("No changes detected.");
+        navigate(-1);
+      }
     }
   };
+
+  useEffect(() => {
+    if (property) {
+      setOriginalData(property);
+    }
+  }, [property]);
 
   const areaUnitLabel = formData.areaUnits || "Sq.yd";
   const shouldRenderFields =
@@ -536,7 +678,6 @@ const ResidentialBuyEdit: React.FC = () => {
       <PageBreadcrumb pageTitle="Residential Buy Edit" pagePlacHolder="Edit property details" />
       <ComponentCard title="Edit Basic Details">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Property Type */}
           <div>
             <Label htmlFor="propertyType">Property Type *</Label>
             <div className="flex space-x-4">
@@ -558,7 +699,6 @@ const ResidentialBuyEdit: React.FC = () => {
             {errors.propertyType && <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>}
           </div>
 
-          {/* Looking to */}
           <div>
             <Label htmlFor="lookingTo">Looking to *</Label>
             <div className="flex space-x-4">
@@ -580,7 +720,6 @@ const ResidentialBuyEdit: React.FC = () => {
             {errors.lookingTo && <p className="text-red-500 text-sm mt-1">{errors.lookingTo}</p>}
           </div>
 
-          {/* Transaction Type */}
           <div>
             <Label htmlFor="transactionType">Transaction Type</Label>
             <Select
@@ -592,7 +731,6 @@ const ResidentialBuyEdit: React.FC = () => {
             />
           </div>
 
-          {/* Location */}
           <div>
             <Label htmlFor="location">Search location</Label>
             <Input
@@ -606,7 +744,6 @@ const ResidentialBuyEdit: React.FC = () => {
             />
           </div>
 
-          {/* Property Sub Type */}
           <div>
             <Label htmlFor="propertySubType">Property Sub Type *</Label>
             <div className="flex space-x-4">
@@ -1209,7 +1346,7 @@ const ResidentialBuyEdit: React.FC = () => {
               totalFloors: errors.totalFloors,
             }}
             handleInputChange={handleInputChange}
-            isPlot={formData.propertySubType === "Plot" || formData.propertySubType === 'Land'}
+            isPlot={formData.propertySubType === "Plot" || formData.propertySubType === "Land"}
           />
 
           <div>

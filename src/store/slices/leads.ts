@@ -1,6 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios, { AxiosError } from "axios";
+import  { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
+import axiosIstance from "../../utils/axiosInstance";
 
 // Define the Lead interface based on your API response
 interface Lead {
@@ -49,8 +50,8 @@ export const fetchLeads = createAsyncThunk(
   async (filters: LeadsFilters, { rejectWithValue }) => {
     try {
       const { property_for } = filters;
-      const promise = axios.get<LeadsResponse>(
-        `https://2c82-60-243-187-202.ngrok-free.app/listings/getAllLeads`,
+      const promise = axiosIstance.get<LeadsResponse>(
+        "/listings/getAllLeads",
         {
           params: {
             property_for,
