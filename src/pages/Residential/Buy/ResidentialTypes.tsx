@@ -1,6 +1,7 @@
+// src/pages/ResidentialTypes.tsx (or wherever it resides)
 import { useState, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate,  useParams } from "react-router";
+import { useNavigate, useParams } from "react-router";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageMeta from "../../../components/common/PageMeta";
@@ -12,8 +13,10 @@ import {
   TableRow,
 } from "../../../components/ui/table";
 import Button from "../../../components/ui/button/Button";
-import {  fetchListings, ListingState, updatePropertyStatus } from "../../../store/slices/listings";
+import { fetchListings, ListingState, updatePropertyStatus } from "../../../store/slices/listings";
 import { AppDispatch, RootState } from "../../../store/store";
+import { TableLoader } from "../../../components/Loaders/LoadingLisings";
+
 
 const statusMap: { [key: number]: string } = {
   0: "Review",
@@ -24,10 +27,10 @@ const statusMap: { [key: number]: string } = {
 
 const ResidentialTypes: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+  const [hoveredUserId, setHoveredUserId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
- 
   const { property_for, status } = useParams<{ property_for: string; status: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const { listings, loading, error, totalCount } = useSelector(
@@ -38,45 +41,37 @@ const ResidentialTypes: React.FC = () => {
   const [itemsPerPage] = useState<number>(10);
   const [searchQuery, setSearchQuery] = useState<string>("");
 
-  // Define filters based on URL params
-  const filters = {
+  const updatedFilters = {
     property_status: parseInt(status || "0", 10),
     property_for: property_for === "buy" ? "Sell" : "Rent",
     property_in: "Residential",
   };
 
   const getPageTitle = () => {
-    const baseTitle = `Residential ${filters.property_for}`;
-    return `${baseTitle} ${statusMap[filters.property_status] || "Unknown"}`;
+    const baseTitle = `Residential ${updatedFilters.property_for}`;
+    return `${baseTitle} ${statusMap[updatedFilters.property_status] || "Unknown"}`;
   };
 
   const formatDateTime = (date: string | undefined, time: string | undefined): string => {
     if (!date || !time) return "N/A";
-
-    // Parse the UTC date and time
     const dateTime = new Date(`${date.split("T")[0]}T${time}Z`);
-
-    // Extract components
+    const timeZoneOffset = dateTime.getTimezoneOffset();
+    dateTime.setMinutes(dateTime.getMinutes() - timeZoneOffset);
     const day = String(dateTime.getUTCDate()).padStart(2, "0");
-    const month = String(dateTime.getUTCMonth() + 1).padStart(2, "0"); // Months are 0-based
+    const month = String(dateTime.getUTCMonth() + 1).padStart(2, "0");
     const year = dateTime.getUTCFullYear();
     let hours = dateTime.getUTCHours();
     const minutes = String(dateTime.getUTCMinutes()).padStart(2, "0");
     const ampm = hours >= 12 ? "PM" : "AM";
-
-    // Convert to 12-hour format
-    hours = hours % 12 || 12; // Convert 0 to 12 for midnight/noon
+    hours = hours % 12 || 12;
     const hoursStr = String(hours).padStart(2, "0");
-
     return `${day}-${month}-${year} ${hoursStr}:${minutes} ${ampm}`;
   };
 
-  // Fetch listings when component mounts or filters/refreshTrigger changes
   useEffect(() => {
-    dispatch(fetchListings(filters));
+    dispatch(fetchListings(updatedFilters));
   }, [dispatch, property_for, status, refreshTrigger]);
 
-  // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -103,7 +98,7 @@ const ResidentialTypes: React.FC = () => {
   };
 
   const handleApprove = (unique_property_id: string) => {
-    const property_status = filters.property_status === 0 ? 1 : 2;
+    const property_status = updatedFilters.property_status === 0 ? 1 : 2;
     dispatch(updatePropertyStatus({ property_status, unique_property_id }))
       .unwrap()
       .then(() => setRefreshTrigger((prev) => prev + 1))
@@ -111,24 +106,34 @@ const ResidentialTypes: React.FC = () => {
     setDropdownOpen(null);
   };
 
-  // Search filter logic
-  const filteredListings = listings.filter((item) =>
-    searchQuery
-      ? [
-          item.unique_property_id || item.id.toString(),
-          item.property_name || "",
-          item.user_type === 1 ? "Admin" :
-          item.user_type === 2 ? "User" :
-          item.user_type === 3 ? "Builder" :
-          item.user_type === 4 ? "Agent" :
-          item.user_type === 5 ? "Owner" :
-          item.user_type === 6 ? "Channel Partner" : "Unknown",
-          item.location_id || "", // Added location_id to search
-        ].some((field) => field.toLowerCase().includes(searchQuery.toLowerCase()))
-      : true
-  );
+  const filteredListings = listings.filter((item) => {
+    if (!searchQuery) return true;
 
-  // Pagination logic
+    const searchFields = [
+      item.unique_property_id || item.id.toString(),
+      item.property_name || "",
+      item.user_type === 1 ? "Admin" :
+      item.user_type === 2 ? "User" :
+      item.user_type === 3 ? "Builder" :
+      item.user_type === 4 ? "Agent" :
+      item.user_type === 5 ? "Owner" :
+      item.user_type === 6 ? "Channel Partner" : "Unknown",
+      item.location_id || "",
+    ];
+
+    if (item.user) {
+      searchFields.push(
+        item.user.name || "",
+        item.user.mobile || "",
+        item.user.email || ""
+      );
+    }
+
+    return searchFields.some((field) =>
+      field.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+  });
+
   const totalItems = searchQuery ? filteredListings.length : totalCount;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -165,19 +170,35 @@ const ResidentialTypes: React.FC = () => {
     return pages;
   };
 
-  if (loading) return <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-white">Loading...</h2></div>;
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+        <PageBreadcrumb
+          pageTitle={`Residential ${updatedFilters.property_for}`}
+          pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
+          onFilter={handleSearch}
+        />
+        <ComponentCard title={getPageTitle()}>
+          <TableLoader
+            title={getPageTitle()}
+            hasActions={updatedFilters.property_status === 0 || updatedFilters.property_status === 1}
+          />
+        </ComponentCard>
+      </div>
+    );
+  }
+
   if (error) return <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-white">Error: {error}</h2></div>;
   if (!listings || listings.length === 0) return <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-white">No Data Available</h2></div>;
 
   return (
     <div className="relative min-h-screen">
       <PageMeta
-        title={`Meet Owner Residential ${filters.property_for} ${getPageTitle()}`}
-       
+        title={`Meet Owner Residential ${updatedFilters.property_for} ${getPageTitle()}`}
       />
       <PageBreadcrumb
-        pageTitle={`Residential ${filters.property_for}`}
-        pagePlacHolder="Search by ID, Project Name, or User Type"
+        pageTitle={`Residential ${updatedFilters.property_for}`}
+        pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
         onFilter={handleSearch}
       />
       <div className="space-y-6">
@@ -188,14 +209,17 @@ const ResidentialTypes: React.FC = () => {
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">ID</TableCell>
+
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl. No</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property Type</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Type</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Listing Time & Date</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Location</TableCell>
-                    {(filters.property_status === 0 || filters.property_status === 1) && 
-                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>}
+
+                    {(updatedFilters.property_status === 0 || updatedFilters.property_status === 1) && (
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -205,21 +229,35 @@ const ResidentialTypes: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{startIndex + index + 1}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.property_name || "N/A"}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.sub_type || "N/A"}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {item.user_type === 1 ? "Admin" :
-                         item.user_type === 2 ? "User" :
-                         item.user_type === 3 ? "Builder" :
-                         item.user_type === 4 ? "Agent" :
-                         item.user_type === 5 ? "Owner" :
-                         item.user_type === 6 ? "Channel Partner" : "Unknown"}
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                        <div
+                          onMouseEnter={() => setHoveredUserId(item.id.toString())}
+                          onMouseLeave={() => setHoveredUserId(null)}
+                          className="inline-block"
+                        >
+                          {item.user_type === 1 ? "Admin" :
+                           item.user_type === 2 ? "User" :
+                           item.user_type === 3 ? "Builder" :
+                           item.user_type === 4 ? "Agent" :
+                           item.user_type === 5 ? "Owner" :
+                           item.user_type === 6 ? "Channel Partner" : "Unknown"}
+                          {hoveredUserId === item.id.toString() && item.user && (
+                            <div className="absolute z-10 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                              <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
+                                <p><strong>Name:</strong> {item.user.name || "N/A"}</p>
+                                <p><strong>Mobile:</strong> {item.user.mobile || "N/A"}</p>
+                              </div>
+                            </div>
+                          )}
+                        </div>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                      {formatDateTime(item.created_date!,item.created_time!)}
+                        {formatDateTime(item.created_date!, item.created_time!)}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {item.location_id}
                       </TableCell>
-                      {(filters.property_status === 0 || filters.property_status === 1) && (
+                      {(updatedFilters.property_status === 0 || updatedFilters.property_status === 1) && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                           <Button
                             variant="outline"
@@ -235,7 +273,7 @@ const ResidentialTypes: React.FC = () => {
                               <button onClick={() => handleEdit(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</button>
                               <button onClick={() => handleDelete(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button>
                               <button onClick={() => handleApprove(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                {filters.property_status === 0 ? "Approve" : "Reject"}
+                                {updatedFilters.property_status === 0 ? "Approve" : "Reject"}
                               </button>
                             </div>
                           )}
@@ -261,12 +299,15 @@ const ResidentialTypes: React.FC = () => {
                 >
                   Previous
                 </Button>
-                {getPaginationItems().map((page, index) =>
-                  page === "..." ? (
-                    <span key={index} className="px-3 py-1 text-gray-500 dark:text-gray-400">...</span>
+                {getPaginationItems().map((page, index) => {
+                  const uniqueKey = `${page}-${index}`;
+                  return page === "..." ? (
+                    <span key={uniqueKey} className="px-3 py-1 text-gray-500 dark:text-gray-400">
+                      ...
+                    </span>
                   ) : (
                     <Button
-                      key={page}
+                      key={uniqueKey}
                       variant="outline"
                       size="sm"
                       onClick={() => goToPage(page as number)}
@@ -274,8 +315,8 @@ const ResidentialTypes: React.FC = () => {
                     >
                       {page}
                     </Button>
-                  )
-                )}
+                  );
+                })}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"
@@ -294,4 +335,3 @@ const ResidentialTypes: React.FC = () => {
 };
 
 export default ResidentialTypes;
-

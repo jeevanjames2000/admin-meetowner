@@ -4,24 +4,19 @@ import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/UserProfiles";
-import Calendar from "./pages/Calendar";
+
 import FormElements from "./pages/Forms/FormElements";
-import Blank from "./pages/Blank";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
 import Home from "./pages/Dashboard/Home";
 import AboutUsPage from "./pages/Forms/AboutUs";
 import ServicesPage from "./pages/Forms/Services";
 import PropertyLeads from "./pages/LeadManagement/Leads";
-import ResidentialTypes from "./pages/Residential/Buy/ResidentialTypes";
-import ResidentialRentReview from "./pages/Residential/Rent/ResidentialRentReview";
 import ResidentialBuyEdit from "./pages/Residential/Buy/ResidentialBuyEdit";
 import ResidentialRentEdit from "./pages/Residential/Rent/ResidentialRentEdit";
 import CareersPage from "./pages/Forms/Careers";
 import TermsPage from "./pages/Forms/Terms";
 import PrivacyPage from "./pages/Forms/privacy";
-import CommercialTypes from "./pages/Commercial/Buy/CommercialType";
-import CommercialRentReview from "./pages/Commercial/Rent/CommercialRentReview";
 import CommercialBuyEdit from "./pages/Commercial/Buy/CommercialBuyEdit";
 import CommercialRentEdit from "./pages/Commercial/Rent/CommercialRentEdit";
 import CreateEmployee from "./pages/Employee/CreateEmployee";
@@ -38,6 +33,8 @@ import { isTokenExpired, logout } from "./store/slices/authSlice";
 import BasicTableOne from "./components/tables/BasicTables/BasicTableOne";
 import LocationManager from "./pages/maps/locality";
 import { Toaster } from "react-hot-toast"; 
+import { lazy, Suspense } from "react";
+import { TableLoader } from "./components/Loaders/LoadingLisings";
 
 
 
@@ -61,6 +58,9 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
 
   return children;
 };
+
+const ResidentialTypes = lazy(() => import("../src/pages/Residential/Buy/ResidentialTypes"));
+const CommercialTypes =  lazy(()=> import("../src/pages/Commercial/Buy/CommercialType"));
 
 export default function App() {
   return (
@@ -103,21 +103,40 @@ export default function App() {
             {/* listing pages */}
             {/* residential */}
             <Route
-               path="/residential/:property_for/:status"
-              element={
-                <ProtectedRoute>
-                  <ResidentialTypes />
-                </ProtectedRoute>
-              }
+              path="/residential/:property_for/:status"
+                element={
+                  <Suspense
+                    fallback={
+                      <TableLoader
+                        title="Loading Residential Listings" // Static title for lazy loading
+                        hasActions={true} // Default to true; adjust as needed
+                      />
+                    }
+                  >
+                  <ProtectedRoute>
+                    <ResidentialTypes />
+                  </ProtectedRoute>
+                </Suspense>
+                }
             />
             <Route
-              path="/resendetial-rent"
+              path="/commercial/:property_for/:status"
               element={
-                <ProtectedRoute>
-                  <ResidentialRentReview />
-                </ProtectedRoute>
+                <Suspense
+                  fallback={
+                    <TableLoader
+                      title="Loading Commercial Listings"
+                      hasActions={true}
+                    />
+                  }
+                >
+                  <ProtectedRoute>
+                    <CommercialTypes />
+                  </ProtectedRoute>
+                </Suspense>
               }
             />
+            
             <Route
               path="residential-buy-edit"
               element={
@@ -136,23 +155,7 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            {/* commercial */}
-            <Route
-              path="/commercial/:property_for/:status"
-              element={
-                <ProtectedRoute>
-                  <CommercialTypes />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/commercial-rent"
-              element={
-                <ProtectedRoute>
-                  <CommercialRentReview />
-                </ProtectedRoute>
-              }
-            />
+            
             <Route
               path="/commercial-buy-edit"
               element={
@@ -179,22 +182,8 @@ export default function App() {
                 </ProtectedRoute>
               }
             />
-            <Route
-              path="/calendar"
-              element={
-                <ProtectedRoute>
-                  <Calendar />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/blank"
-              element={
-                <ProtectedRoute>
-                  <Blank />
-                </ProtectedRoute>
-              }
-            />
+           
+          
 
             {/* Lead Management */}
             <Route
@@ -301,15 +290,15 @@ export default function App() {
               }
             />
 
-          <Route
-              path="/maps/locality"
-              element={
-                <ProtectedRoute>
-                  <LocationManager />
-                </ProtectedRoute>
-              }
-            />
-          </Route>
+            <Route
+                path="/maps/locality"
+                element={
+                  <ProtectedRoute>
+                    <LocationManager />
+                  </ProtectedRoute>
+                }
+              />
+            </Route>
 
         
 

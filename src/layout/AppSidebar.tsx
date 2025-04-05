@@ -473,7 +473,7 @@ const AppSidebar: React.FC = () => {
           {nav.subItems ? (
             <button
               onClick={() => handleSubmenuToggle(index, menuType)}
-              className={`flex items-center w-full p-2 rounded-lg ${
+              className={`flex items-center w-full p-1 rounded-lg  gap-1 ${
                 openSubmenu?.type === menuType && openSubmenu?.index === index
                   ? "bg-gray-100 text-blue-600"
                   : "hover:bg-gray-50 text-gray-700"
@@ -483,7 +483,7 @@ const AppSidebar: React.FC = () => {
                   : "lg:justify-start"
               }`}
             >
-              <span className="w-6 h-6 mr-2">{nav.icon}</span>
+              <span className="w-6 h-4 flex-shrink-4">{nav.icon}</span>
               {(isExpanded || isHovered || isMobileOpen) && (
                 <span className="flex-1 text-left">{nav.name}</span>
               )}

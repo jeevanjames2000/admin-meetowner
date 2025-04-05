@@ -15,7 +15,7 @@ interface Property {
   unit_flat_house_no: string | null;
   state_id: number | null;
   city_id: number | null;
-  location_id:string | null;
+  location_id: string | null;
   street: string | null;
   address: string | null;
   zipcode: string | null;
@@ -97,6 +97,13 @@ interface Property {
   total_project_area: string | null;
   uploaded_from_seller_panel: string | null;
   featured_property: string | null;
+  user: {
+    name: string;
+    email: string | null;
+    mobile: string;
+    photo: string | null;
+    user_type: number;
+  };
 }
 
 interface ListingsResponse {

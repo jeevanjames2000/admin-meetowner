@@ -131,6 +131,14 @@ const PropertyLeadsBuy: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  const getUserDetails = (leadId: number) => {
+    return {
+      userName: "John Doe",
+      phoneNumber: "+1-555-123-4567",
+      userType: "Buyer",
+    };
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -185,40 +193,58 @@ const PropertyLeadsBuy: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property For</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Id</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Date & Time</TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedLeads.map((lead, index) => (
-                    <TableRow key={lead.id}>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {startIndex + index + 1}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.interested_status === 1 ? "Interested" :
-                         lead.interested_status === 2 ? "Follows-up" :
-                         lead.interested_status === 3 ? "Site Visited" : "Contacted"}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.name}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.mobile}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.email}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.property_for}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.property_id}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {`${formatDate(lead.searched_on_date)} ${formatTime(lead.searched_on_time)}`}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                  {paginatedLeads.map((lead, index) => {
+                    const userDetails = getUserDetails(lead.id);
+                    return (
+                      <TableRow key={lead.id}>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {startIndex + index + 1}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {lead.interested_status === 1 ? "Interested" :
+                           lead.interested_status === 2 ? "Follows-up" :
+                           lead.interested_status === 3 ? "Site Visited" : "Closed"}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {lead.name}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {lead.mobile}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {lead.email}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {lead.property_for}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {lead.property_id}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
+                          <span className="text-black dark:text-gray-400 cursor-default">
+                            Sample Project
+                          </span>
+                          <div className="absolute z-10 w-64 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 left-0 top-full mt-1 hidden group-hover:block">
+                            <div className="text-sm text-gray-800 dark:text-gray-200">
+                              <p className="font-semibold">User Name: <span className="font-normal">{userDetails.userName}</span></p>
+                              <p className="font-semibold">Phone Number: <span className="font-normal">{userDetails.phoneNumber}</span></p>
+                              <p className="font-semibold">User Type: <span className="font-normal">{userDetails.userType}</span></p>
+                            </div>
+                            {/* Triangle pointer */}
+                            <div className="absolute top-[-6px] left-10 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white dark:border-b-gray-800" />
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {`${formatDate(lead.searched_on_date)} ${formatTime(lead.searched_on_time)}`}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
