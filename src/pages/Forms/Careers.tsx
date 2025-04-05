@@ -229,7 +229,7 @@ const CareersPage: React.FC = () => {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="w-full sm:w-auto px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+              className="w-full sm:w-auto px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
             >
               Submit
             </button>

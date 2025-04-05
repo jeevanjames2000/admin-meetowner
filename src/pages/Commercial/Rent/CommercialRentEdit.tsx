@@ -44,7 +44,7 @@ interface CommercialRentFormData {
   plotArea: string;
   lengthArea: string;
   widthArea: string;
-  facilities: string[];
+  facilities: { [key: string]: boolean }; 
   flatNo: string;
   plotNumber: string;
   zoneType: "Industrial" | "Commercial" | "Special Economic Zone" | "Open Spaces" | "Agricultural Zone" | "Other";
@@ -79,9 +79,53 @@ const CommercialRentEdit: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const property = location.state?.property;
 
+  const defaultFacilities = {
+    Lift: false,
+    CCTV: false,
+    Gym: false,
+    Garden: false,
+    "Club House": false,
+    Sports: false,
+    "Swimming Pool": false,
+    Intercom: false,
+    "Power Backup": false,
+    "Gated Community": false,
+    "Regular Water": false,
+    "Community Hall": false,
+    "Pet Allowed": false,
+    "Entry / Exit": false,
+    "Outdoor Fitness Station": false,
+    "Half Basket Ball Court": false,
+    Gazebo: false,
+    "Badminton Court": false,
+    "Children Play Area": false,
+    "Ample Greenery": false,
+    "Water Harvesting Pit": false,
+    "Water Softner": false,
+    "Solar Fencing": false,
+    "Security Cabin": false,
+    Lawn: false,
+    "Transformer Yard": false,
+    Amphitheatre: false,
+    "Lawn with Stepping Stones": false,
+    None: false,
+  };
+
   const [originalData, setOriginalData] = useState<any>(property || {});
   const [formData, setFormData] = useState<CommercialRentFormData>(() => {
     if (property) {
+
+      const facilitiesString = property.facilities || "";
+      const selectedFacilities = facilitiesString
+        .split(", ")
+        .map((item: string) => item.trim())
+        .filter(Boolean);
+      const updatedFacilities = { ...defaultFacilities };
+      selectedFacilities.forEach((facility: PropertyKey) => {
+        if (updatedFacilities.hasOwnProperty(facility)) {
+          updatedFacilities[facility as keyof typeof defaultFacilities] = true;
+        }
+      });
       const availableFromDate = property.available_from
         ? new Date(property.available_from).toISOString().split("T")[0]
         : "";
@@ -137,7 +181,7 @@ const CommercialRentEdit: React.FC = () => {
         plotArea: property.plot_area ? String(property.plot_area) : "",
         lengthArea: property.length_area ? String(property.length_area) : "",
         widthArea: property.width_area ? String(property.width_area) : "",
-        facilities: property.facilities ? property.facilities.split(", ") : [],
+        facilities: updatedFacilities,
         flatNo: property.unit_flat_house_no || "",
         plotNumber: property.plot_number || "",
         zoneType: property.zone_types || "Commercial",
@@ -254,14 +298,14 @@ const CommercialRentEdit: React.FC = () => {
   const [distanceFromProperty, setDistanceFromProperty] = useState("");
 
   const propertyTypeOptions: SelectOption[] = [
-    { value: "Residential", label: "Residential" },
+  
     { value: "Commercial", label: "Commercial" },
   ];
 
   const lookingToOptions: SelectOption[] = [
     { value: "Sell", label: "Sell" },
     { value: "Rent", label: "Rent" },
-    { value: "PG-Co-living", label: "PG-Co-living" },
+  
   ];
 
   const propertySubTypeOptions: SelectOption[] = [
@@ -429,13 +473,27 @@ const CommercialRentEdit: React.FC = () => {
     }
   };
 
-  const handleFacilityChange = (facility: string) => {
-    setFormData((prev) => {
-      const updatedFacilities = prev.facilities.includes(facility)
-        ? prev.facilities.filter((f) => f !== facility)
-        : [...prev.facilities, facility];
-      return { ...prev, facilities: updatedFacilities };
-    });
+  const handleFacilityChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { id, checked } = event.target;
+    if (id === "None") {
+      setFormData((prev) => {
+        const updatedFacilities = { ...prev.facilities };
+        for (const key in updatedFacilities) {
+          updatedFacilities[key] = false;
+        }
+        updatedFacilities[id] = checked;
+        return { ...prev, facilities: updatedFacilities };
+      });
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        facilities: {
+          ...prev.facilities,
+          None: false, // Uncheck "None" when any other facility is selected
+          [id]: checked,
+        },
+      }));
+    }
   };
 
   const handleAddAroundProperty = () => {
@@ -505,11 +563,14 @@ const CommercialRentEdit: React.FC = () => {
       plotArea: { apiField: "plot_area", applicableTo: ["Warehouse", "Plot", "Others"] },
       lengthArea: { apiField: "length_area", applicableTo: ["Plot"] },
       widthArea: { apiField: "width_area", applicableTo: ["Plot"] },
-      // facilities: {
-      //   apiField: "facilities",
-      //   transform: (value: string[]) => (Array.isArray(value) ? value.join(", ") : ""),
-      //   applicableTo: ["Office", "Retail Shop", "Show Room", "Others"],
-      // },
+      facilities: {
+        apiField: "facilities",
+        transform: (value: { [key: string]: boolean }) =>
+          Object.keys(value)
+            .filter((key) => value[key])
+            .join(", ") || null,
+            applicableTo: ["Office", "Retail Shop", "Show Room", "Others"],
+      },
       flatNo: { apiField: "unit_flat_house_no", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
       plotNumber: { apiField: "plot_number", applicableTo: ["Plot"] },
       zoneType: { apiField: "zone_types", applicableTo: ["Office", "Warehouse"] },
@@ -542,14 +603,13 @@ const CommercialRentEdit: React.FC = () => {
         newValue = transform(newValue);
       }
 
-      // Commented out facilities handling to prevent sending it in the payload
-      // if (key === "facilities") {
-      //   const originalFacilities = originalValue ? originalValue.split(", ") : [];
-      //   const newFacilities = Array.isArray(newValue) ? newValue : [];
-      //   if (JSON.stringify(originalFacilities.sort()) !== JSON.stringify(newFacilities.sort())) {
-      //     changedFields[apiField] = newFacilities.join(", ");
-      //   }
-      // } else {
+      if (key === "facilities") {
+        const originalFacilities = originalValue ? String(originalValue).split(", ").filter(Boolean) : [];
+        const newFacilities = newValue ? String(newValue).split(", ").filter(Boolean) : [];
+        if (JSON.stringify(originalFacilities.sort()) !== JSON.stringify(newFacilities.sort())) {
+          changedFields[apiField] = newValue;
+        }
+      }
         const original = originalValue === null || originalValue === undefined ? "" : String(originalValue);
         const current = newValue === null || newValue === undefined ? "" : String(newValue);
         if (original !== current) {
@@ -665,7 +725,7 @@ const CommercialRentEdit: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-2 sm:px-6 lg:px-8">
-      <PageBreadcrumb pageTitle="Commercial Rent Edit" pagePlacHolder="Edit property details" />
+      <PageBreadcrumb pageTitle="Commercial Rent Edit"  />
       <ComponentCard title="Edit Basic Details">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -678,7 +738,7 @@ const CommercialRentEdit: React.FC = () => {
                   onClick={() => handleSelectChange("propertyType")(option.value)}
                   className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                     formData.propertyType === option.value
-                      ? "bg-blue-600 text-white border-blue-600"
+                      ? "bg-[#1D3A76] text-white border-blue-600"
                       : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                   }`}
                 >
@@ -699,7 +759,7 @@ const CommercialRentEdit: React.FC = () => {
                   onClick={() => handleSelectChange("lookingTo")(option.value)}
                   className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                     formData.lookingTo === option.value
-                      ? "bg-blue-600 text-white border-blue-600"
+                      ? "bg-[#1D3A76] text-white border-blue-600"
                       : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                   }`}
                 >
@@ -733,7 +793,7 @@ const CommercialRentEdit: React.FC = () => {
                   onClick={() => handleSelectChange("propertySubType")(option.value)}
                   className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                     formData.propertySubType === option.value
-                      ? "bg-blue-600 text-white border-blue-600"
+                      ? "bg-[#1D3A76] text-white border-blue-600"
                       : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                   }`}
                 >
@@ -916,7 +976,7 @@ const CommercialRentEdit: React.FC = () => {
                       onClick={() => handleSelectChange("securityDeposit")(option.value)}
                       className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                         formData.securityDeposit === option.value
-                          ? "bg-blue-600 text-white border-blue-600"
+                          ? "bg-[#1D3A76] text-white border-blue-600"
                           : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                       }`}
                     >
@@ -937,7 +997,7 @@ const CommercialRentEdit: React.FC = () => {
                       onClick={() => handleSelectChange("lockInPeriod")(option.value)}
                       className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                         formData.lockInPeriod === option.value
-                          ? "bg-blue-600 text-white border-blue-600"
+                          ? "bg-[#1D3A76] text-white border-blue-600"
                           : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                       }`}
                     >
@@ -958,7 +1018,7 @@ const CommercialRentEdit: React.FC = () => {
                       onClick={() => handleSelectChange("chargeBrokerage")(option.value)}
                       className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                         formData.chargeBrokerage === option.value
-                          ? "bg-blue-600 text-white border-blue-600"
+                          ? "bg-[#1D3A76] text-white border-blue-600"
                           : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                       }`}
                     >
@@ -1083,18 +1143,19 @@ const CommercialRentEdit: React.FC = () => {
                 <div>
                   <Label htmlFor="facilities">Facilities</Label>
                   <div className="grid grid-cols-3 gap-4">
-                    {facilitiesOptions.map((facility) => (
-                      <label key={facility} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.facilities.includes(facility)}
-                          onChange={() => handleFacilityChange(facility)}
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">{facility}</span>
-                      </label>
-                    ))}
-                  </div>
+                      {facilitiesOptions.map((facility) => (
+                        <label key={facility} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={facility} // Add id for better accessibility
+                            checked={formData.facilities[facility]} // Check the boolean value
+                            onChange={handleFacilityChange} // Use the event-based handler
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-gray-700 dark:text-gray-300">{facility}</span>
+                        </label>
+                      ))}
+                    </div>
                 </div>
               )}
 
@@ -1167,7 +1228,7 @@ const CommercialRentEdit: React.FC = () => {
                           onClick={() => handleSelectChange("facing")(option)}
                           className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                             formData.facing === option
-                              ? "bg-blue-600 text-white border-blue-600"
+                              ? "bg-[#1D3A76] text-white border-blue-600"
                               : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                           }`}
                         >
@@ -1249,7 +1310,7 @@ const CommercialRentEdit: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleAddAroundProperty}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 w-[20%]"
+                      className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 w-[20%]"
                     >
                       Add
                     </button>
@@ -1296,7 +1357,7 @@ const CommercialRentEdit: React.FC = () => {
                           onClick={() => handleSelectChange("pantryRoom")(option)}
                           className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                             formData.pantryRoom === option
-                              ? "bg-blue-600 text-white border-blue-600"
+                              ? "bg-[#1D3A76] text-white border-blue-600"
                               : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                           }`}
                         >
@@ -1369,7 +1430,7 @@ const CommercialRentEdit: React.FC = () => {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="px-6 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
+              className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
             >
               Submit
             </button>

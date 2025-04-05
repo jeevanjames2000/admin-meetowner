@@ -15,7 +15,7 @@ interface Property {
   unit_flat_house_no: string | null;
   state_id: number | null;
   city_id: number | null;
-  location_id: number | null;
+  location_id:string | null;
   street: string | null;
   address: string | null;
   zipcode: string | null;
@@ -130,10 +130,11 @@ export interface ListingState {
 }
 
 interface ListingFilters {
-  page: number;
-  property_in: string;
+  property_status:number
   property_for: string;
-  status: number;
+  property_in: string;
+
+ 
 }
 
 interface UpdateStatusPayload {
@@ -150,15 +151,14 @@ export const fetchListings = createAsyncThunk(
   "listings/fetchListings",
   async (filters: ListingFilters, { rejectWithValue }) => {
     try {
-      const { page, property_in, property_for, status } = filters;
+      const { property_status,property_for, property_in,  } = filters;
       const promise = axiosInstance.get<ListingsResponse>(
-        "/listings/getListingsFilters",
+        "/listings/getAllPropertiesByType",
         {
           params: {
-            page,
-            property_in,
+            property_status,
             property_for,
-            status,
+            property_in,
           },
           headers: {
             "ngrok-skip-browser-warning": "true",

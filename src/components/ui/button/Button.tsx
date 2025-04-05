@@ -32,14 +32,14 @@ const Button: React.FC<ButtonProps> = ({
   // Variant Classes
   const variantClasses = {
     primary:
-      "bg-blue-500 text-white shadow-theme-xs hover:bg-blue-600 disabled:bg-gray-300", // Adjusted to match the blue in the image
+      "bg-[#1D3A76] text-white shadow-theme-xs hover:bg-[#1D3A76] disabled:bg-gray-300",
     outline:
       "bg-white text-gray-700 ring-1 ring-inset ring-gray-300 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-400 dark:ring-gray-700 dark:hover:bg-white/[0.03] dark:hover:text-gray-300",
   };
 
   // Active state class (applied when isActive is true)
   const activeClass = isActive
-    ? "bg-blue-500 text-white hover:bg-blue-600" // Same blue as primary for consistency
+    ? "bg-[#1D3A76] text-white hover:bg-[#1D3A76]" // Same blue as primary for consistency
     : "";
 
   // Use activeClass if isActive is true, otherwise use the variant class

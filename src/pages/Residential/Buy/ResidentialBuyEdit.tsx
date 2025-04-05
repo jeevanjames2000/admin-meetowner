@@ -41,7 +41,7 @@ interface ResidentialBuyFormData {
   pentHouse: "Yes" | "No";
   propertyCost: string;
   possessionStatus: "Immediate" | "Future";
-  facilities: string[];
+  facilities: { [key: string]: boolean }; 
   investorProperty: "Yes" | "No";
   loanFacility: "Yes" | "No";
   facing: "East" | "West" | "South" | "North" | "";
@@ -74,6 +74,39 @@ const ResidentialBuyEdit: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const property = location.state?.property;
+  console.log(property)
+
+  const defaultFacilities = {
+    Lift: false,
+    CCTV: false,
+    Gym: false,
+    Garden: false,
+    "Club House": false,
+    Sports: false,
+    "Swimming Pool": false,
+    Intercom: false,
+    "Power Backup": false,
+    "Gated Community": false,
+    "Regular Water": false,
+    "Community Hall": false,
+    "Pet Allowed": false,
+    "Entry / Exit": false,
+    "Outdoor Fitness Station": false,
+    "Half Basket Ball Court": false,
+    Gazebo: false,
+    "Badminton Court": false,
+    "Children Play Area": false,
+    "Ample Greenery": false,
+    "Water Harvesting Pit": false,
+    "Water Softner": false,
+    "Solar Fencing": false,
+    "Security Cabin": false,
+    Lawn: false,
+    "Transformer Yard": false,
+    Amphitheatre: false,
+    "Lawn with Stepping Stones": false,
+    None: false,
+  };
 
   const [originalData, setOriginalData] = useState<any>(property || {});
   const [formData, setFormData] = useState<ResidentialBuyFormData>(() => {
@@ -81,6 +114,18 @@ const ResidentialBuyEdit: React.FC = () => {
       const possessionEndDate = property.under_construction
         ? new Date(property.under_construction).toISOString().split("T")[0]
         : "";
+      const facilitiesString = property.facilities || "";
+      const selectedFacilities = facilitiesString
+        .split(", ")
+        .map((item: string) => item.trim())
+        .filter(Boolean);
+      const updatedFacilities = { ...defaultFacilities };
+      selectedFacilities.forEach((facility: PropertyKey) => {
+        if (updatedFacilities.hasOwnProperty(facility)) {
+          updatedFacilities[facility as keyof typeof defaultFacilities] = true;
+        }
+      });
+
       return {
         propertyType: property.property_in || "Residential",
         lookingTo: property.property_for || "Sell",
@@ -93,7 +138,7 @@ const ResidentialBuyEdit: React.FC = () => {
         bedroom: property.bathroom ? String(property.bathroom) as "1" | "2" | "3" | "4" | "4+" : "1",
         balcony: property.balconies ? String(property.balconies) as "1" | "2" | "3" | "4" | "4+" : "1",
         furnishType: property.furnished_status || "Fully",
-        ageOfProperty: property.property_age ? String(property.property_age) as "5" | "10" | "11" : "5", // Adjusted for API
+        ageOfProperty: property.property_age ? String(property.property_age) as "5" | "10" | "11" : "5",
         areaUnits: property.area_units || "Sq.yd",
         builtUpArea: property.builtup_area || "",
         carpetArea: property.carpet_area || "",
@@ -101,18 +146,18 @@ const ResidentialBuyEdit: React.FC = () => {
         lengthArea: property.length_area || "",
         widthArea: property.width_area || "",
         totalProjectArea: property.total_project_area || "",
-        unitCost: property.builtup_unit || "6800.00", // Default example value
+        unitCost: property.builtup_unit || "6800.00",
         pentHouse: property.pent_house || "No",
         propertyCost: property.property_cost || "",
         possessionStatus: property.possession_status || "Immediate",
-        facilities: property.facilities ? property.facilities.split(",") : [],
+        facilities: updatedFacilities,
         investorProperty: property.investor_property || "No",
         loanFacility: property.loan_facility || "No",
         facing: property.facing || "",
         carParking: property.car_parking || "0",
         bikeParking: property.bike_parking || "0",
         openParking: property.open_parking || "0",
-        aroundProperty: [], // Assuming this isn't pre-populated
+        aroundProperty: [],
         servantRoom: property.servant_room || "No",
         propertyDescription: property.description || "",
         city: property.city_id || "",
@@ -140,7 +185,7 @@ const ResidentialBuyEdit: React.FC = () => {
       bedroom: "1",
       balcony: "1",
       furnishType: "Fully",
-      ageOfProperty: "5", // Default to match API value
+      ageOfProperty: "5",
       areaUnits: "Sq.yd",
       builtUpArea: "",
       carpetArea: "",
@@ -148,11 +193,11 @@ const ResidentialBuyEdit: React.FC = () => {
       lengthArea: "",
       widthArea: "",
       totalProjectArea: "",
-      unitCost: "6800.00", // Default example value
+      unitCost: "6800.00",
       pentHouse: "No",
       propertyCost: "",
       possessionStatus: "Immediate",
-      facilities: [],
+      facilities: { ...defaultFacilities },
       investorProperty: "No",
       loanFacility: "No",
       facing: "",
@@ -175,6 +220,7 @@ const ResidentialBuyEdit: React.FC = () => {
       featuredImageIndex: null,
     };
   });
+
 
   const [errors, setErrors] = useState({
     propertyType: "",
@@ -390,14 +436,27 @@ const ResidentialBuyEdit: React.FC = () => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
 
-  // Commented out to keep UI functionality but prevent sending to API
-  const handleFacilityChange = (facility: string) => {
-    setFormData((prev) => {
-      const updatedFacilities = prev.facilities.includes(facility)
-        ? prev.facilities.filter((f) => f !== facility)
-        : [...prev.facilities, facility];
-      return { ...prev, facilities: updatedFacilities };
-    });
+  const handleFacilityChange = (event: ChangeEvent<HTMLInputElement>) => {
+    const { id, checked } = event.target;
+    if (id === "None") {
+      setFormData((prev) => {
+        const updatedFacilities = { ...prev.facilities };
+        for (const key in updatedFacilities) {
+          updatedFacilities[key] = false;
+        }
+        updatedFacilities[id] = checked;
+        return { ...prev, facilities: updatedFacilities };
+      });
+    } else {
+      setFormData((prev) => ({
+        ...prev,
+        facilities: {
+          ...prev.facilities,
+          None: false, // Uncheck "None" when any other facility is selected
+          [id]: checked,
+        },
+      }));
+    }
   };
 
   const handleAddAroundProperty = () => {
@@ -423,7 +482,7 @@ const ResidentialBuyEdit: React.FC = () => {
   // Function to get changed fields
   const getChangedFields = () => {
     const changedFields: Partial<any> = {};
-
+  
     const fieldMappings: {
       [key in keyof ResidentialBuyFormData]?: {
         apiField: string;
@@ -470,11 +529,14 @@ const ResidentialBuyEdit: React.FC = () => {
       pentHouse: { apiField: "pent_house", applicableTo: ["Independent House", "Independent Villa"] },
       propertyCost: { apiField: "property_cost", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
       possessionStatus: { apiField: "possession_status", applicableTo: ["Plot", "Land"] },
-      // facilities: {
-      //   apiField: "facilities",
-      //   transform: (value: string[]) => (Array.isArray(value) ? value.join(",") : ""),
-      //   applicableTo: ["Apartment", "Independent House", "Independent Villa"],
-      // },
+      facilities: {
+        apiField: "facilities",
+        transform: (value: { [key: string]: boolean }) =>
+          Object.keys(value)
+            .filter((key) => value[key])
+            .join(", ") || null,
+        applicableTo: ["Apartment", "Independent House", "Independent Villa"],
+      },
       investorProperty: { apiField: "investor_property", applicableTo: ["Apartment", "Independent Villa", "Plot"] },
       loanFacility: { apiField: "loan_facility", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
       facing: { apiField: "facing", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
@@ -491,39 +553,37 @@ const ResidentialBuyEdit: React.FC = () => {
       floorNo: { apiField: "floors", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
       totalFloors: { apiField: "total_floors", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
     };
-
+  
     Object.keys(formData).forEach((key) => {
       const mapping = fieldMappings[key as keyof ResidentialBuyFormData];
       if (!mapping) return;
-
+  
       const { apiField, transform, applicableTo } = mapping;
-
+  
       if (!applicableTo.includes(formData.propertySubType)) return;
-
+  
       const originalValue = originalData[apiField];
       let newValue = formData[key as keyof ResidentialBuyFormData];
-
+  
       if (transform) {
         newValue = transform(newValue);
       }
-
-      // Commented out facilities handling to prevent sending it in the payload
-      // if (key === "facilities") {
-      //   const originalFacilities = originalValue ? originalValue.split(",") : [];
-      //   const newFacilities = Array.isArray(newValue) ? newValue : [];
-      //   if (JSON.stringify(originalFacilities.sort()) !== JSON.stringify(newFacilities.sort())) {
-      //     changedFields[apiField] = newFacilities.join(",");
-      //   }
-      // } else {
+      if (key === "facilities") {
+        const originalFacilities = originalValue ? String(originalValue).split(", ").filter(Boolean) : [];
+        const newFacilities = newValue ? String(newValue).split(", ").filter(Boolean) : [];
+        if (JSON.stringify(originalFacilities.sort()) !== JSON.stringify(newFacilities.sort())) {
+          changedFields[apiField] = newValue;
+        }
+      } else {
         const original = originalValue === null || originalValue === undefined ? "" : String(originalValue);
         const current = newValue === null || newValue === undefined ? "" : String(newValue);
-
+  
         if (original !== current) {
           changedFields[apiField] = newValue;
         }
-      // }
+      }
     });
-
+  
     return changedFields;
   };
 
@@ -675,7 +735,7 @@ const ResidentialBuyEdit: React.FC = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-2 sm:px-6 lg:px-8">
-      <PageBreadcrumb pageTitle="Residential Buy Edit" pagePlacHolder="Edit property details" />
+      <PageBreadcrumb pageTitle="Residential Buy Edit" />
       <ComponentCard title="Edit Basic Details">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -688,7 +748,7 @@ const ResidentialBuyEdit: React.FC = () => {
                   onClick={() => handleSelectChange("propertyType")(option.value)}
                   className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                     formData.propertyType === option.value
-                      ? "bg-blue-600 text-white border-blue-600"
+                      ? "bg-[#1D3A76] text-white border-blue-600"
                       : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                   }`}
                 >
@@ -709,7 +769,7 @@ const ResidentialBuyEdit: React.FC = () => {
                   onClick={() => handleSelectChange("lookingTo")(option.value)}
                   className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                     formData.lookingTo === option.value
-                      ? "bg-blue-600 text-white border-blue-600"
+                      ? "bg-[#1D3A76] text-white border-blue-600"
                       : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                   }`}
                 >
@@ -754,7 +814,7 @@ const ResidentialBuyEdit: React.FC = () => {
                   onClick={() => handleSelectChange("propertySubType")(option.value)}
                   className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                     formData.propertySubType === option.value
-                      ? "bg-blue-600 text-white border-blue-600"
+                      ? "bg-[#1D3A76] text-white border-blue-600"
                       : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                   }`}
                 >
@@ -780,7 +840,7 @@ const ResidentialBuyEdit: React.FC = () => {
                         onClick={() => handleSelectChange("constructionStatus")(option.value)}
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.constructionStatus === option.value
-                            ? "bg-blue-600 text-white border-blue-600"
+                            ? "bg-[#1D3A76] text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                         }`}
                       >
@@ -839,7 +899,7 @@ const ResidentialBuyEdit: React.FC = () => {
                         onClick={() => handleSelectChange("bhk")(option.value)}
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.bhk === option.value
-                            ? "bg-blue-600 text-white border-blue-600"
+                            ? "bg-[#1D3A76] text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                         }`}
                       >
@@ -862,7 +922,7 @@ const ResidentialBuyEdit: React.FC = () => {
                         onClick={() => handleSelectChange("bedroom")(option.value)}
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.bedroom === option.value
-                            ? "bg-blue-600 text-white border-blue-600"
+                            ? "bg-[#1D3A76] text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                         }`}
                       >
@@ -885,7 +945,7 @@ const ResidentialBuyEdit: React.FC = () => {
                         onClick={() => handleSelectChange("balcony")(option.value)}
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.balcony === option.value
-                            ? "bg-blue-600 text-white border-blue-600"
+                            ? "bg-[#1D3A76] text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                         }`}
                       >
@@ -910,7 +970,7 @@ const ResidentialBuyEdit: React.FC = () => {
                         onClick={() => handleSelectChange("furnishType")(option.value)}
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.furnishType === option.value
-                            ? "bg-blue-600 text-white border-blue-600"
+                            ? "bg-[#1D3A76] text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                         }`}
                       >
@@ -1049,7 +1109,7 @@ const ResidentialBuyEdit: React.FC = () => {
                         onClick={() => handleSelectChange("pentHouse")(option)}
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.pentHouse === option
-                            ? "bg-blue-600 text-white border-blue-600"
+                            ? "bg-[#1D3A76] text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                         }`}
                       >
@@ -1085,7 +1145,7 @@ const ResidentialBuyEdit: React.FC = () => {
                         onClick={() => handleSelectChange("possessionStatus")(option)}
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.possessionStatus === option
-                            ? "bg-blue-600 text-white border-blue-600"
+                            ? "bg-[#1D3A76] text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                         }`}
                       >
@@ -1096,26 +1156,27 @@ const ResidentialBuyEdit: React.FC = () => {
                 </div>
               )}
 
-              {(formData.propertySubType === "Apartment" ||
-                formData.propertySubType === "Independent House" ||
-                formData.propertySubType === "Independent Villa") && (
-                <div>
-                  <Label htmlFor="facilities">Facilities</Label>
-                  <div className="grid grid-cols-3 gap-4">
-                    {facilitiesOptions.map((facility) => (
-                      <label key={facility} className="flex items-center space-x-2">
-                        <input
-                          type="checkbox"
-                          checked={formData.facilities.includes(facility)}
-                          onChange={() => handleFacilityChange(facility)}
-                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                        />
-                        <span className="text-gray-700 dark:text-gray-300">{facility}</span>
-                      </label>
-                    ))}
+                {(formData.propertySubType === "Apartment" ||
+                  formData.propertySubType === "Independent House" ||
+                  formData.propertySubType === "Independent Villa") && (
+                  <div>
+                    <Label htmlFor="facilities">Facilities</Label>
+                    <div className="grid grid-cols-3 gap-4">
+                      {facilitiesOptions.map((facility) => (
+                        <label key={facility} className="flex items-center space-x-2">
+                          <input
+                            type="checkbox"
+                            id={facility} // Add id for better accessibility
+                            checked={formData.facilities[facility]} // Check the boolean value
+                            onChange={handleFacilityChange} // Use the event-based handler
+                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                          />
+                          <span className="text-gray-700 dark:text-gray-300">{facility}</span>
+                        </label>
+                      ))}
+                    </div>
                   </div>
-                </div>
-              )}
+                )}
 
               {(formData.propertySubType === "Apartment" ||
                 formData.propertySubType === "Independent Villa" ||
@@ -1130,7 +1191,7 @@ const ResidentialBuyEdit: React.FC = () => {
                         onClick={() => handleSelectChange("investorProperty")(option)}
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.investorProperty === option
-                            ? "bg-blue-600 text-white border-blue-600"
+                            ? "bg-[#1D3A76] text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                         }`}
                       >
@@ -1157,7 +1218,7 @@ const ResidentialBuyEdit: React.FC = () => {
                         onClick={() => handleSelectChange("loanFacility")(option)}
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.loanFacility === option
-                            ? "bg-blue-600 text-white border-blue-600"
+                            ? "bg-[#1D3A76] text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                         }`}
                       >
@@ -1181,7 +1242,7 @@ const ResidentialBuyEdit: React.FC = () => {
                         onClick={() => handleSelectChange("facing")(option)}
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.facing === option
-                            ? "bg-blue-600 text-white border-blue-600"
+                            ? "bg-[#1D3A76] text-white border-blue-600"
                             : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                         }`}
                       >
@@ -1250,7 +1311,7 @@ const ResidentialBuyEdit: React.FC = () => {
                     <button
                       type="button"
                       onClick={handleAddAroundProperty}
-                      className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 w-[20%]"
+                      className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 w-[20%]"
                     >
                       Add
                     </button>
@@ -1297,7 +1358,7 @@ const ResidentialBuyEdit: React.FC = () => {
                           onClick={() => handleSelectChange("servantRoom")(option)}
                           className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                             formData.servantRoom === option
-                              ? "bg-blue-600 text-white border-blue-600"
+                              ? "bg-[#1D3A76] text-white border-blue-600"
                               : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
                           }`}
                         >
@@ -1372,7 +1433,7 @@ const ResidentialBuyEdit: React.FC = () => {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="px-6 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
+              className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
             >
               Submit
             </button>

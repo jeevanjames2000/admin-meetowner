@@ -129,8 +129,8 @@ const PaymentSuccessUsers: React.FC = () => {
       {/* Main content */}
       <div>
         <PageMeta
-          title="Payment Success Usres"
-          description="This is the Payment Success Users"
+          title="Meet Owner Payments "
+          
         />
         <PageBreadcrumb pageTitle="Payment Success Users" pagePlacHolder="Filter payments" />
         <div className="space-y-6">

@@ -310,7 +310,7 @@ const AboutUsPage: React.FC = () => {
           <div className="flex justify-end">
             <button
               type="submit"
-              className="px-6 py-2 bg-brand-500 text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
+              className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
             >
               Submit
             </button>

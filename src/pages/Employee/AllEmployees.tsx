@@ -234,7 +234,7 @@ const AllEmployees: React.FC = () => {
 
   return (
     <div className="relative min-h-screen">
-      <PageMeta title="All Employees" description="This is the All Employees Table page" />
+      <PageMeta title="Meet Owner All Employees" />
       <PageBreadcrumb pageTitle="All Employees" pagePlacHolder="Filter employees" />
       <div className="space-y-6">
         <ComponentCard title="All Employees">

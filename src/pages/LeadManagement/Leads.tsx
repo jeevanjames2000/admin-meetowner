@@ -143,7 +143,7 @@ const PropertyLeadsBuy: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
         <PageMeta
-          title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
+          title={`Meet Owner Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
           description="This is the Property Leads Table page"
         />
         <PageBreadcrumb
@@ -163,7 +163,7 @@ const PropertyLeadsBuy: React.FC = () => {
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <PageMeta
-        title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
+        title={`Meet Owner Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
         description="This is the Property Leads Table page"
       />
       <PageBreadcrumb

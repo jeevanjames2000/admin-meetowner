@@ -159,8 +159,8 @@ const BasicTables: React.FC = () => {
       {/* Main content */}
       <div className={editMember ? "blur-sm pointer-events-none" : ""}>
         <PageMeta
-          title={`${categoryLabel} Table | TailAdmin - Next.js Admin Dashboard Template`}
-          description={`This is the ${categoryLabel} Table page for TailAdmin - React.js Tailwind CSS Admin Dashboard Template`}
+          title={`Meet Owner ${categoryLabel} Table`}
+         
         />
         <PageBreadcrumb pageTitle={`${categoryLabel} Table`} pagePlacHolder = "Filter projects, Sellers "/>
         <div className="space-y-6">
@@ -485,7 +485,7 @@ const BasicTables: React.FC = () => {
                 </button>
                 <button
                   type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded-md hover:bg-blue-700 text-sm font-medium"
+                  className="px-4 py-2 bg-[#1D3A76] text-white rounded-md hover:bg-blue-700 text-sm font-medium"
                 >
                   Save
                 </button>

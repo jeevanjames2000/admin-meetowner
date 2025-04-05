@@ -113,7 +113,7 @@ const CommercialRentReview: React.FC = () => {
   return (
     <div className="relative min-h-screen">
       <PageMeta
-        title="Commercial Rent Review"
+        title="Meet Owner Commercial Rent Review"
         description="This is the Commercial Rent Review Table page"
       />
       <PageBreadcrumb pageTitle="Commercial Rent Review" pagePlacHolder="Filter listings" />

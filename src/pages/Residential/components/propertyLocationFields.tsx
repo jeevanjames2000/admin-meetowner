@@ -29,6 +29,9 @@ const PropertyLocationFields: React.FC<PropertyLocationFieldsProps> = ({
   handleInputChange,
   isPlot,
 }) => {
+ 
+ 
+
   return (
     <>
       {/* City */}
@@ -107,8 +110,9 @@ const PropertyLocationFields: React.FC<PropertyLocationFieldsProps> = ({
             name="floorNo"
             value={formData.floorNo}
             onChange={handleInputChange}
+           
             placeholder="Enter floor number"
-            className="dark:bg-dark-900"
+            className="dark:bg-dark-900 no-spinner" // Add custom class to hide spinners
           />
           {errors.floorNo && (
             <p className="text-red-500 text-sm mt-1">{errors.floorNo}</p>
@@ -126,8 +130,9 @@ const PropertyLocationFields: React.FC<PropertyLocationFieldsProps> = ({
             name="totalFloors"
             value={formData.totalFloors}
             onChange={handleInputChange}
+            
             placeholder="Enter total floors"
-            className="dark:bg-dark-900"
+            className="dark:bg-dark-900 no-spinner" // Add custom class to hide spinners
           />
           {errors.totalFloors && (
             <p className="text-red-500 text-sm mt-1">{errors.totalFloors}</p>

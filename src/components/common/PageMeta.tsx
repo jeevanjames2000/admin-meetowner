@@ -2,14 +2,15 @@ import { HelmetProvider, Helmet } from "react-helmet-async";
 
 const PageMeta = ({
   title,
-  description,
+  description, // description is still typed as string | undefined implicitly
 }: {
   title: string;
-  description: string;
+  description?: string; // Made optional with ?
 }) => (
   <Helmet>
     <title>{title}</title>
-    <meta name="description" content={description} />
+    {/* Only render meta tag if description is provided */}
+    {description && <meta name="description" content={description} />}
   </Helmet>
 );
 

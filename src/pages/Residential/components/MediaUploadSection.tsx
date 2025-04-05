@@ -143,7 +143,7 @@ const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
         />
         <label
           htmlFor="photo-upload"
-          className="mt-4 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
+          className="mt-4 inline-block px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
         >
           Upload Photos
         </label>
@@ -168,7 +168,7 @@ const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
                   onClick={() => handleSetFeaturedImage(index)}
                   className={`absolute top-2 left-2 px-3 py-1 rounded-lg text-sm ${
                     featuredImageIndex === index
-                      ? "bg-blue-600 text-white"
+                      ? "bg-[#1D3A76] text-white"
                       : "bg-gray-200 text-gray-700"
                   }`}
                 >
@@ -209,7 +209,7 @@ const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
         />
         <label
           htmlFor="video-upload"
-          className="mt-4 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
+          className="mt-4 inline-block px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
         >
           Upload Video
         </label>
@@ -255,7 +255,7 @@ const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
         />
         <label
           htmlFor="floor-plan-upload"
-          className="mt-4 inline-block px-6 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
+          className="mt-4 inline-block px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
         >
           Upload Floor Plan
         </label>

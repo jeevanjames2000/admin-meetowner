@@ -115,7 +115,7 @@ const ResidentialRentReview: React.FC = () => {
   return (
     <div className="relative min-h-screen">
       <PageMeta
-        title="Residential Rent Review"
+        title="Meet Owner Residential Rent Review"
         description="This is the Residential Rent Review Table page"
       />
       <PageBreadcrumb pageTitle="Residential Rent Review" pagePlacHolder="Filter listings" />
