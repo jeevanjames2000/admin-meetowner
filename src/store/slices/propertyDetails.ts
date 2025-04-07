@@ -38,11 +38,7 @@ export const getCities = createAsyncThunk(
         const promise = axios.get<CitiesResponse>(
           "https://api.meetowner.in/general/getcities"
         );
-        toast.promise(promise, {
-          loading: "Fetching locations",
-          success: "Successfully fetched cities",
-          error: "Something went wrong",
-        });
+        
         const response = await promise;
         return response.data.cities;
       } catch (error) {
@@ -63,11 +59,7 @@ export const getCities = createAsyncThunk(
         const promise = axios.get<StatesResponse>(
           "https://api.meetowner.in/general/getstates"
         );
-        toast.promise(promise, {
-          loading: "Fetching locations",
-          success: "Successfully fetched states",
-          error: "Something went wrong",
-        });
+        
         const response = await promise;
         return response.data.states;
       } catch (error) {

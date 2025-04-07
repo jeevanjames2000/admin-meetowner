@@ -1,10 +1,9 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router"; // Updated import
 import { useDispatch, useSelector } from "react-redux";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
 import NotFound from "./pages/OtherPage/NotFound";
 import UserProfiles from "./pages/UserProfiles";
-
 import FormElements from "./pages/Forms/FormElements";
 import AppLayout from "./layout/AppLayout";
 import { ScrollToTop } from "./components/common/ScrollToTop";
@@ -24,34 +23,27 @@ import AllEmployees from "./pages/Employee/AllEmployees";
 import PaymentSuccessUsers from "./pages/Accounts/Users/paymentSuccess";
 import PaymentSuccessAgents from "./pages/Accounts/Agents/PaymentSuccess";
 import InvoiceDownload from "./pages/Employee/Invoice";
-
 import BasicTables from "./pages/Tables/BasicTables";
-import { ProtectedRouteProps,  } from "./types/auth";
-
+import { ProtectedRouteProps } from "./types/auth";
 import { AppDispatch, RootState } from "./store/store";
 import { isTokenExpired, logout } from "./store/slices/authSlice";
 import BasicTableOne from "./components/tables/BasicTables/BasicTableOne";
 import LocationManager from "./pages/maps/locality";
-import { Toaster } from "react-hot-toast"; 
-import { lazy, Suspense } from "react";
+import { Toaster } from "react-hot-toast";
+import { lazy, Suspense, useState, useEffect } from "react";
 import { TableLoader } from "./components/Loaders/LoadingLisings";
-
-
-
-
+import ErrorBoundary from "./hooks/ErrorBoundary";
+import axiosInstance from "./utils/axiosInstance";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, token,  } = useSelector(
-    (state: RootState) => state.auth
-  );
+  const { isAuthenticated, token } = useSelector((state: RootState) => state.auth);
 
-  // Check if token is expired
-  const tokenExpired = isTokenExpired(token,);
+  const tokenExpired = isTokenExpired(token);
 
   if (!isAuthenticated || tokenExpired) {
     if (tokenExpired) {
-      dispatch(logout()); 
+      dispatch(logout());
     }
     return <Navigate to="/signin" replace />;
   }
@@ -59,264 +51,315 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return children;
 };
 
+const ResidentialTypes = lazy(() => import("./pages/Residential/Buy/ResidentialTypes"));
+const CommercialTypes = lazy(() => import("./pages/Commercial/Buy/CommercialType"));
 
-const ResidentialTypes = lazy(() => import("../src/pages/Residential/Buy/ResidentialTypes"));
-const CommercialTypes =  lazy(()=> import("../src/pages/Commercial/Buy/CommercialType"));
+// Simple server status check component
+const ServerStatusCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+  const [serverDown, setServerDown] = useState(false);
+
+  useEffect(() => {
+    const checkServerStatus = async () => {
+      try {
+        await axiosInstance.get("/user/getAllUsersCount"); 
+        setServerDown(false);
+      } catch (error) {
+        setServerDown(true);
+      }
+    };
+
+    checkServerStatus();
+    const interval = setInterval(checkServerStatus, 30000); 
+    return () => clearInterval(interval);
+  }, []);
+
+  if (serverDown) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900 p-4">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white mb-2">
+            Server Unavailable
+          </h2>
+          <p className="text-gray-600 dark:text-gray-400 mb-4">
+            Our servers are currently down. Please try again later.
+          </p>
+          <button
+            className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
+            onClick={() => window.location.reload()}
+          >
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return <>{children}</>;
+};
 
 export default function App() {
   return (
     <>
       <Router>
         <ScrollToTop />
-        <Routes>
-          {/* Dashboard Layout */}
-          <Route element={<AppLayout />}>
-            <Route
-              index
-              path="/"
-              element={
-                <ProtectedRoute>
-                  <Home />
-                </ProtectedRoute>
-              }
-            />
-             <Route
-              index
-              path="/basic-tables"
-              element={
-                <ProtectedRoute>
-                  <BasicTables />
-                </ProtectedRoute>
-              }
-            />
-
-             <Route
-              index
-              path="/basic-tables-one"
-              element={
-                <ProtectedRoute>
-                  <BasicTableOne />
-                </ProtectedRoute>
-              }
-            />
-
-
-            {/* listing pages */}
-            {/* residential */}
-            <Route
-              path="/residential/:property_for/:status"
+        <ServerStatusCheck>
+          <Routes>
+            <Route element={<AppLayout />}>
+              <Route
+                index
+                path="/"
                 element={
-                 
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <Home />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/basic-tables"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <BasicTables />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/basic-tables-one"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <BasicTableOne />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              {/* Residential Listings */}
+              <Route
+                path="/residential/:property_for/:status"
+                element={
                   <Suspense
                     fallback={
-                      <TableLoader
-                        title="Loading Residential Listings" // Static title for lazy loading
-                        hasActions={true} // Default to true; adjust as needed
-                      />
+                      <TableLoader title="Loading Residential Listings" hasActions={true} />
                     }
                   >
-                  <ProtectedRoute>
-                    <ResidentialTypes />
-                  </ProtectedRoute>
-                </Suspense>
+                    <ErrorBoundary>
+                      <ProtectedRoute>
+                        <ResidentialTypes />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  </Suspense>
                 }
-            />
-            <Route
-              path="/commercial/:property_for/:status"
-              element={
-                <Suspense
-                  fallback={
-                    <TableLoader
-                      title="Loading Commercial Listings"
-                      hasActions={true}
-                    />
-                  }
-                >
-                  <ProtectedRoute>
-                    <CommercialTypes />
-                  </ProtectedRoute>
-                </Suspense>
-              }
-            />
-            
-            <Route
-              path="residential-buy-edit"
-              element={
-                <ProtectedRoute>
-                  <ResidentialBuyEdit />
-                </ProtectedRoute>
-              }
-            />
-           
-
-            <Route
-              path="residential-rent-edit"
-              element={
-                <ProtectedRoute>
-                  <ResidentialRentEdit />
-                </ProtectedRoute>
-              }
-            />
-            
-            <Route
-              path="/commercial-buy-edit"
-              element={
-                <ProtectedRoute>
-                  <CommercialBuyEdit />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/commercial-rent-edit"
-              element={
-                <ProtectedRoute>
-                  <CommercialRentEdit />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Others Page */}
-            <Route
-              path="/profile"
-              element={
-                <ProtectedRoute>
-                  <UserProfiles />
-                </ProtectedRoute>
-              }
-            />
-           
-          
-
-            {/* Lead Management */}
-            <Route
-              path="/leads/:property_for/:status"
-              element={
-                <ProtectedRoute>
-                  <PropertyLeads />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Forms */}
-            <Route
-              path="/form-elements"
-              element={
-                <ProtectedRoute>
-                  <FormElements />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/about-us"
-              element={
-                <ProtectedRoute>
-                  <AboutUsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/services"
-              element={
-                <ProtectedRoute>
-                  <ServicesPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/careers"
-              element={
-                <ProtectedRoute>
-                  <CareersPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/terms"
-              element={
-                <ProtectedRoute>
-                  <TermsPage />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/privacy"
-              element={
-                <ProtectedRoute>
-                  <PrivacyPage />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* users */}
-            <Route
-              path="/users/payment-success"
-              element={
-                <ProtectedRoute>
-                  <PaymentSuccessUsers />
-                </ProtectedRoute>
-              }
-            />
-            {/* agents */}
-            <Route
-              path="/agents/payment-success"
-              element={
-                <ProtectedRoute>
-                  <PaymentSuccessAgents />
-                </ProtectedRoute>
-              }
-            />
-
-            {/* Employee details */}
-            <Route
-              path="/create-employee"
-              element={
-                <ProtectedRoute>
-                  <CreateEmployee />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/all-employees"
-              element={
-                <ProtectedRoute>
-                  <AllEmployees />
-                </ProtectedRoute>
-              }
-            />
-            <Route
-              path="/invoice"
-              element={
-                <ProtectedRoute>
-                  <InvoiceDownload />
-                </ProtectedRoute>
-              }
-            />
-
-            <Route
+              />
+              {/* Commercial Listings */}
+              <Route
+                path="/commercial/:property_for/:status"
+                element={
+                  <Suspense
+                    fallback={
+                      <TableLoader title="Loading Commercial Listings" hasActions={true} />
+                    }
+                  >
+                    <ErrorBoundary>
+                      <ProtectedRoute>
+                        <CommercialTypes />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  </Suspense>
+                }
+              />
+              <Route
+                path="/residential-buy-edit"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <ResidentialBuyEdit />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/residential-rent-edit"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <ResidentialRentEdit />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/commercial-buy-edit"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <CommercialBuyEdit />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/commercial-rent-edit"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <CommercialRentEdit />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              {/* Other Pages */}
+              <Route
+                path="/profile"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <UserProfiles />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/leads/:property_for/:status"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <PropertyLeads />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/form-elements"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <FormElements />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/about-us"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AboutUsPage />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/services"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <ServicesPage />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/careers"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <CareersPage />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/terms"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <TermsPage />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/privacy"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <PrivacyPage />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/users/payment-success"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <PaymentSuccessUsers />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/agents/payment-success"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <PaymentSuccessAgents />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/create-employee"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <CreateEmployee />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/all-employees"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AllEmployees />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/invoice"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <InvoiceDownload />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
                 path="/maps/locality"
                 element={
-                  <ProtectedRoute>
-                    <LocationManager />
-                  </ProtectedRoute>
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <LocationManager />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
                 }
               />
             </Route>
 
-        
-
-          {/* locations   */}
-
-         
-          
-
-          {/* Auth Layout - Keep these public */}
-          <Route path="/signin" element={<SignIn />} />
-          <Route path="/signup" element={<SignUp />} />
-
-          {/* Fallback Route - Keep this public */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-        <Toaster /> 
+            {/* Public Routes */}
+            <Route path="/signin" element={<SignIn />} />
+            <Route path="/signup" element={<SignUp />} />
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+        </ServerStatusCheck>
+        <Toaster />
       </Router>
     </>
   );

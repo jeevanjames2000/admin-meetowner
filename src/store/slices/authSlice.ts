@@ -3,6 +3,7 @@ import axios, { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import {jwtDecode} from "jwt-decode";
 import axiosIstance from "../../utils/axiosInstance";
+import { act } from "react";
 
 interface LoginRequest {
   mobile: string;
@@ -175,6 +176,7 @@ const authSlice = createSlice({
       localStorage.removeItem('mobile');
       localStorage.removeItem('city');
       localStorage.removeItem('state');
+      localStorage.removeItem('userId')
       
     },
   },
@@ -197,6 +199,7 @@ const authSlice = createSlice({
         localStorage.setItem('mobile',action.payload.user.mobile);
         localStorage.setItem('city',action.payload.user.city);
         localStorage.setItem('state',action.payload.user.state);
+        localStorage.setItem('userId',action.payload.user.id.toString());
        
       })
       .addCase(loginUser.rejected, (state, action) => {

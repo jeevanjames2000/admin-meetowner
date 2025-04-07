@@ -2,12 +2,13 @@ import React, { useEffect, useState } from "react";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
-import MultiSelect from "../../components/form/MultiSelect"; // Updated MultiSelect
+import MultiSelect from "../../components/form/MultiSelect";
 import PhoneInput from "../../components/form/group-input/PhoneInput";
 import { EyeCloseIcon, EyeIcon, EnvelopeIcon } from "../../icons";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
 import { getCities, getStates } from "../../store/slices/propertyDetails";
+import { createEmployee, clearMessages } from "../../store/slices/employee";
 
 // Define interfaces for form data and errors
 interface FormData {
@@ -41,11 +42,31 @@ export default function CreateEmployee() {
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const { cities, states } = useSelector((state: RootState) => state.property);
+  const { loading, error, success } = useSelector((state: RootState) => state.employee);
 
   useEffect(() => {
     dispatch(getCities());
     dispatch(getStates());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (success) {
+      setFormData({
+        name: "",
+        mobile: "",
+        email: "",
+        designation: [],
+        password: "",
+        city: [],
+        state: [],
+        pincode: "",
+      });
+      const timer = setTimeout(() => {
+        dispatch(clearMessages());
+      }, 3000);
+      return () => clearTimeout(timer);
+    }
+  }, [success, dispatch]);
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -61,11 +82,11 @@ export default function CreateEmployee() {
   const [errors, setErrors] = useState<Errors>({});
 
   const designationOptions: Option[] = [
-    { value: "manager", text: "Manager" },
-    { value: "telecaller", text: "TeleCaller" },
-    { value: "marketing", text: "Marketing Executive" },
-    { value: "customer-support", text: "Customer Support" },
-    { value: "customer-service", text: "Customer Service" },
+    { value: "7", text: "Manager" },
+    { value: "8", text: "TeleCaller" },
+    { value: "9", text: "Marketing Executive" },
+    { value: "10", text: "Customer Support" },
+    { value: "11", text: "Customer Service" },
   ];
 
   const cityOptions: Option[] =
@@ -130,13 +151,55 @@ export default function CreateEmployee() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      console.log("Form submitted:", formData);
+      const userType = localStorage.getItem("userType");
+      const createdBy = localStorage.getItem("name");
+      const createdUserIdRaw = localStorage.getItem("userId");
+
+      // Map city ID to city name
+      const selectedCityId = formData.city[0];
+      const cityName = cityOptions.find((option) => option.value === selectedCityId)?.text || selectedCityId;
+
+      // Map state ID to state name
+      const selectedStateId = formData.state[0];
+      const stateName = stateOptions.find((option) => option.value === selectedStateId)?.text || selectedStateId;
+
+      // Map designation value to text
+      const selectedDesignationId = formData.designation[0];
+      const designationName = designationOptions.find((option) => option.value === selectedDesignationId)?.text || selectedDesignationId;
+
+      const employeeData = {
+        name: formData.name,
+        mobile: formData.mobile,
+        email: formData.email,
+        designation: designationName, // Send "Manager" instead of "7"
+        password: formData.password,
+        city: cityName,
+        state: stateName,
+        pincode: formData.pincode,
+        user_type: parseInt(selectedDesignationId), // Use the numeric value for user_type
+        created_by: createdBy || "Unknown",
+        created_userID: createdUserIdRaw ? parseInt(createdUserIdRaw) : 1, // it will convert as number
+      };
+
+      dispatch(createEmployee(employeeData));
+      console.log(employeeData);
     }
   };
 
   return (
     <ComponentCard title="Create Employee">
       <form onSubmit={handleSubmit} className="space-y-6">
+        {success && (
+          <div className="p-3 bg-green-100 text-green-700 rounded-md">
+            {success}
+          </div>
+        )}
+        {error && (
+          <div className="p-3 bg-red-100 text-red-700 rounded-md">
+            {error}
+          </div>
+        )}
+
         <div className="min-h-[80px]">
           <Label htmlFor="name">Name</Label>
           <Input
@@ -145,6 +208,7 @@ export default function CreateEmployee() {
             value={formData.name}
             onChange={(e) => handleSingleChange("name")(e.target.value)}
             placeholder="Enter your name"
+            disabled={loading}
           />
           {errors.name && (
             <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -159,6 +223,7 @@ export default function CreateEmployee() {
             value={formData.mobile}
             placeholder="Enter mobile number"
             onChange={handleSingleChange("mobile")}
+           
           />
           {errors.mobile && (
             <p className="text-red-500 text-sm mt-1">{errors.mobile}</p>
@@ -175,6 +240,7 @@ export default function CreateEmployee() {
               onChange={(e) => handleSingleChange("email")(e.target.value)}
               placeholder="example@domain.com"
               className="pl-[62px]"
+              disabled={loading}
             />
             <span className="absolute left-0 top-1/2 -translate-y-1/2 border-r border-gray-200 px-3.5 py-3 text-gray-500 dark:border-gray-800 dark:text-gray-400">
               <EnvelopeIcon className="size-6" />
@@ -191,6 +257,7 @@ export default function CreateEmployee() {
             options={designationOptions}
             defaultSelected={formData.designation}
             onChange={handleMultiSelectChange("designation")}
+            disabled={loading}
           />
           {errors.designation && (
             <p className="text-red-500 text-sm mt-1">{errors.designation}</p>
@@ -205,11 +272,13 @@ export default function CreateEmployee() {
               value={formData.password}
               onChange={(e) => handleSingleChange("password")(e.target.value)}
               placeholder="Enter password"
+              disabled={loading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+              disabled={loading}
             >
               {showPassword ? (
                 <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
@@ -229,6 +298,7 @@ export default function CreateEmployee() {
             options={cityOptions}
             defaultSelected={formData.city}
             onChange={handleMultiSelectChange("city")}
+            disabled={loading}
           />
           {errors.city && (
             <p className="text-red-500 text-sm mt-1">{errors.city}</p>
@@ -243,6 +313,7 @@ export default function CreateEmployee() {
             value={formData.pincode}
             onChange={(e) => handleSingleChange("pincode")(e.target.value)}
             placeholder="Enter pincode"
+            disabled={loading}
           />
           {errors.pincode && (
             <p className="text-red-500 text-sm mt-1">{errors.pincode}</p>
@@ -255,6 +326,7 @@ export default function CreateEmployee() {
             options={stateOptions}
             defaultSelected={formData.state}
             onChange={handleMultiSelectChange("state")}
+            disabled={loading}
           />
           {errors.state && (
             <p className="text-red-500 text-sm mt-1">{errors.state}</p>
@@ -264,9 +336,10 @@ export default function CreateEmployee() {
         <div className="flex justify-center">
           <button
             type="submit"
-            className="w-[60%] px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
+            className="w-[60%] px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+            disabled={loading}
           >
-            Submit
+            {loading ? "Submitting..." : "Submit"}
           </button>
         </div>
       </form>

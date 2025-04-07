@@ -13,7 +13,8 @@ import {
 import Button from "../../ui/button/Button";
 import { MoreVertical } from "lucide-react";
 import ComponentCard from "../../common/ComponentCard";
-import PageBreadcrumb from "../../common/PageBreadCrumb";
+
+import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
 
 const userTypeMap: { [key: number]: string } = {
   1: "Admin",
@@ -127,12 +128,12 @@ export default function BasicTableOne() {
 
   return (
     <div className="relative min-h-screen">
-      {/* <PageBreadcrumb
+      <PageBreadcrumbList
         pageTitle={`${categoryLabel} Table`}
         pagePlacHolder="Filter users by name, mobile, email, city, or state"
         onFilter={handleFilter}
-        persistSearch={false} // Disable persistence for client-side filtering
-      /> */}
+        
+      />
       <div className="space-y-6">
         <ComponentCard title={`${categoryLabel} Table`}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">

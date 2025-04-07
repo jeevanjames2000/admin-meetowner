@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef } from "react";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import {
@@ -16,9 +15,9 @@ import MultiSelect from "../../components/form/MultiSelect";
 import Button from "../../components/ui/button/Button";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
-import { getCities, getStates } from "../../store/slices/propertyDetails";
+import { fetchAllEmployees } from "../../store/slices/employee";
+import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 
-// Define the type for employee data with multi-select fields
 interface Employee {
   employeeId: number;
   name: string;
@@ -30,106 +29,32 @@ interface Employee {
   status: "Active" | "Inactive";
 }
 
-// Interface for MultiSelect options
 interface Option {
   value: string;
   text: string;
 }
 
-// Predefined options for designations
 const designationOptions: Option[] = [
-  { value: "manager", text: "Manager" },
-  { value: "telecaller", text: "TeleCaller" },
-  { value: "marketing", text: "Marketing Executive" },
-  { value: "customer-support", text: "Customer Support" },
-  { value: "customer-service", text: "Customer Service" },
+  { value: "7", text: "Manager" },
+  { value: "8", text: "TeleCaller" },
+  { value: "9", text: "Marketing Executive" },
+  { value: "10", text: "Customer Support" },
+  { value: "11", text: "Customer Service" },
 ];
-
-// Custom city options for table
-const cityOptionsCustom: Option[] = [
-  { value: "hyderabad", text: "Hyderabad" },
-  { value: "bangalore", text: "Bangalore" },
-  { value: "chennai", text: "Chennai" },
-  { value: "visakhapatnam", text: "Visakhapatnam" },
-];
-
-// Custom state options for table
-const stateOptionsCustom: Option[] = [
-  { value: "telangana", text: "Telangana" },
-  { value: "andhra-pradesh", text: "Andhra Pradesh" },
-  { value: "karnataka", text: "Karnataka" },
-  { value: "tamilnadu", text: "Tamilnadu" },
-];
-
-// Generate random employee data
-const generateRandomData = (
-  cityOptionsCustom: Option[],
-  stateOptionsCustom: Option[]
-): Employee[] => {
-  const names = [
-    "Ravi Kumar",
-    "Sneha Reddy",
-    "Arjun Patel",
-    "Priya Sharma",
-    "Vikram Singh",
-    "Anita Desai",
-    "Kiran Rao",
-    "Meera Nair",
-    "Suresh Gupta",
-    "Neha Joshi",
-  ];
-
-  const mobiles = [
-    "9876543210",
-    "8765432109",
-    "7654321098",
-    "6543210987",
-    "5432109876",
-    "4321098765",
-    "3210987654",
-    "2109876543",
-    "1098765432",
-    "0987654321",
-  ];
-
-  const emails = [
-    "ravi.kumar@example.com",
-    "sneha.reddy@example.com",
-    "arjun.patel@example.com",
-    "priya.sharma@example.com",
-    "vikram.singh@example.com",
-    "anita.desai@example.com",
-    "kiran.rao@example.com",
-    "meera.nair@example.com",
-    "suresh.gupta@example.com",
-    "neha.joshi@example.com",
-  ];
-
-  const data: Employee[] = [];
-  for (let i = 1; i <= 10; i++) {
-    data.push({
-      employeeId: i,
-      name: names[i - 1],
-      mobile: mobiles[i - 1],
-      emailId: emails[i - 1],
-      designation: [
-        designationOptions[Math.floor(Math.random() * designationOptions.length)].value,
-      ],
-      city: [cityOptionsCustom[Math.floor(Math.random() * cityOptionsCustom.length)].value],
-      state: [
-        stateOptionsCustom[Math.floor(Math.random() * stateOptionsCustom.length)].value,
-      ],
-      status: "Active",
-    });
-  }
-  return data;
-};
 
 const AllEmployees: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { cities, states } = useSelector((state: RootState) => state.property);
+  const { cities, states, employees, loading: reduxLoading, error } = useSelector(
+    (state: RootState) => ({
+      cities: state.property.cities,
+      states: state.property.states,
+      employees: state.employee.employees,
+      loading: state.employee.loading,
+      error: state.employee.error,
+    })
+  );
+  console.log(employees)
 
-  // Define cityOptions and stateOptions from API for edit modal
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
       value: city.value,
@@ -142,22 +67,24 @@ const AllEmployees: React.FC = () => {
       text: state.label,
     })) || [];
 
-  const [employeesList, setEmployeesList] = useState<Employee[]>([]);
+  // Local loading state
+  const [isLoading, setIsLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [isEditModalOpen, setIsEditModalOpen] = useState(false);
   const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const dropdownRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-  // Fetch cities and states for edit modal
-  useEffect(() => {
-    dispatch(getCities());
-    dispatch(getStates());
-  }, [dispatch]);
+  // Transform employees directly for rendering
 
-  // Generate initial data using custom options (not dependent on API)
+
+  // Fetch employees and manage local loader
   useEffect(() => {
-    setEmployeesList(generateRandomData(cityOptionsCustom, stateOptionsCustom));
-  }, []); // Empty dependency array since we only need this once on mount
+    setIsLoading(true); // Start loading
+    const userId = parseInt(localStorage.getItem("userId") || "1"); // Fallback to 1
+    dispatch(fetchAllEmployees(userId)).finally(() => {
+      setIsLoading(false); // Stop loading after fetch completes (success or fail)
+    });
+  }, [dispatch]);
 
   // Handle clicking outside the dropdown to close it
   useEffect(() => {
@@ -185,18 +112,24 @@ const AllEmployees: React.FC = () => {
   };
 
   const handleDelete = (employeeId: number) => {
-    setEmployeesList(employeesList.filter((emp) => emp.employeeId !== employeeId));
+    const updatedEmployees = transformedEmployees.filter(
+      (emp) => emp.employeeId !== employeeId
+    );
+    // Note: This only updates local UI; add API call to persist if needed
+    setSelectedEmployee(null); // Reset selected employee if deleted
     setDropdownOpen(null);
   };
 
   const handleToggleSuspend = (employee: Employee) => {
-    setEmployeesList(
-      employeesList.map((emp) =>
-        emp.employeeId === employee.employeeId
-          ? { ...emp, status: emp.status === "Active" ? "Inactive" : "Active" }
-          : emp
-      )
+    const updatedEmployees = transformedEmployees.map((emp) =>
+      emp.employeeId === employee.employeeId
+        ? { ...emp, status: emp.status === "Active" ? "Inactive" : "Active" }
+        : emp
     );
+    // Note: This only updates local UI; add API call to persist if needed
+    // setSelectedEmployee(
+    //   updatedEmployees.find((emp) => emp.employeeId === employee.employeeId) || null
+    // );
     setDropdownOpen(null);
   };
 
@@ -207,11 +140,11 @@ const AllEmployees: React.FC = () => {
 
   const handleSave = () => {
     if (selectedEmployee) {
-      setEmployeesList(
-        employeesList.map((emp) =>
-          emp.employeeId === selectedEmployee.employeeId ? { ...selectedEmployee } : emp
-        )
+      // Note: This only updates local UI; add API call to persist if needed
+      const updatedEmployees = transformedEmployees.map((emp) =>
+        emp.employeeId === selectedEmployee.employeeId ? { ...selectedEmployee } : emp
       );
+      setSelectedEmployee(null);
     }
     closeModal();
   };
@@ -222,7 +155,23 @@ const AllEmployees: React.FC = () => {
     }
   };
 
-  if (!employeesList || employeesList.length === 0) {
+  if (isLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8 flex justify-center items-center">
+        <div className="text-2xl font-bold text-gray-800 dark:text-white">Loading...</div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Error: {error}</h2>
+      </div>
+    );
+  }
+
+  if (!employees.length) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
         <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
@@ -235,7 +184,7 @@ const AllEmployees: React.FC = () => {
   return (
     <div className="relative min-h-screen">
       <PageMeta title="Meet Owner All Employees" />
-      <PageBreadcrumb pageTitle="All Employees" pagePlacHolder="Filter employees" />
+      <PageBreadcrumbList pageTitle="All Employees" pagePlacHolder="Filter employees" />
       <div className="space-y-6">
         <ComponentCard title="All Employees">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -301,10 +250,10 @@ const AllEmployees: React.FC = () => {
                 </TableHeader>
 
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {employeesList.map((employee) => (
-                    <TableRow key={employee.employeeId}>
+                  {employees.map((employee) => (
+                    <TableRow key={employee.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {employee.employeeId}
+                        {employee.id}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {employee.name}
@@ -313,39 +262,20 @@ const AllEmployees: React.FC = () => {
                         {employee.mobile}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {employee.emailId}
+                        {employee.email}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {employee.designation
-                          .map(
-                            (val) =>
-                              designationOptions.find((opt) => opt.value === val)?.text || val
-                          )
-                          .join(", ")}
+                        {employee.designation}
+                         
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {employee.city
-                          .map(
-                            (val) =>
-                              cityOptionsCustom.find((opt) => opt.value === val)?.text || val
-                          )
-                          .join(", ")}
+                        {employee.city}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {employee.state
-                          .map(
-                            (val) =>
-                              stateOptionsCustom.find((opt) => opt.value === val)?.text || val
-                          )
-                          .join(", ")}
-                      </TableCell>
+                        {employee.state} </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         <span
-                          className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                            employee.status === "Active"
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                          }`}
+                         
                         >
                           {employee.status}
                         </span>
@@ -353,12 +283,12 @@ const AllEmployees: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         <div
                           className="relative"
-                          ref={(el) => el && dropdownRefs.current.set(employee.employeeId, el)} // Add ref here
+                          ref={(el) => el && dropdownRefs.current.set(employee.id!, el)}
                         >
                           <button
                             onClick={() =>
                               setDropdownOpen(
-                                dropdownOpen === employee.employeeId ? null : employee.employeeId
+                                dropdownOpen === employee.id ? null : employee.id!
                               )
                             }
                             className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -372,27 +302,27 @@ const AllEmployees: React.FC = () => {
                               <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
                             </svg>
                           </button>
-                          {dropdownOpen === employee.employeeId && (
+                          {dropdownOpen === employee.id && (
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 dark:bg-gray-800">
                               <div className="py-1">
                                 <button
-                                  onClick={() => handleEdit(employee)}
+                                 
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                                 >
                                   Edit
                                 </button>
                                 <button
-                                  onClick={() => handleDelete(employee.employeeId)}
+                                  onClick={() => handleDelete(employee.id!)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                                 >
                                   Delete
                                 </button>
-                                <button
+                                {/* <button
                                   onClick={() => handleToggleSuspend(employee)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                                 >
                                   {employee.status === "Active" ? "Suspend" : "Unsuspend"}
-                                </button>
+                                </button> */}
                               </div>
                             </div>
                           )}
@@ -407,7 +337,6 @@ const AllEmployees: React.FC = () => {
         </ComponentCard>
       </div>
 
-      {/* Edit Modal */}
       {selectedEmployee && (
         <Modal isOpen={isEditModalOpen} onClose={closeModal} className="max-w-[800px] m-4">
           <div className="no-scrollbar relative w-full max-w-[800px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
@@ -446,7 +375,6 @@ const AllEmployees: React.FC = () => {
                   />
                 </div>
                 <div className="col-span-2 lg:col-span-1">
-                
                   <MultiSelect
                     label="Designation"
                     options={designationOptions}
@@ -455,19 +383,17 @@ const AllEmployees: React.FC = () => {
                   />
                 </div>
                 <div className="col-span-2 lg:col-span-1">
-                
                   <MultiSelect
                     label="City"
-                    options={cityOptions} // Using API-derived options
+                    options={cityOptions}
                     defaultSelected={selectedEmployee.city}
                     onChange={(values) => handleInputChange("city", values)}
                   />
                 </div>
                 <div className="col-span-2 lg:col-span-1">
-                
                   <MultiSelect
                     label="State"
-                    options={stateOptions} // Using API-derived options
+                    options={stateOptions}
                     defaultSelected={selectedEmployee.state}
                     onChange={(values) => handleInputChange("state", values)}
                   />
