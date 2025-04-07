@@ -65,7 +65,7 @@ export const loginUser = createAsyncThunk(
         "/auth/v1/login",
         credentials
       );
-      
+
       toast.promise(promise, {
         loading: "Logging in...",
         success: "Login successful!",
@@ -77,12 +77,35 @@ export const loginUser = createAsyncThunk(
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       console.error("Login error:", axiosError);
-      return rejectWithValue(
-        axiosError.response?.data || { message: "Login failed" }
-      );
+
+      // Handle specific HTTP status codes
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        switch (status) {
+          case 401:
+            return rejectWithValue("Invalid mobile number or password"); // Unauthorized
+          case 404:
+            return rejectWithValue("Login service not found (404). Please try again later."); // Not Found
+          case 500:
+            return rejectWithValue("Server error. Please try again later."); // Server error
+          default:
+            return rejectWithValue(
+              axiosError.response.data?.message || "An unexpected error occurred"
+            );
+        }
+      }
+
+      // Handle network errors (e.g., server down, no internet)
+      if (axiosError.code === "ECONNABORTED" || axiosError.message === "Network Error") {
+        return rejectWithValue("Network error. Please check your connection and try again.");
+      }
+
+      // Fallback for other errors
+      return rejectWithValue("Login failed. Please try again.");
     }
   }
 );
+
 
 interface UserCount {
   user_type: string;

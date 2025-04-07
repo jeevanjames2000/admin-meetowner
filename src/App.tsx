@@ -59,6 +59,7 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   return children;
 };
 
+
 const ResidentialTypes = lazy(() => import("../src/pages/Residential/Buy/ResidentialTypes"));
 const CommercialTypes =  lazy(()=> import("../src/pages/Commercial/Buy/CommercialType"));
 
@@ -105,6 +106,7 @@ export default function App() {
             <Route
               path="/residential/:property_for/:status"
                 element={
+                 
                   <Suspense
                     fallback={
                       <TableLoader

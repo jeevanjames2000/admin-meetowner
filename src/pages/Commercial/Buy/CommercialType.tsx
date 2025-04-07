@@ -1,7 +1,7 @@
 // src/pages/CommercialTypes.tsx
 import { useState, useRef, useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate, useParams } from "react-router";
+import { useNavigate, useParams, useLocation } from "react-router";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageMeta from "../../../components/common/PageMeta";
@@ -15,46 +15,81 @@ import {
 import Button from "../../../components/ui/button/Button";
 import { fetchListings, ListingState, updatePropertyStatus } from "../../../store/slices/listings";
 import { AppDispatch, RootState } from "../../../store/store";
-import { TableLoader } from "../../../components/Loaders/LoadingLisings"; // Import reusable loader
+import { TableLoader } from "../../../components/Loaders/LoadingLisings";
 
 const statusMap: { [key: number]: string } = {
   0: "Review",
   1: "Approved",
-  2: "Rejected",
+ 2: "Rejected",
   3: "Deleted",
 };
+
+const userTypeMap: { [key: string]: string } = {
+  "1": "Admin",
+  "2": "User",
+  "3": "Builder",
+  "4": "Agent",
+  "5": "Owner",
+  "6": "Channel Partner",
+};
+
+const userTypeReverseMap: { [key: string]: string } = Object.keys(userTypeMap).reduce(
+  (acc, key) => {
+    acc[userTypeMap[key].toLowerCase()] = key;
+    return acc;
+  },
+  {} as { [key: string]: string }
+);
 
 const CommercialTypes: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const [hoveredUserId, setHoveredUserId] = useState<string | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
+  const [localPage, setLocalPage] = useState<number>(1);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [initialSearch, setInitialSearch] = useState<string>("");
+  const searchInputRef = useRef<HTMLInputElement>(null); // Ref for the search input
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
+  const location = useLocation(); // To detect route changes
   const { property_for, status } = useParams<{ property_for: string; status: string }>();
   const dispatch = useDispatch<AppDispatch>();
-  const { listings, loading, error, totalCount } = useSelector(
+  const { listings, loading, error, totalCount, currentPage, currentCount, totalPages } = useSelector(
     (state: RootState) => state.listings as ListingState
   );
 
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [itemsPerPage] = useState<number>(10);
-  const [searchQuery, setSearchQuery] = useState<string>("");
+  // Initialize searchQuery from localStorage on mount
+  useEffect(() => {
+    const savedSearch = localStorage.getItem("searchQuery") || "";
+    setInitialSearch(savedSearch);
+    handleSearch(savedSearch);
+  }, []);
 
-  const filters = {
-    invincible_filter: false,
-    property_status: parseInt(status || "0", 10),
-    property_for: property_for === "buy" ? "Sell" : "Rent",
-    property_in: "Commercial",
-  };
+  // Clear search and localStorage on route change (tab change)
+  useEffect(() => {
+    localStorage.removeItem("searchQuery");
+    setSearchQuery("");
+    setInitialSearch("");
+    setLocalPage(1);
+  }, [location.pathname]); // Trigger on route change
+
+  // Refocus the search input after loading completes
+  useEffect(() => {
+    if (!loading && searchInputRef.current) {
+      searchInputRef.current.focus();
+    }
+  }, [loading]);
 
   const getPageTitle = () => {
-    const baseTitle = `Commercial ${filters.property_for}`;
-    return `${baseTitle} ${statusMap[filters.property_status] || "Unknown"}`;
+    const baseTitle = `Commercial ${property_for === "buy" ? "Sell" : "Rent"}`;
+    return `${baseTitle} ${statusMap[parseInt(status || "0", 10)] || "Unknown"}`;
   };
 
   const formatDateTime = (date: string | undefined, time: string | undefined): string => {
     if (!date || !time) return "N/A";
     const dateTime = new Date(`${date.split("T")[0]}T${time}Z`);
+    const timeZoneOffset = dateTime.getTimezoneOffset();
+    dateTime.setMinutes(dateTime.getMinutes() - timeZoneOffset);
     const day = String(dateTime.getUTCDate()).padStart(2, "0");
     const month = String(dateTime.getUTCMonth() + 1).padStart(2, "0");
     const year = dateTime.getUTCFullYear();
@@ -66,9 +101,37 @@ const CommercialTypes: React.FC = () => {
     return `${day}-${month}-${year} ${hoursStr}:${minutes} ${ampm}`;
   };
 
+  // Fetch listings with filters
   useEffect(() => {
+    const filters = {
+      property_status: parseInt(status || "0", 10),
+      property_for: property_for === "buy" ? "Sell" : "Rent",
+      property_in: "Commercial",
+      page: localPage,
+      search: searchQuery,
+    };
     dispatch(fetchListings(filters));
-  }, [dispatch, property_for, status, refreshTrigger]);
+  }, [dispatch, property_for, status, searchQuery, refreshTrigger, localPage]);
+
+  // Reset localPage to 1 whenever searchQuery changes
+  useEffect(() => {
+    setLocalPage(1);
+  }, [searchQuery]);
+
+  // Monitor localStorage for clearing the search
+  useEffect(() => {
+    const handleStorageChange = () => {
+      const currentSearch = localStorage.getItem("searchQuery") || "";
+      if (currentSearch === "" && initialSearch !== "") {
+        setSearchQuery("");
+        setLocalPage(1);
+        setInitialSearch("");
+      }
+    };
+
+    window.addEventListener("storage", handleStorageChange);
+    return () => window.removeEventListener("storage", handleStorageChange);
+  }, [initialSearch]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -96,7 +159,7 @@ const CommercialTypes: React.FC = () => {
   };
 
   const handleApprove = (unique_property_id: string) => {
-    const property_status = filters.property_status === 0 ? 1 : 2;
+    const property_status = parseInt(status || "0", 10) === 0 ? 1 : 2;
     dispatch(updatePropertyStatus({ property_status, unique_property_id }))
       .unwrap()
       .then(() => setRefreshTrigger((prev) => prev + 1))
@@ -104,48 +167,22 @@ const CommercialTypes: React.FC = () => {
     setDropdownOpen(null);
   };
 
-  const filteredListings = listings.filter((item) => {
-    if (!searchQuery) return true;
-
-    const searchFields = [
-      item.unique_property_id || item.id.toString(),
-      item.property_name || "",
-      item.user_type === 1 ? "Admin" :
-      item.user_type === 2 ? "User" :
-      item.user_type === 3 ? "Builder" :
-      item.user_type === 4 ? "Agent" :
-      item.user_type === 5 ? "Owner" :
-      item.user_type === 6 ? "Channel Partner" : "Unknown",
-      item.location_id || "",
-    ];
-
-    if (item.user) {
-      searchFields.push(
-        item.user.name || "",
-        item.user.mobile || "",
-        item.user.email || ""
-      );
-    }
-
-    return searchFields.some((field) =>
-      field.toLowerCase().includes(searchQuery.toLowerCase())
-    );
-  });
-
-  const totalItems = searchQuery ? filteredListings.length : totalCount;
-  const totalPages = Math.ceil(totalItems / itemsPerPage);
-  const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const paginatedListings = filteredListings.slice(startIndex, endIndex);
-
   const handleSearch = (value: string) => {
-    setSearchQuery(value);
-    setCurrentPage(1);
+    let searchValue = value.trim();
+    // Check if the search input matches a user type (e.g., "Agent" → "4")
+    const userTypeKey = userTypeReverseMap[searchValue.toLowerCase()];
+    if (userTypeKey) {
+      searchValue = userTypeKey; // Use numeric value for user type
+    }
+    setSearchQuery(searchValue);
   };
 
-  const goToPage = (page: number) => setCurrentPage(page);
-  const goToPreviousPage = () => currentPage > 1 && setCurrentPage(currentPage - 1);
-  const goToNextPage = () => currentPage < totalPages && setCurrentPage(currentPage + 1);
+  const goToPage = (page: number) => {
+    setLocalPage(page);
+  };
+
+  const goToPreviousPage = () => currentPage > 1 && goToPage(currentPage - 1);
+  const goToNextPage = () => currentPage < totalPages && goToPage(currentPage + 1);
 
   const getPaginationItems = () => {
     const pages = [];
@@ -172,14 +209,15 @@ const CommercialTypes: React.FC = () => {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
         <PageBreadcrumb
-          pageTitle={`Commercial ${filters.property_for}`}
+          pageTitle={`Commercial ${property_for === "buy" ? "Sell" : "Rent"}`}
           pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
           onFilter={handleSearch}
+          inputRef={searchInputRef} // Pass the ref
         />
         <ComponentCard title={getPageTitle()}>
           <TableLoader
             title={getPageTitle()}
-            hasActions={filters.property_status === 0 || filters.property_status === 1}
+            hasActions={parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1}
           />
         </ComponentCard>
       </div>
@@ -187,18 +225,29 @@ const CommercialTypes: React.FC = () => {
   }
 
   if (error) return <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-white">Error: {error}</h2></div>;
-  if (!listings || listings.length === 0) return <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-white">No Data Available</h2></div>;
+  if (!listings || listings.length === 0) return (
+    <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+      <PageBreadcrumb
+        pageTitle={`Commercial ${property_for === "buy" ? "Sell" : "Rent"}`}
+        pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
+        onFilter={handleSearch}
+        inputRef={searchInputRef}
+      />
+      <h2 className="text-2xl font-bold text-gray-800 dark:text-white">No Data Available</h2>
+    </div>
+  );
 
   return (
     <div className="relative min-h-screen">
       <PageMeta
-        title={`Meet Owner Commercial ${filters.property_for} ${getPageTitle()}`}
-        description={`This is the Commercial ${filters.property_for} ${getPageTitle()} Table page`}
+        title={`Meet Owner Commercial ${property_for === "buy" ? "Sell" : "Rent"} ${getPageTitle()}`}
+        description={`This is the Commercial ${property_for === "buy" ? "Sell" : "Rent"} ${getPageTitle()} Table page`}
       />
       <PageBreadcrumb
-        pageTitle={`Commercial ${filters.property_for}`}
+        pageTitle={`Commercial ${property_for === "buy" ? "Sell" : "Rent"}`}
         pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
         onFilter={handleSearch}
+        inputRef={searchInputRef} // Pass the ref
       />
       <div className="space-y-6">
         <ComponentCard title={getPageTitle()}>
@@ -214,16 +263,16 @@ const CommercialTypes: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Type</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Listing Time & Date</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Location</TableCell>
-                    {(filters.property_status === 0 || filters.property_status === 1) && (
+                    {(parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1) && (
                       <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
                     )}
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedListings.map((item, index) => (
+                  {listings.map((item, index) => (
                     <TableRow key={item.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.unique_property_id || item.id}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{startIndex + index + 1}</TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{(currentPage - 1) * currentCount + index + 1}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.property_name || "N/A"}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.sub_type || "N/A"}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
@@ -232,12 +281,14 @@ const CommercialTypes: React.FC = () => {
                           onMouseLeave={() => setHoveredUserId(null)}
                           className="inline-block"
                         >
-                          {item.user_type === 1 ? "Admin" :
-                           item.user_type === 2 ? "User" :
-                           item.user_type === 3 ? "Builder" :
-                           item.user_type === 4 ? "Agent" :
-                           item.user_type === 5 ? "Owner" :
-                           item.user_type === 6 ? "Channel Partner" : "Unknown"}
+                          <span style={{ color: "#1D3A76", fontWeight: "bold" }}>
+                            {item.user.user_type === 1 ? "Admin" :
+                             item.user.user_type === 2 ? "User" :
+                             item.user.user_type === 3 ? "Builder" :
+                             item.user.user_type === 4 ? "Agent" :
+                             item.user.user_type === 5 ? "Owner" :
+                             item.user.user_type === 6 ? "Channel Partner" : "Unknown"}
+                          </span>
                           {hoveredUserId === item.id.toString() && item.user && (
                             <div className="absolute z-10 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
                               <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
@@ -254,7 +305,7 @@ const CommercialTypes: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {item.location_id}
                       </TableCell>
-                      {(filters.property_status === 0 || filters.property_status === 1) && (
+                      {(parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1) && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                           <Button
                             variant="outline"
@@ -270,7 +321,7 @@ const CommercialTypes: React.FC = () => {
                               <button onClick={() => handleEdit(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</button>
                               <button onClick={() => handleDelete(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button>
                               <button onClick={() => handleApprove(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                {filters.property_status === 0 ? "Approve" : "Reject"}
+                                {parseInt(status || "0", 10) === 0 ? "Approve" : "Reject"}
                               </button>
                             </div>
                           )}
@@ -282,10 +333,10 @@ const CommercialTypes: React.FC = () => {
               </Table>
             </div>
           </div>
-          {totalItems > itemsPerPage && (
+          {totalCount > currentCount && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                Showing {startIndex + 1} to {endIndex} of {totalItems} entries
+                Showing {(currentPage - 1) * currentCount + 1} to {Math.min(currentPage * currentCount, totalCount)} of {totalCount} entries
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
                 <Button
@@ -297,9 +348,11 @@ const CommercialTypes: React.FC = () => {
                   Previous
                 </Button>
                 {getPaginationItems().map((page, index) => {
-                  const uniqueKey = `${page}-${index}`; // Fixed key uniqueness
+                  const uniqueKey = `${page}-${index}`;
                   return page === "..." ? (
-                    <span key={uniqueKey} className="px-3 py-1 text-gray-500 dark:text-gray-400">...</span>
+                    <span key={uniqueKey} className="px-3 py-1 text-gray-500 dark:text-gray-400">
+                      ...
+                    </span>
                   ) : (
                     <Button
                       key={uniqueKey}

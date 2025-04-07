@@ -1,31 +1,67 @@
 import { Link } from "react-router";
-import { useState } from "react";
+import { useState, useEffect, useRef, RefObject } from "react";
 
 interface BreadcrumbProps {
   pageTitle: string;
   pagePlacHolder?: string;
   onFilter?: (value: string) => void;
+  inputRef?: RefObject<HTMLInputElement | null>;
+  persistSearch?: boolean; // New prop to control persistence
 }
+
+// Custom debounce hook
+const useDebounce = (value: string, delay: number): string => {
+  const [debouncedValue, setDebouncedValue] = useState(value);
+
+  useEffect(() => {
+    const handler = setTimeout(() => {
+      setDebouncedValue(value);
+    }, delay);
+
+    return () => {
+      clearTimeout(handler);
+    };
+  }, [value, delay]);
+
+  return debouncedValue;
+};
 
 const PageBreadcrumb: React.FC<BreadcrumbProps> = ({
   pageTitle,
   pagePlacHolder,
   onFilter,
+  inputRef,
+  persistSearch = true, // Default to true for backward compatibility
 }) => {
-  const [inputValue, setInputValue] = useState(""); // State to track input value
+  const [inputValue, setInputValue] = useState<string>(() => {
+    return persistSearch ? localStorage.getItem("searchQuery") || "" : "";
+  });
+  const localInputRef = useRef<HTMLInputElement>(null);
+  const debouncedInputValue = useDebounce(inputValue, 500);
+
+  const effectiveInputRef = inputRef || localInputRef;
+
+  useEffect(() => {
+    if (persistSearch) {
+      localStorage.setItem("searchQuery", inputValue);
+    }
+  }, [inputValue, persistSearch]);
+
+  useEffect(() => {
+    if (onFilter) {
+      onFilter(debouncedInputValue);
+    }
+  }, [debouncedInputValue, onFilter]);
 
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    setInputValue(value); // Update state
-    if (onFilter) {
-      onFilter(value); // Call onFilter with input value
-    }
+    setInputValue(value);
   };
 
   const handleClear = () => {
-    setInputValue(""); // Clear the input value
-    if (onFilter) {
-      onFilter(""); // Notify parent component of cleared value
+    setInputValue("");
+    if (persistSearch) {
+      localStorage.removeItem("searchQuery");
     }
   };
 
@@ -35,11 +71,11 @@ const PageBreadcrumb: React.FC<BreadcrumbProps> = ({
         <input
           type="text"
           placeholder={pagePlacHolder}
-          value={inputValue} // Controlled input
+          value={inputValue}
           onChange={handleInputChange}
+          ref={effectiveInputRef}
           className="dark:bg-dark-900 h-11 w-full rounded-lg border border-gray-200 bg-transparent py-2.5 pl-12 pr-14 text-sm text-gray-800 shadow-theme-xs placeholder:text-gray-400 focus:border-brand-300 focus:outline-hidden focus:ring-3 focus:ring-brand-500/10 dark:border-gray-800 dark:bg-gray-900 dark:bg-white/[0.03] dark:text-white/90 dark:placeholder:text-white/30 dark:focus:border-brand-800"
         />
-        {/* Search Icon (left side) */}
         <svg
           className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-400 dark:text-gray-500"
           width="20"
@@ -63,7 +99,6 @@ const PageBreadcrumb: React.FC<BreadcrumbProps> = ({
             strokeLinejoin="round"
           />
         </svg>
-        {/* Clear Icon (right side) */}
         {inputValue && (
           <button
             type="button"

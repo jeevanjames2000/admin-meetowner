@@ -19,6 +19,7 @@ export default function SignInForm() {
   const [errors, setErrors] = useState({
     mobile: "",
     password: "",
+    general: "", // Add a general error field for server/network errors
   });
 
   const { isAuthenticated, loading, error } = useSelector(
@@ -31,19 +32,20 @@ export default function SignInForm() {
       ...prevState,
       [name]: value,
     }));
-   
-    if (errors[name as keyof typeof errors]) {
-      setErrors((prevErrors) => ({
-        ...prevErrors,
-        [name]: "",
-      }));
-    }
+
+    // Clear errors when user starts typing
+    setErrors((prevErrors) => ({
+      ...prevErrors,
+      [name]: "",
+      general: "",
+    }));
   };
 
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
 
-    let newErrors = { mobile: "", password: "" };
+    // Local validation
+    let newErrors = { mobile: "", password: "", general: "" };
     let hasError = false;
 
     if (!formData.mobile.trim()) {
@@ -68,21 +70,14 @@ export default function SignInForm() {
         })
       ).unwrap();
 
+      // Only navigate on success
       navigate("/");
-    } catch (err: any) {
-      // Check if the error is due to server unavailability
-      if (err.message === "Network Error" || err.code === "ECONNABORTED") {
-        // Server is down, redirect to signup page
-        navigate("/signup", {
-          state: { message: "Server is unavailable. Please sign up or try again later." },
-        });
-      } else {
-        // Handle other errors (e.g., invalid credentials)
-        setErrors((prevErrors) => ({
-          ...prevErrors,
-          password: "Invalid mobile number or password",
-        }));
-      }
+    } catch (err) {
+      // Error is already handled in the thunk and stored in Redux state
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        general: error || "An unexpected error occurred", // Use Redux error state
+      }));
     }
   };
 
@@ -102,65 +97,60 @@ export default function SignInForm() {
               Enter your mobile number and password to sign in!
             </p>
           </div>
-          <div>
-            <form onSubmit={handleSubmit}>
-              <div className="space-y-6">
-                <div>
-                  <Label>
-                    Mobile Number <span className="text-error-500">*</span>
-                  </Label>
-                  <Input
-                    name="mobile"
-                    placeholder="9703003098"
-                    value={formData.mobile}
-                    onChange={handleInputChange}
-                  />
-                  {errors.mobile && (
-                    <p className="mt-1 text-sm text-error-500">{errors.mobile}</p>
-                  )}
-                </div>
-                <div>
-                  <Label>
-                    Password <span className="text-error-500">*</span>
-                  </Label>
-                  <div className="relative">
-                    <Input
-                      name="password"
-                      value={formData.password}
-                      onChange={handleInputChange}
-                      type={showPassword ? "text" : "password"}
-                      placeholder="Enter your password"
-                    />
-                    <span
-                      onClick={() => setShowPassword(!showPassword)}
-                      className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
-                    >
-                      {showPassword ? (
-                        <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
-                      ) : (
-                        <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
-                      )}
-                    </span>
-                  </div>
-                  {errors.password && (
-                    <p className="mt-1 text-sm text-error-500">{errors.password}</p>
-                  )}
-                </div>
-                <div>
-                  <Button 
-                    className="w-full" 
-                    size="sm" 
-                    disabled={loading}
-                  >
-                    {loading ? "Signing in..." : "Sign in"}
-                  </Button>
-                </div>
+          <form onSubmit={handleSubmit}>
+            <div className="space-y-6">
+              <div>
+                <Label>
+                  Mobile Number <span className="text-error-500">*</span>
+                </Label>
+                <Input
+                  name="mobile"
+                  placeholder="9703003098"
+                  value={formData.mobile}
+                  onChange={handleInputChange}
+                />
+                {errors.mobile && (
+                  <p className="mt-1 text-sm text-error-500">{errors.mobile}</p>
+                )}
               </div>
-            </form>
-            {error && (
-              <p className="mt-4 text-sm text-error-500 text-center">{error}</p>
-            )}
-          </div>
+              <div>
+                <Label>
+                  Password <span className="text-error-500">*</span>
+                </Label>
+                <div className="relative">
+                  <Input
+                    name="password"
+                    value={formData.password}
+                    onChange={handleInputChange}
+                    type={showPassword ? "text" : "password"}
+                    placeholder="Enter your password"
+                  />
+                  <span
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+                  >
+                    {showPassword ? (
+                      <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
+                    ) : (
+                      <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
+                    )}
+                  </span>
+                </div>
+                {errors.password && (
+                  <p className="mt-1 text-sm text-error-500">{errors.password}</p>
+                )}
+              </div>
+              <div>
+                <Button className="w-full" size="sm" disabled={loading}>
+                  {loading ? "Signing in..." : "Sign in"}
+                </Button>
+              </div>
+            </div>
+          </form>
+          {/* Display general errors (e.g., network, server issues) */}
+          {errors.general && (
+            <p className="mt-4 text-sm text-error-500 text-center">{errors.general}</p>
+          )}
         </div>
       </div>
     </div>

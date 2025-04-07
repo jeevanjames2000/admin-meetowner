@@ -174,11 +174,11 @@ const PropertyLeadsBuy: React.FC = () => {
         title={`Meet Owner Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
         description="This is the Property Leads Table page"
       />
-      <PageBreadcrumb
+      {/* <PageBreadcrumb
         pageTitle={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
         pagePlacHolder="Filter leads"
         onFilter={handleFilter}
-      />
+      /> */}
       <div className="space-y-6">
         <ComponentCard title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">

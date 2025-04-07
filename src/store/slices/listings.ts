@@ -108,10 +108,12 @@ interface Property {
 
 interface ListingsResponse {
   total_count: number;
-  total_pages: number;
   current_page: number;
+  currentCount: number;
+  total_pages: number;
   properties: Property[];
 }
+
 
 interface UpdateStatusResponse {
   message: string;
@@ -130,8 +132,9 @@ interface ErrorResponse {
 export interface ListingState {
   listings: Property[];
   totalCount: number;
-  totalPages: number;
   currentPage: number;
+  currentCount: number;
+  totalPages: number;
   loading: boolean;
   error: string | null;
 }
@@ -140,6 +143,8 @@ interface ListingFilters {
   property_status:number
   property_for: string;
   property_in: string;
+  page:number;
+  search:string;
 
  
 }
@@ -158,7 +163,7 @@ export const fetchListings = createAsyncThunk(
   "listings/fetchListings",
   async (filters: ListingFilters, { rejectWithValue }) => {
     try {
-      const { property_status,property_for, property_in,  } = filters;
+      const { property_status,property_for, property_in, page,search } = filters;
       const promise = axiosInstance.get<ListingsResponse>(
         "/listings/getAllPropertiesByType",
         {
@@ -166,6 +171,8 @@ export const fetchListings = createAsyncThunk(
             property_status,
             property_for,
             property_in,
+            page,
+            search
           },
           headers: {
             "ngrok-skip-browser-warning": "true",
@@ -310,8 +317,9 @@ const listingSlice = createSlice({
   initialState: {
     listings: [],
     totalCount: 0,
-    totalPages: 0,
     currentPage: 1,
+    currentCount: 0,
+    totalPages: 0,
     loading: false, 
     error: null,
   } as ListingState,
@@ -320,7 +328,9 @@ const listingSlice = createSlice({
       state.listings = [];
       state.totalCount = 0;
       state.totalPages = 0;
+      state.currentCount = 0;
       state.currentPage = 1;
+      
       state.error = null;
     },
   },
@@ -335,8 +345,9 @@ const listingSlice = createSlice({
         state.loading = false;
         state.listings = action.payload.properties;
         state.totalCount = action.payload.total_count;
-        state.totalPages = action.payload.total_pages;
         state.currentPage = action.payload.current_page;
+        state.currentCount = action.payload.currentCount;
+        state.totalPages = action.payload.total_pages;
       })
       .addCase(fetchListings.rejected, (state, action) => {
         state.loading = false;
