@@ -35,6 +35,7 @@ import { TableLoader } from "./components/Loaders/LoadingLisings";
 import ErrorBoundary from "./hooks/ErrorBoundary";
 import axiosInstance from "./utils/axiosInstance";
 import EditEmployee from "./pages/Employee/EditEmployee";
+import HomeFooter from "./pages/Forms/HomeFooter";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -289,6 +290,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <PrivacyPage />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+                <Route
+                path="/home-footer"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <HomeFooter />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

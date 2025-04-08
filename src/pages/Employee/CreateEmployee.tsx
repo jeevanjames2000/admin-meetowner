@@ -296,7 +296,7 @@ export default function CreateEmployee() {
           <MultiSelect
             label="City"
             options={cityOptions}
-            defaultSelected={formData.city}
+           
             onChange={handleMultiSelectChange("city")}
             disabled={createLoading}
           />
