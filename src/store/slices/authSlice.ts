@@ -1,9 +1,9 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios, { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import {jwtDecode} from "jwt-decode";
 import axiosIstance from "../../utils/axiosInstance";
-import { act } from "react";
+
 
 interface LoginRequest {
   mobile: string;
@@ -11,27 +11,17 @@ interface LoginRequest {
 }
 
 interface User {
-  id: number;
-  user_type: number;
-  name: string;
+  user_id: number;
   mobile: string;
-  alt_mobile: string;
+  name: string;
+  user_type: number;
   email: string;
-  photo: string;
-  status: number;
-  created_date: string;
-  created_time: string;
-  updated_date: string;
-  updated_time: string;
   state: string;
   city: string;
-  location: number;
-  address: string;
   pincode: string;
-  from_app: number;
-  gst_number: string | null;
-  rera_number: string | null;
-  uploaded_from_seller_panel: string;
+  status: number;
+  created_userID: number;
+  created_by: string;
 }
 
 interface LoginResponse {
@@ -63,7 +53,7 @@ export const loginUser = createAsyncThunk(
   async (credentials: LoginRequest, { rejectWithValue }) => {
     try {
       const promise = axiosIstance.post<LoginResponse>(
-        "/auth/v1/login",
+        "/auth/v1/loginAgent",
         credentials
       );
 
@@ -189,18 +179,30 @@ const authSlice = createSlice({
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
         state.isAuthenticated = true;
-        state.user = action.payload.user;
+        state.user = {
+          ...action.payload.user,
+          user_id: action.payload.user.user_id,
+          mobile: action.payload.user.mobile,
+          name: action.payload.user.name,
+          user_type: action.payload.user.user_type,
+          email: action.payload.user.email,
+          state: action.payload.user.state,
+          city: action.payload.user.city,
+          pincode: action.payload.user.pincode,
+          status: action.payload.user.status,
+          created_userID: action.payload.user.created_userID,
+          created_by: action.payload.user.created_by
+        };
         state.token = action.payload.token;
         
         localStorage.setItem('token', action.payload.token);
         localStorage.setItem('name', action.payload.user.name);
         localStorage.setItem('userType', action.payload.user.user_type.toString());
         localStorage.setItem('email', action.payload.user.email);
-        localStorage.setItem('mobile',action.payload.user.mobile);
-        localStorage.setItem('city',action.payload.user.city);
-        localStorage.setItem('state',action.payload.user.state);
-        localStorage.setItem('userId',action.payload.user.id.toString());
-       
+        localStorage.setItem('mobile', action.payload.user.mobile);
+        localStorage.setItem('city', action.payload.user.city);
+        localStorage.setItem('state', action.payload.user.state);
+        localStorage.setItem('userId', action.payload.user.user_id.toString());
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;

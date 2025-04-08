@@ -69,10 +69,11 @@ export default function SignInForm() {
           password: formData.password,
         })
       ).unwrap();
-
+console.log(resultAction)
       // Only navigate on success
       navigate("/");
     } catch (err) {
+      console.log(err)
       // Error is already handled in the thunk and stored in Redux state
       setErrors((prevErrors) => ({
         ...prevErrors,
@@ -105,7 +106,7 @@ export default function SignInForm() {
                 </Label>
                 <Input
                   name="mobile"
-                  placeholder="9703003098"
+                  placeholder="Enter Mobile number"
                   value={formData.mobile}
                   onChange={handleInputChange}
                 />

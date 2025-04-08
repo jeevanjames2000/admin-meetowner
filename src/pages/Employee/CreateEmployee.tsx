@@ -42,7 +42,7 @@ export default function CreateEmployee() {
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const { cities, states } = useSelector((state: RootState) => state.property);
-  const { loading, error, success } = useSelector((state: RootState) => state.employee);
+  const { createLoading, createError, createSuccess } = useSelector((state: RootState) => state.employee);
 
   useEffect(() => {
     dispatch(getCities());
@@ -50,7 +50,7 @@ export default function CreateEmployee() {
   }, [dispatch]);
 
   useEffect(() => {
-    if (success) {
+    if (createSuccess) {
       setFormData({
         name: "",
         mobile: "",
@@ -63,10 +63,10 @@ export default function CreateEmployee() {
       });
       const timer = setTimeout(() => {
         dispatch(clearMessages());
-      }, 3000);
+      }, 2000);
       return () => clearTimeout(timer);
     }
-  }, [success, dispatch]);
+  }, [createSuccess, dispatch]);
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -189,14 +189,14 @@ export default function CreateEmployee() {
   return (
     <ComponentCard title="Create Employee">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {success && (
+        {createSuccess && (
           <div className="p-3 bg-green-100 text-green-700 rounded-md">
-            {success}
+            {createSuccess}
           </div>
         )}
-        {error && (
+        {createError && (
           <div className="p-3 bg-red-100 text-red-700 rounded-md">
-            {error}
+            {createError}
           </div>
         )}
 
@@ -208,7 +208,7 @@ export default function CreateEmployee() {
             value={formData.name}
             onChange={(e) => handleSingleChange("name")(e.target.value)}
             placeholder="Enter your name"
-            disabled={loading}
+            disabled={createLoading}
           />
           {errors.name && (
             <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -240,7 +240,7 @@ export default function CreateEmployee() {
               onChange={(e) => handleSingleChange("email")(e.target.value)}
               placeholder="example@domain.com"
               className="pl-[62px]"
-              disabled={loading}
+              disabled={createLoading}
             />
             <span className="absolute left-0 top-1/2 -translate-y-1/2 border-r border-gray-200 px-3.5 py-3 text-gray-500 dark:border-gray-800 dark:text-gray-400">
               <EnvelopeIcon className="size-6" />
@@ -257,7 +257,7 @@ export default function CreateEmployee() {
             options={designationOptions}
             defaultSelected={formData.designation}
             onChange={handleMultiSelectChange("designation")}
-            disabled={loading}
+            disabled={createLoading}
           />
           {errors.designation && (
             <p className="text-red-500 text-sm mt-1">{errors.designation}</p>
@@ -272,13 +272,13 @@ export default function CreateEmployee() {
               value={formData.password}
               onChange={(e) => handleSingleChange("password")(e.target.value)}
               placeholder="Enter password"
-              disabled={loading}
+              disabled={createLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
-              disabled={loading}
+              disabled={createLoading}
             >
               {showPassword ? (
                 <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
@@ -298,7 +298,7 @@ export default function CreateEmployee() {
             options={cityOptions}
             defaultSelected={formData.city}
             onChange={handleMultiSelectChange("city")}
-            disabled={loading}
+            disabled={createLoading}
           />
           {errors.city && (
             <p className="text-red-500 text-sm mt-1">{errors.city}</p>
@@ -313,7 +313,7 @@ export default function CreateEmployee() {
             value={formData.pincode}
             onChange={(e) => handleSingleChange("pincode")(e.target.value)}
             placeholder="Enter pincode"
-            disabled={loading}
+            disabled={createLoading}
           />
           {errors.pincode && (
             <p className="text-red-500 text-sm mt-1">{errors.pincode}</p>
@@ -326,7 +326,7 @@ export default function CreateEmployee() {
             options={stateOptions}
             defaultSelected={formData.state}
             onChange={handleMultiSelectChange("state")}
-            disabled={loading}
+            disabled={createLoading}
           />
           {errors.state && (
             <p className="text-red-500 text-sm mt-1">{errors.state}</p>
@@ -337,9 +337,9 @@ export default function CreateEmployee() {
           <button
             type="submit"
             className="w-[60%] px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-            disabled={loading}
+            disabled={createLoading}
           >
-            {loading ? "Submitting..." : "Submit"}
+            {createLoading ? "Submitting..." : "Submit"}
           </button>
         </div>
       </form>

@@ -8,26 +8,11 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
-import { Modal } from "../../components/ui/modal";
-import Label from "../../components/form/Label";
-import Input from "../../components/form/input/InputField";
-import MultiSelect from "../../components/form/MultiSelect";
-import Button from "../../components/ui/button/Button";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
-import { fetchAllEmployees } from "../../store/slices/employee";
+import { fetchAllEmployees,deleteEmployee, clearMessages, updateEmployee } from "../../store/slices/employee";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
-
-interface Employee {
-  employeeId: number;
-  name: string;
-  mobile: string;
-  emailId: string;
-  designation: string[];
-  city: string[];
-  state: string[];
-  status: "Active" | "Inactive";
-}
+import { useNavigate } from "react-router";
 
 interface Option {
   value: string;
@@ -44,49 +29,42 @@ const designationOptions: Option[] = [
 
 const AllEmployees: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { cities, states, employees, loading: reduxLoading, error } = useSelector(
-    (state: RootState) => ({
-      cities: state.property.cities,
-      states: state.property.states,
-      employees: state.employee.employees,
-      loading: state.employee.loading,
-      error: state.employee.error,
-    })
-  );
-  console.log(employees)
-
-  const cityOptions: Option[] =
-    cities?.map((city: any) => ({
-      value: city.value,
-      text: city.label,
-    })) || [];
-
-  const stateOptions: Option[] =
-    states?.map((state: any) => ({
-      value: state.value,
-      text: state.label,
-    })) || [];
-
-  // Local loading state
+  const navigate = useNavigate();
+  const { employees, fetchLoading, fetchError,deleteError,deleteSuccess,updateSuccess,updateError, } = useSelector((state: RootState) => state.employee);
+  
   const [isLoading, setIsLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [selectedEmployee, setSelectedEmployee] = useState<Employee | null>(null);
   const dropdownRefs = useRef<Map<number, HTMLDivElement>>(new Map());
 
-  // Transform employees directly for rendering
+  const transformedEmployees = employees.map(emp => ({
+    id: emp.id!,
+    name: emp.name,
+    mobile: emp.mobile,
+    email: emp.email,
+    designation: designationOptions.find(opt => opt.value === emp.designation)?.text || emp.designation || '',
+    city: [emp.city],
+    state: [emp.state],
+    status: emp.status,
+    pincode:emp.pincode,
+  }));
 
-
-  // Fetch employees and manage local loader
   useEffect(() => {
-    setIsLoading(true); // Start loading
-    const userId = parseInt(localStorage.getItem("userId") || "1"); // Fallback to 1
+    setIsLoading(true);
+    const userId = parseInt(localStorage.getItem("userId")!);
     dispatch(fetchAllEmployees(userId)).finally(() => {
-      setIsLoading(false); // Stop loading after fetch completes (success or fail)
+      setIsLoading(false);
     });
   }, [dispatch]);
 
-  // Handle clicking outside the dropdown to close it
+  useEffect(() => {
+    if (deleteSuccess || updateSuccess) {
+      const userId = parseInt(localStorage.getItem("userId")!);
+      dispatch(fetchAllEmployees(userId)).then(() => {
+        dispatch(clearMessages()); // Clear messages after refresh
+      });
+    }
+  }, [deleteSuccess, updateSuccess, dispatch]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       let isOutside = true;
@@ -105,57 +83,51 @@ const AllEmployees: React.FC = () => {
     };
   }, []);
 
-  const handleEdit = (employee: Employee) => {
-    setSelectedEmployee({ ...employee });
-    setIsEditModalOpen(true);
+
+  const handleEdit = (employee: any) => {
+    navigate("/all-employees/edit-employee", { state: { employee } });
     setDropdownOpen(null);
   };
+
+
 
   const handleDelete = (employeeId: number) => {
-    const updatedEmployees = transformedEmployees.filter(
-      (emp) => emp.employeeId !== employeeId
-    );
-    // Note: This only updates local UI; add API call to persist if needed
-    setSelectedEmployee(null); // Reset selected employee if deleted
+    dispatch(deleteEmployee(employeeId)).then((action) => {
+      if (deleteEmployee.fulfilled.match(action)) {
+        console.log("Delete successful, employeeId:", employeeId);
+      } else if (deleteEmployee.rejected.match(action)) {
+        console.log("Delete failed:", deleteError);
+      }
+    });
     setDropdownOpen(null);
   };
 
-  const handleToggleSuspend = (employee: Employee) => {
-    const updatedEmployees = transformedEmployees.map((emp) =>
-      emp.employeeId === employee.employeeId
-        ? { ...emp, status: emp.status === "Active" ? "Inactive" : "Active" }
-        : emp
-    );
-    // Note: This only updates local UI; add API call to persist if needed
-    // setSelectedEmployee(
-    //   updatedEmployees.find((emp) => emp.employeeId === employee.employeeId) || null
-    // );
+  const handleStatusChange = (employee: any) => {
+    // Create a copy of the employee object with updated status
+    const updatedEmployee = {
+      ...employee,
+     
+      status: employee.status === 0 ? 2 : 0, 
+      city: employee.city[0], 
+      state: employee.state[0], 
+      user_type: designationOptions.find(opt => opt.text === employee.designation)?.value || "7",
+      created_by: localStorage.getItem("name"),
+      created_userID: parseInt(localStorage.getItem("userId")!), 
+    };
+    console.log(updatedEmployee);
+
+   
+    dispatch(updateEmployee(updatedEmployee)).then((action) => {
+      if (updateEmployee.fulfilled.match(action)) {
+        console.log("Status update successful, employeeId:", employee.employeeId);
+      } else if (updateEmployee.rejected.match(action)) {
+        console.log("Status update failed:", updateError);
+      }
+    });
     setDropdownOpen(null);
   };
 
-  const closeModal = () => {
-    setIsEditModalOpen(false);
-    setSelectedEmployee(null);
-  };
-
-  const handleSave = () => {
-    if (selectedEmployee) {
-      // Note: This only updates local UI; add API call to persist if needed
-      const updatedEmployees = transformedEmployees.map((emp) =>
-        emp.employeeId === selectedEmployee.employeeId ? { ...selectedEmployee } : emp
-      );
-      setSelectedEmployee(null);
-    }
-    closeModal();
-  };
-
-  const handleInputChange = (field: keyof Employee, value: string | string[]) => {
-    if (selectedEmployee) {
-      setSelectedEmployee({ ...selectedEmployee, [field]: value });
-    }
-  };
-
-  if (isLoading) {
+  if (isLoading || fetchLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8 flex justify-center items-center">
         <div className="text-2xl font-bold text-gray-800 dark:text-white">Loading...</div>
@@ -163,10 +135,10 @@ const AllEmployees: React.FC = () => {
     );
   }
 
-  if (error) {
+  if (fetchError) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Error: {error}</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Error: {fetchError}</h2>
       </div>
     );
   }
@@ -186,6 +158,26 @@ const AllEmployees: React.FC = () => {
       <PageMeta title="Meet Owner All Employees" />
       <PageBreadcrumbList pageTitle="All Employees" pagePlacHolder="Filter employees" />
       <div className="space-y-6">
+      {deleteSuccess && (
+          <div className="p-3 bg-green-100 text-green-700 rounded-md">
+            {deleteSuccess}
+          </div>
+        )}
+        {deleteError && (
+          <div className="p-3 bg-red-100 text-red-700 rounded-md">
+            {deleteError}
+          </div>
+        )}
+         {updateSuccess && (
+          <div className="p-3 bg-green-100 text-green-700 rounded-md">
+            {updateSuccess}
+          </div>
+        )}
+        {updateError && (
+          <div className="p-3 bg-red-100 text-red-700 rounded-md">
+            {updateError}
+          </div>
+        )}
         <ComponentCard title="All Employees">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
@@ -238,6 +230,13 @@ const AllEmployees: React.FC = () => {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
+                      Pincode
+                    </TableCell>
+                    
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
                       Status
                     </TableCell>
                     <TableCell
@@ -248,9 +247,8 @@ const AllEmployees: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 </TableHeader>
-
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {employees.map((employee) => (
+                  {transformedEmployees.map((employee) => (
                     <TableRow key={employee.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {employee.id}
@@ -266,29 +264,46 @@ const AllEmployees: React.FC = () => {
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {employee.designation}
-                         
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {employee.city}
+                        {employee.city.join(",")}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {employee.state} </TableCell>
+                        {employee.state.join(",")}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {employee.pincode}
+                      </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         <span
-                         
+                          className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                            employee.status === 0
+                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                              : employee.status === 2
+                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                              : employee.status === 3
+                              ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                          }`}
                         >
-                          {employee.status}
+                          {employee.status === 0
+                            ? "Active"
+                            : employee.status === 2
+                            ? "Suspended"
+                            : employee.status === 3
+                            ? "Deleted"
+                            : "Inactive"}
                         </span>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         <div
                           className="relative"
-                          ref={(el) => el && dropdownRefs.current.set(employee.id!, el)}
+                          ref={(el) => el && dropdownRefs.current.set(employee.id, el)}
                         >
                           <button
                             onClick={() =>
                               setDropdownOpen(
-                                dropdownOpen === employee.id ? null : employee.id!
+                                dropdownOpen === employee.id ? null : employee.id
                               )
                             }
                             className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
@@ -306,23 +321,23 @@ const AllEmployees: React.FC = () => {
                             <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 dark:bg-gray-800">
                               <div className="py-1">
                                 <button
-                                 
+                                  onClick={() => handleEdit(employee)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                                 >
                                   Edit
                                 </button>
-                                <button
-                                  onClick={() => handleDelete(employee.id!)}
+                                <button onClick={()=> handleDelete(employee.id)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                                 >
                                   Delete
                                 </button>
-                                {/* <button
-                                  onClick={() => handleToggleSuspend(employee)}
+                                <button onClick={()=> handleStatusChange(employee)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                                 >
-                                  {employee.status === "Active" ? "Suspend" : "Unsuspend"}
-                                </button> */}
+                                 {employee.status === 0
+                            ? "Suspend"
+                            : "Activate"}
+                                </button>
                               </div>
                             </div>
                           )}
@@ -336,81 +351,6 @@ const AllEmployees: React.FC = () => {
           </div>
         </ComponentCard>
       </div>
-
-      {selectedEmployee && (
-        <Modal isOpen={isEditModalOpen} onClose={closeModal} className="max-w-[800px] m-4">
-          <div className="no-scrollbar relative w-full max-w-[800px] overflow-y-auto rounded-3xl bg-white p-4 dark:bg-gray-900 lg:p-11">
-            <div className="px-2 pr-14">
-              <h4 className="mb-2 text-2xl font-semibold text-gray-800 dark:text-white/90">
-                Edit Employee Information
-              </h4>
-              <p className="mb-6 text-sm text-gray-500 dark:text-gray-400 lg:mb-7">
-                Update employee details to keep the profile up-to-date.
-              </p>
-            </div>
-            <form className="flex flex-col">
-              <div className="custom-scrollbar h-[450px] overflow-y-auto px-2 pb-3">
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>Name</Label>
-                  <Input
-                    type="text"
-                    value={selectedEmployee.name}
-                    onChange={(e) => handleInputChange("name", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>Mobile</Label>
-                  <Input
-                    type="text"
-                    value={selectedEmployee.mobile}
-                    onChange={(e) => handleInputChange("mobile", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2 lg:col-span-1">
-                  <Label>Email ID</Label>
-                  <Input
-                    type="email"
-                    value={selectedEmployee.emailId}
-                    onChange={(e) => handleInputChange("emailId", e.target.value)}
-                  />
-                </div>
-                <div className="col-span-2 lg:col-span-1">
-                  <MultiSelect
-                    label="Designation"
-                    options={designationOptions}
-                    defaultSelected={selectedEmployee.designation}
-                    onChange={(values) => handleInputChange("designation", values)}
-                  />
-                </div>
-                <div className="col-span-2 lg:col-span-1">
-                  <MultiSelect
-                    label="City"
-                    options={cityOptions}
-                    defaultSelected={selectedEmployee.city}
-                    onChange={(values) => handleInputChange("city", values)}
-                  />
-                </div>
-                <div className="col-span-2 lg:col-span-1">
-                  <MultiSelect
-                    label="State"
-                    options={stateOptions}
-                    defaultSelected={selectedEmployee.state}
-                    onChange={(values) => handleInputChange("state", values)}
-                  />
-                </div>
-              </div>
-              <div className="flex items-center gap-3 px-2 mt-6 lg:justify-end">
-                <Button size="sm" variant="outline" onClick={closeModal}>
-                  Close
-                </Button>
-                <Button size="sm" onClick={handleSave}>
-                  Save Changes
-                </Button>
-              </div>
-            </form>
-          </div>
-        </Modal>
-      )}
     </div>
   );
 };

@@ -34,10 +34,12 @@ import { lazy, Suspense, useState, useEffect } from "react";
 import { TableLoader } from "./components/Loaders/LoadingLisings";
 import ErrorBoundary from "./hooks/ErrorBoundary";
 import axiosInstance from "./utils/axiosInstance";
+import EditEmployee from "./pages/Employee/EditEmployee";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, token } = useSelector((state: RootState) => state.auth);
+  console.log(token)
 
   const tokenExpired = isTokenExpired(token);
 
@@ -327,6 +329,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <AllEmployees />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="/all-employees/edit-employee"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <EditEmployee />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

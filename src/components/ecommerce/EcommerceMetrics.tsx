@@ -17,6 +17,11 @@ const userTypeMap: { [key: string]: string } = {
   "4": "Agent",
   "5": "Owner",
   "6": "Channel Partner",
+  "7" : "Manager",
+  "8": "Telecaller",
+  "9": "Marketing Executive",
+  "10": "Customer Support",
+  "11":"Customer Service",
   Total: "Total",
 };
 

@@ -14,7 +14,8 @@ import {
 import { useSidebar } from "../context/SidebarContext";
 import { FaFileInvoice, FaSearchLocation } from "react-icons/fa";
 import { useSelector } from "react-redux";
-import { AuthState } from "../store/slices/authSlice";
+
+import { RootState } from "../store/store";
 // import { RootState } from "../types/auth";
 
 type NavItem = {
@@ -300,7 +301,8 @@ const othersItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
-  const userType = useSelector((state: AuthState) => state.user?.user_type);
+  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
+  console.log(userType);
   
 
   const [openSubmenu, setOpenSubmenu] = useState<{
@@ -320,8 +322,20 @@ const AppSidebar: React.FC = () => {
   } | null>(null);
   
   const filteredNavItems = navItems.filter(item => {
-    if (userType === 2) {
-      return !["Accounts", "Employees"].includes(item.name);
+    if (userType === 7) {
+      return !["Accounts"].includes(item.name);
+    }
+    if (userType === 8) {
+      return !["Accounts", "Employees","Pages","Maps"].includes(item.name);
+    }
+    if (userType === 9) {
+      return !["Accounts", "Employees","Pages","Maps"].includes(item.name);
+    }
+    if (userType === 10) {
+      return !["Accounts", "Employees","Pages","Maps"].includes(item.name);
+    }
+    if (userType === 11) {
+      return !["Accounts", "Employees","Pages","Maps"].includes(item.name);
     }
     return true;
   });

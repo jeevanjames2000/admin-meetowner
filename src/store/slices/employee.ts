@@ -9,7 +9,7 @@ interface Employee {
   mobile: string;
   email: string;
   designation: string;
-  password: string;
+  password?: string;
   city: string;
   pincode: string;
   state: string;
@@ -27,6 +27,7 @@ interface EmployeeResponse {
 interface ErrorResponse {
   message?: string;
 }
+
 interface GroupedCount {
   user_type: number;
   count: number;
@@ -36,18 +37,47 @@ interface GetAllEmployeesResponse {
   groupedCount: GroupedCount[];
   employees: Employee[];
 }
+
 export interface EmployeeState {
   employees: Employee[];
-  loading: boolean;
-  error: string | null;
-  success: string | null;
+  groupedCount: GroupedCount[];
+  // States for creating an employee
+  createLoading: boolean;
+  createError: string | null;
+  createSuccess: string | null;
+  // States for updating an employee
+  updateLoading: boolean;
+  updateError: string | null;
+  updateSuccess: string | null;
+  // States for fetching employees
+  fetchLoading: boolean;
+  fetchError: string | null;
+  fetchSuccess: string | null;
+
+  deleteLoading: boolean;
+  deleteError: string | null;
+  deleteSuccess: string | null;
 }
 
 const initialState: EmployeeState = {
   employees: [],
-  loading: false,
-  error: null,
-  success: null,
+  groupedCount: [],
+  // Initial states for creation
+  createLoading: false,
+  createError: null,
+  createSuccess: null,
+  // Initial states for update
+  updateLoading: false,
+  updateError: null,
+  updateSuccess: null,
+  // Initial states for fetch
+  fetchLoading: false,
+  fetchError: null,
+  fetchSuccess: null,
+
+  deleteLoading: false,
+  deleteError: null,
+  deleteSuccess: null,
 };
 
 // Create Employee Thunk
@@ -134,13 +164,14 @@ export const updateEmployee = createAsyncThunk(
   }
 );
 
+// Fetch All Employees Thunk
 export const fetchAllEmployees = createAsyncThunk(
   "employee/fetchAllEmployees",
   async (userId: number, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get<GetAllEmployeesResponse>(
-        `/user/getAllEmp/${userId}`
-        ,{
+        `/user/getAllEmp/${userId}`,
+        {
           headers: {
             "ngrok-skip-browser-warning": "true",
           },
@@ -171,26 +202,72 @@ export const fetchAllEmployees = createAsyncThunk(
   }
 );
 
+export const deleteEmployee = createAsyncThunk(
+  "employee/deleteEmployee",
+  async (employeeId: number, { rejectWithValue }) => {
+    try {
+      const promise = axiosInstance.delete<EmployeeResponse>("/user/deleteUser", {
+        data: { id: employeeId }, // Pass the id in the request body
+      });
+
+      toast.promise(promise, {
+        loading: "Deleting employee...",
+        success: "Employee deleted successfully!",
+        error: "Failed to delete employee",
+      });
+
+      const response = await promise;
+      return { message: response.data.message, id: employeeId }; // Return id for state update
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error("Delete employee error:", axiosError);
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        switch (status) {
+          case 404:
+            return rejectWithValue("User id Not found");
+          case 403:
+            return rejectWithValue("You don't have permission to delete user");
+          case 400:
+            return rejectWithValue(axiosError.response.data?.message || "Invalid request data");
+          default:
+            return rejectWithValue(
+              axiosError.response.data?.message || "Failed to delete employee"
+            );
+        }
+      }
+      return rejectWithValue("Network error. Please try again.");
+    }
+  }
+);
+
 const employeeSlice = createSlice({
   name: "employee",
   initialState,
   reducers: {
     clearMessages: (state) => {
-      state.error = null;
-      state.success = null;
+      state.createError = null;
+      state.createSuccess = null;
+      state.updateError = null;
+      state.updateSuccess = null;
+      state.fetchError = null;
+      state.fetchSuccess = null;
+      state.deleteError = null;
+      state.deleteSuccess = null;
     },
   },
   extraReducers: (builder) => {
     // Create Employee Cases
     builder
       .addCase(createEmployee.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-        state.success = null;
+        state.createLoading = true;
+        state.createError = null;
+        state.createSuccess = null;
       })
       .addCase(createEmployee.fulfilled, (state, action) => {
-        state.loading = false;
-        state.success = action.payload.message;
+        state.createLoading = false;
+        state.createSuccess = action.payload.message;
         if (action.payload.userId) {
           state.employees.push({
             ...action.meta.arg,
@@ -199,19 +276,19 @@ const employeeSlice = createSlice({
         }
       })
       .addCase(createEmployee.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        state.createLoading = false;
+        state.createError = action.payload as string;
       })
 
       // Update Employee Cases
       .addCase(updateEmployee.pending, (state) => {
-        state.loading = true;
-        state.error = null;
-        state.success = null;
+        state.updateLoading = true;
+        state.updateError = null;
+        state.updateSuccess = null;
       })
       .addCase(updateEmployee.fulfilled, (state, action) => {
-        state.loading = false;
-        state.success = action.payload.message;
+        state.updateLoading = false;
+        state.updateSuccess = action.payload.message;
         const index = state.employees.findIndex(
           (emp) => emp.id === action.meta.arg.id
         );
@@ -220,8 +297,42 @@ const employeeSlice = createSlice({
         }
       })
       .addCase(updateEmployee.rejected, (state, action) => {
-        state.loading = false;
-        state.error = action.payload as string;
+        state.updateLoading = false;
+        state.updateError = action.payload as string;
+      })
+
+      // Fetch All Employees Cases
+      .addCase(fetchAllEmployees.pending, (state) => {
+        state.fetchLoading = true;
+        state.fetchError = null;
+        state.fetchSuccess = null;
+      })
+      .addCase(fetchAllEmployees.fulfilled, (state, action) => {
+        state.fetchLoading = false;
+        state.employees = action.payload.employees;
+        state.groupedCount = action.payload.groupedCount;
+        state.fetchSuccess = "Employees fetched successfully";
+      })
+      .addCase(fetchAllEmployees.rejected, (state, action) => {
+        state.fetchLoading = false;
+        state.fetchError = action.payload as string;
+      })
+      .addCase(deleteEmployee.pending, (state) => {
+        state.deleteLoading = true;
+        state.deleteError = null;
+        state.deleteSuccess = null;
+      })
+      .addCase(deleteEmployee.fulfilled, (state, action) => {
+        state.deleteLoading = false;
+        state.deleteSuccess = action.payload.message;
+        // Remove the deleted employee from the employees array
+        state.employees = state.employees.filter(
+          (emp) => emp.id !== action.payload.id
+        );
+      })
+      .addCase(deleteEmployee.rejected, (state, action) => {
+        state.deleteLoading = false;
+        state.deleteError = action.payload as string;
       });
   },
 });
