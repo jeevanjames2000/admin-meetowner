@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import {
@@ -25,6 +25,7 @@ const PropertyLeadsBuy: React.FC = () => {
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
+  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
 
   const filters = {
     property_for: status === "1" ? "Sell" : status === "2" ? "Rent" : property_for || "",
@@ -155,7 +156,7 @@ const PropertyLeadsBuy: React.FC = () => {
           title={`Meet Owner Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
           description="This is the Property Leads Table page"
         />
-        <PageBreadcrumb
+        <PageBreadcrumbList
           pageTitle={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
           pagePlacHolder="Filter leads"
           onFilter={handleFilter}
@@ -190,8 +191,14 @@ const PropertyLeadsBuy: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl. No</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Approach</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Customer Name</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Mobile Number</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
+                    {userType === 1 && 
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Mobile Number</TableCell>
+                      
+                    }
+                    {userType === 1 && 
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
+                    }
+                    
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property For</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Id</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
@@ -214,12 +221,18 @@ const PropertyLeadsBuy: React.FC = () => {
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {lead.name}
                         </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {
+                          userType === 1 && <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {lead.mobile}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          </TableCell>
+                        }
+                        {
+                          userType === 1 &&  <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {lead.email}
                         </TableCell>
+                        }
+                        
+                       
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {lead.property_for}
                         </TableCell>
