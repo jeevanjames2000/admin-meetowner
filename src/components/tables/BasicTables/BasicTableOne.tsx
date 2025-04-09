@@ -57,6 +57,10 @@ export default function BasicTableOne() {
   // Condition to show Mobile and Email columns
   const showMobileAndEmail = pageuserType === 7 && userType !== null && parseInt(userType) === 2;
 
+  const excludedPageUserTypes = [7, 9]; // Manager and Marketing Executive
+  const shouldShowActions = pageuserType !== undefined && !excludedPageUserTypes.includes(pageuserType);
+
+
   useEffect(() => {
     if (userType) {
       console.log(userType, "basic");
@@ -174,7 +178,9 @@ export default function BasicTableOne() {
                     {showReraNumber && <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">RERA Number</TableCell>}
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Since</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    {shouldShowActions && (
+                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    )}
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -213,35 +219,37 @@ export default function BasicTableOne() {
                           {user.status === 0 ? "Inactive" : "Active"}
                         </span>
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                        <Button variant="outline" size="sm" onClick={() => toggleMenu(user.id)}>
-                          <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
-                        </Button>
-                        {activeMenu === user.id && (
-                          <div className="absolute right-2 top-10 z-10 w-32 rounded-lg shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
-                            <div className="py-2">
-                              <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                onClick={() => handleEdit(user.id)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                onClick={() => handleDelete(user.id)}
-                              >
-                                Delete
-                              </button>
-                              <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                onClick={() => handleSuspend(user.id)}
-                              >
-                                {user.status === 0 ? "Activate" : "Suspend"}
-                              </button>
+                      {shouldShowActions && (
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                          <Button variant="outline" size="sm" onClick={() => toggleMenu(user.id)}>
+                            <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
+                          </Button>
+                          {activeMenu === user.id && (
+                            <div className="absolute right-2 top-10 z-10 w-32 rounded-lg shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+                              <div className="py-2">
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => handleEdit(user.id)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => handleDelete(user.id)}
+                                >
+                                  Delete
+                                </button>
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => handleSuspend(user.id)}
+                                >
+                                  {user.status === 0 ? "Activate" : "Suspend"}
+                                </button>
+                              </div>
                             </div>
-                          </div>
-                        )}
-                      </TableCell>
+                          )}
+                        </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

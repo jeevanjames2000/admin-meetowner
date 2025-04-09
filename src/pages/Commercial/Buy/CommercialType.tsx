@@ -31,6 +31,11 @@ const userTypeMap: { [key: string]: string } = {
   "4": "Agent",
   "5": "Owner",
   "6": "Channel Partner",
+  "7": "Manager",
+  "8": "Telecaller",
+  "9": "Marketing Executive",
+  "10": "Customer Support",
+  "11": "Customer Service",
 };
 
 const userTypeReverseMap: { [key: string]: string } = Object.keys(userTypeMap).reduce(
@@ -54,10 +59,14 @@ const CommercialTypes: React.FC = () => {
   const location = useLocation(); // To detect route changes
   const { property_for, status } = useParams<{ property_for: string; status: string }>();
   const dispatch = useDispatch<AppDispatch>();
+  const pageUserType = useSelector((state: RootState) => state.auth.user?.user_type);
   const { listings, loading, error, totalCount, currentPage, currentCount, totalPages } = useSelector(
     (state: RootState) => state.listings as ListingState
   );
 
+
+  const excludedUserTypes = [9, 10, 11];
+  
   // Initialize searchQuery from localStorage on mount
   useEffect(() => {
     const savedSearch = localStorage.getItem("searchQuery") || "";
@@ -209,7 +218,11 @@ const CommercialTypes: React.FC = () => {
 
     return pages;
   };
-
+  const shouldShowActions = (userType: number | undefined) => {
+    if (userType === undefined) return false;
+    return !excludedUserTypes.includes(userType) && (parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1);
+  };
+  console.log(shouldShowActions);
  
 
   return (
@@ -261,7 +274,7 @@ const CommercialTypes: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Type</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Listing Time & Date</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Location</TableCell>
-                    {(parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1) && (
+                    {shouldShowActions(pageUserType)  && (
                       <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
                     )}
                   </TableRow>
@@ -303,29 +316,30 @@ const CommercialTypes: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {item.location_id}
                       </TableCell>
-                      {(parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1) && (
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => setDropdownOpen(dropdownOpen === item.id.toString() ? null : item.id.toString())}
-                          >
-                            <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
-                            </svg>
-                          </Button>
-                          {dropdownOpen === item.id.toString() && (
-                            <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
-                              <button onClick={() => handleEdit(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</button>
-                              <button onClick={() => handleDelete(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button>
-                              <button onClick={() => handleApprove(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                {parseInt(status || "0", 10) === 0 ? "Approve" : "Reject"}
-                              </button>
-                              <button onClick={() => handleLead(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Lead Pull</button>
-                            </div>
+                       {shouldShowActions(pageUserType) && (
+                            <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => setDropdownOpen(dropdownOpen === item.id.toString() ? null : item.id.toString())}
+                              >
+                                <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                  <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                                </svg>
+                              </Button>
+                              {dropdownOpen === item.id.toString() && (
+                                <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                                  <button onClick={() => handleEdit(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</button>
+                                  <button onClick={() => handleDelete(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button>
+                                  <button onClick={() => handleApprove(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+                                    {parseInt(status || "0", 10) === 0 ? "Approve" : "Reject"}
+                                  </button>
+                                  <button onClick={() => handleLead(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Lead Pull</button>
+                                </div>
+                              )}
+                            </TableCell>
                           )}
-                        </TableCell>
-                      )}
+                      
                     </TableRow>
                   ))}
                 </TableBody>
