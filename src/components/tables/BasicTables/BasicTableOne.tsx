@@ -22,6 +22,11 @@ const userTypeMap: { [key: number]: string } = {
   4: "Agent",
   5: "Owner",
   6: "Channel Partner",
+  7: "Manager",
+  8: "Telecaller",
+  9: "Marketing Executive",
+  10: "Customer Support",
+  11: "Customer Service",
 };
 
 const formatDate = (dateString: string): string => {
@@ -44,23 +49,25 @@ export default function BasicTableOne() {
   const userType = queryParams.get("userType");
   const categoryLabel = userTypeMap[parseInt(userType || "0")] || "User";
 
-  const showGstNumber = userType && ![1, 2].includes(parseInt(userType));
-  const showReraNumber = userType && ![1, 2].includes(parseInt(userType));
+  // Define specific user types for GST and RERA numbers
+  const specificUserTypes = [3, 4, 5, 6]; // Builder, Agent, Owner, Channel Partner
+  const showGstNumber = userType && specificUserTypes.includes(parseInt(userType));
+  const showReraNumber = userType && specificUserTypes.includes(parseInt(userType));
+  
   // Condition to show Mobile and Email columns
   const showMobileAndEmail = pageuserType === 7 && userType !== null && parseInt(userType) === 2;
 
   useEffect(() => {
     if (userType) {
-      console.log(userType,"basic");
+      console.log(userType, "basic");
       dispatch(fetchUsersByType({ user_type: parseInt(userType) }));
     }
   }, [dispatch, userType]);
 
   const filteredUsers = users.filter((user) => {
-    
     const searchableFields = [
       user.name,
-      ...(showMobileAndEmail ? [] : [user.mobile, user.email]), 
+      ...(showMobileAndEmail ? [] : [user.mobile, user.email]),
       user.city,
       user.state,
     ];
@@ -68,8 +75,6 @@ export default function BasicTableOne() {
       .map((field) => field?.toLowerCase() || "")
       .some((field) => field.includes(filterValue.toLowerCase()));
   });
-  
-  
 
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
