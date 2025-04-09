@@ -13,7 +13,6 @@ import {
 import Button from "../../ui/button/Button";
 import { MoreVertical } from "lucide-react";
 import ComponentCard from "../../common/ComponentCard";
-
 import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
 
 const userTypeMap: { [key: number]: string } = {
@@ -38,6 +37,8 @@ export default function BasicTableOne() {
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
+  const pageuserType = useSelector((state: RootState) => state.auth.user?.user_type);
+  console.log(pageuserType);
 
   const queryParams = new URLSearchParams(location.search);
   const userType = queryParams.get("userType");
@@ -45,18 +46,30 @@ export default function BasicTableOne() {
 
   const showGstNumber = userType && ![1, 2].includes(parseInt(userType));
   const showReraNumber = userType && ![1, 2].includes(parseInt(userType));
+  // Condition to show Mobile and Email columns
+  const showMobileAndEmail = pageuserType === 7 && userType !== null && parseInt(userType) === 2;
 
   useEffect(() => {
     if (userType) {
+      console.log(userType,"basic");
       dispatch(fetchUsersByType({ user_type: parseInt(userType) }));
     }
   }, [dispatch, userType]);
 
-  const filteredUsers = users.filter((user) =>
-    [user.name, user.mobile, user.email, user.city, user.state]
+  const filteredUsers = users.filter((user) => {
+    
+    const searchableFields = [
+      user.name,
+      ...(showMobileAndEmail ? [] : [user.mobile, user.email]), 
+      user.city,
+      user.state,
+    ];
+    return searchableFields
       .map((field) => field?.toLowerCase() || "")
-      .some((field) => field.includes(filterValue.toLowerCase()))
-  );
+      .some((field) => field.includes(filterValue.toLowerCase()));
+  });
+  
+  
 
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -132,7 +145,6 @@ export default function BasicTableOne() {
         pageTitle={`${categoryLabel} Table`}
         pagePlacHolder="Filter users by name, mobile, email, city, or state"
         onFilter={handleFilter}
-        
       />
       <div className="space-y-6">
         <ComponentCard title={`${categoryLabel} Table`}>
@@ -143,8 +155,12 @@ export default function BasicTableOne() {
                   <TableRow>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl.No</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Mobile</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
+                    {!showMobileAndEmail && (
+                      <>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Mobile</TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
+                      </>
+                    )}
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Address</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">City</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">State</TableCell>
@@ -168,8 +184,12 @@ export default function BasicTableOne() {
                           </div>
                         </div>
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.mobile}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.email}</TableCell>
+                      {!showMobileAndEmail && (
+                        <>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.mobile}</TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.email}</TableCell>
+                        </>
+                      )}
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.address}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.city}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.state}</TableCell>

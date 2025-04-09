@@ -17,28 +17,35 @@ const userTypeMap: { [key: string]: string } = {
   "4": "Agent",
   "5": "Owner",
   "6": "Channel Partner",
-  "7" : "Manager",
+  "7": "Manager",
   "8": "Telecaller",
   "9": "Marketing Executive",
   "10": "Customer Support",
-  "11":"Customer Service",
+  "11": "Customer Service",
   Total: "Total",
 };
 
-// Define a type for the user count item (optional, for better typing)
+// Define allowed user types for each user_type
+const allowedUserTypes: { [key: string]: string[] } = {
+  "1": Object.keys(userTypeMap), // Admin sees all
+  "7": ["2", "4", "6", "8", "9", "10", "11"], // Channel Partners, Agents, Users, Marketing Executives, Telecallers, Customer Support, Customer Service
+  "9": ["3", "4", "6"], // Channel Partners, Agents, Builders
+};
+
+// Define a type for the user count item
 interface UserCountItem {
   user_type: string;
   count: number;
-  trend?: "up" | "down"; // Optional, not in your API
-  percentage?: number; // Optional, not in your API
+  trend?: "up" | "down";
+  percentage?: number;
 }
 
 export default function Home() {
   const dispatch = useDispatch<AppDispatch>();
   const { userCounts, loading, error } = useSelector((state: RootState) => state.auth);
+  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
   const navigate = useNavigate();
 
-  // Fetch user counts on component mount
   useEffect(() => {
     if (!userCounts) {
       dispatch(getAllUsersCount());
@@ -51,6 +58,11 @@ export default function Home() {
     navigate(`/basic-tables-one?userType=${item.user_type}`);
   };
 
+  // Filter user counts based on the logged-in user's user_type
+  const filteredUserCounts = userCounts?.filter((item) =>
+    allowedUserTypes[userType ?? ""]?.includes(item.user_type)
+  );
+
   if (loading) return <div>Loading...</div>;
   if (error) return <div>Error: {error}</div>;
 
@@ -60,11 +72,11 @@ export default function Home() {
         Dashboard
       </h1>
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
-        {userCounts && userCounts.length > 0 ? (
-          userCounts.map((item, index) => (
+        {filteredUserCounts && filteredUserCounts.length > 0 ? (
+          filteredUserCounts.map((item, index) => (
             <div
               key={item.user_type}
-              onClick={item.user_type !== "Total" ? () => handleCardClick(item) : undefined} // Disable onClick for "Total"
+              onClick={item.user_type !== "Total" ? () => handleCardClick(item) : undefined}
               className={`rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 ${
                 item.user_type !== "Total" ? "cursor-pointer hover:shadow-lg" : "cursor-default"
               } transition-shadow duration-200`}
@@ -85,7 +97,6 @@ export default function Home() {
                     {item.count.toLocaleString()}
                   </h4>
                 </div>
-                {/* Optional: Add trend and percentage if you have this data */}
                 <Badge color={index % 2 === 0 ? "success" : "error"}>
                   {index % 2 === 0 ? <ArrowUpIcon /> : <ArrowDownIcon />}
                   {index % 2 === 0 ? "5" : "3"}%

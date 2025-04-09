@@ -145,6 +145,11 @@ const ResidentialTypes: React.FC = () => {
     setDropdownOpen(null);
   };
 
+  const handleLead = (item : any) => {
+    console.log('lead pull clicked',item.user);
+    
+  }
+
   const handleDelete = (unique_property_id: string) => {
     const property_status = 3;
     dispatch(updatePropertyStatus({ property_status, unique_property_id }))
@@ -243,6 +248,7 @@ const ResidentialTypes: React.FC = () => {
         onFilter={handleSearch}
         inputRef={searchInputRef} // Pass the ref
       />
+      {totalCount}
       <div className="space-y-6">
         <ComponentCard title={getPageTitle()}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -317,6 +323,7 @@ const ResidentialTypes: React.FC = () => {
                               <button onClick={() => handleApprove(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                 {parseInt(status || "0", 10) === 0 ? "Approve" : "Reject"}
                               </button>
+                              <button onClick={() => handleLead(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Lead Pull</button>
                             </div>
                           )}
                         </TableCell>

@@ -16,7 +16,7 @@ interface Option {
   text: string;
 }
 
-const designationOptions: Option[] = [
+const allDesignationOptions: Option[] = [
   { value: "7", text: "Manager" },
   { value: "8", text: "TeleCaller" },
   { value: "9", text: "Marketing Executive" },
@@ -31,9 +31,15 @@ const EditEmployee: React.FC = () => {
   const { employee } = location.state || {};
   const { cities, states } = useSelector((state: RootState) => state.property);
   const { updateLoading, updateError, updateSuccess } = useSelector((state: RootState) => state.employee);
+  const pageUserType = useSelector((state: RootState) => state.auth.user?.user_type); // Get logged-in user's type
 
   const [selectedEmployee, setSelectedEmployee] = useState<any>(employee || null);
   console.log("Incoming employee:", employee);
+
+  // Filter designation options based on pageUserType
+  const designationOptions: Option[] = pageUserType === 7
+    ? allDesignationOptions.filter(option => option.value !== "7")
+    : allDesignationOptions;
 
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
@@ -56,12 +62,13 @@ const EditEmployee: React.FC = () => {
     if (updateSuccess) {
       setTimeout(() => {
         navigate(-1);
-        dispatch(clearMessages()); 
-      }, 1000); 
+        dispatch(clearMessages());
+      }, 1000);
     }
   }, [updateSuccess, navigate, dispatch]);
+
   const getDesignationValue = (text: string) => {
-    const option = designationOptions.find(opt => opt.text === text);
+    const option = designationOptions.find(opt => opt.text === text); // Use filtered options
     console.log(`Designation text: ${text}, mapped value: ${option ? option.value : 'none'}`);
     return option ? [option.value] : [];
   };
@@ -77,12 +84,13 @@ const EditEmployee: React.FC = () => {
   };
 
   const handleSave = (e: React.FormEvent) => {
-    const createdBy = localStorage.getItem("name") as string; 
+    const createdBy = localStorage.getItem("name") as string;
     const createdUserIdRaw = localStorage.getItem("userId");
     const designationText = typeof selectedEmployee.designation === "string"
-    ? selectedEmployee.designation
-    : Array.isArray(selectedEmployee.designation) && selectedEmployee.designation.length > 0
-      ? selectedEmployee.designation[0]:"";
+      ? selectedEmployee.designation
+      : Array.isArray(selectedEmployee.designation) && selectedEmployee.designation.length > 0
+        ? selectedEmployee.designation[0]
+        : "";
     const designationValue = designationOptions.find(opt => opt.text === designationText)?.value;
 
     e.preventDefault();
@@ -98,14 +106,14 @@ const EditEmployee: React.FC = () => {
           : typeof selectedEmployee.city === "string"
             ? selectedEmployee.city
             : "",
-        pincode: selectedEmployee.pincode ,
+        pincode: selectedEmployee.pincode,
         state: Array.isArray(selectedEmployee.state) && selectedEmployee.state.length > 0
           ? selectedEmployee.state[0]
           : typeof selectedEmployee.state === "string"
             ? selectedEmployee.state
             : "",
         user_type: parseInt(designationValue || "0"),
-        status:selectedEmployee.status,
+        status: selectedEmployee.status,
         created_by: createdBy,
         created_userID: parseInt(createdUserIdRaw || "0"),
       };
@@ -116,7 +124,6 @@ const EditEmployee: React.FC = () => {
 
   const handleInputChange = (field: string, value: string | string[]) => {
     if (selectedEmployee) {
-      
       const newValue = field === "name" || field === "mobile" || field === "email" || field === "pincode"
         ? Array.isArray(value) ? value[0] : value
         : field === "designation"
@@ -147,7 +154,7 @@ const EditEmployee: React.FC = () => {
         <form onSubmit={handleSave} className="space-y-6">
           {updateSuccess && (
             <div className="p-3 bg-green-100 text-green-700 rounded-md">
-                {updateSuccess}
+              {updateSuccess}
             </div>
           )}
           {updateError && (
@@ -192,12 +199,10 @@ const EditEmployee: React.FC = () => {
             />
           </div>
 
-        
-
           <div className="relative mb-10 min-h-[80px]">
             <MultiSelect
               label="Designation"
-              options={designationOptions}
+              options={designationOptions} // Use filtered options
               defaultSelected={getDesignationValue(selectedEmployee.designation)}
               onChange={(values) => handleInputChange("designation", designationOptions.filter(opt => values.includes(opt.value)).map(opt => opt.text))}
               disabled={updateLoading}
@@ -223,6 +228,7 @@ const EditEmployee: React.FC = () => {
               disabled={updateLoading}
             />
           </div>
+
           <div className="min-h-[80px]">
             <Label htmlFor="pincode">Pincode</Label>
             <Input

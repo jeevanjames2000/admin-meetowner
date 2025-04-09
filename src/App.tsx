@@ -36,6 +36,7 @@ import ErrorBoundary from "./hooks/ErrorBoundary";
 import axiosInstance from "./utils/axiosInstance";
 import EditEmployee from "./pages/Employee/EditEmployee";
 import HomeFooter from "./pages/Forms/HomeFooter";
+import CreateUser from "./pages/users/CreateUsers";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -330,6 +331,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <CreateEmployee />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+                <Route
+                path="/create-user"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <CreateUser />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

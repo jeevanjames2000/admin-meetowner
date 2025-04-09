@@ -8,18 +8,19 @@ import { EyeCloseIcon, EyeIcon, EnvelopeIcon } from "../../icons";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
 import { getCities, getStates } from "../../store/slices/propertyDetails";
-import { createEmployee, clearMessages } from "../../store/slices/employee";
 
 // Define interfaces for form data and errors
 interface FormData {
   name: string;
   mobile: string;
   email: string;
-  designation: string[];
+  designation: string; // Changed from string[] to string for single select
   password: string;
   city: string[];
   state: string[];
   pincode: string;
+  paymentType: string;
+  paymentMode: string;
 }
 
 interface Errors {
@@ -31,6 +32,8 @@ interface Errors {
   city?: string;
   state?: string;
   pincode?: string;
+  paymentType?: string;
+  paymentMode?: string;
 }
 
 interface Option {
@@ -38,63 +41,48 @@ interface Option {
   text: string;
 }
 
-export default function CreateEmployee() {
+export default function CreateUser() {
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const { cities, states } = useSelector((state: RootState) => state.property);
-  const { createLoading, createError, createSuccess } = useSelector((state: RootState) => state.employee);
-  const pageUserType = useSelector((state: RootState) => state.auth.user?.user_type);
 
   useEffect(() => {
     dispatch(getCities());
     dispatch(getStates());
   }, [dispatch]);
 
-  useEffect(() => {
-    if (createSuccess) {
-      setFormData({
-        name: "",
-        mobile: "",
-        email: "",
-        designation: [],
-        password: "",
-        city: [],
-        state: [],
-        pincode: "",
-      });
-      const timer = setTimeout(() => {
-        dispatch(clearMessages());
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, [createSuccess, dispatch]);
-
   const [formData, setFormData] = useState<FormData>({
     name: "",
     mobile: "",
     email: "",
-    designation: [],
+    designation: "", // Changed from [] to "" for single select
     password: "",
     city: [],
     state: [],
     pincode: "",
+    paymentType: "",
+    paymentMode: "",
   });
 
   const [errors, setErrors] = useState<Errors>({});
 
-  // Base designation options
-  const allDesignationOptions: Option[] = [
-    { value: "7", text: "Manager" },
-    { value: "8", text: "TeleCaller" },
-    { value: "9", text: "Marketing Executive" },
-    { value: "10", text: "Customer Support" },
-    { value: "11", text: "Customer Service" },
+  const designationOptions: Option[] = [
+    { value: "3", text: "Builder" },
+    { value: "4", text: "Agent" },
+    { value: "6", text: "Channel Partner" },
   ];
 
-  // Filter out "Manager" if pageUserType === 7
-  const designationOptions: Option[] = pageUserType === 7
-    ? allDesignationOptions.filter(option => option.value !== "7")
-    : allDesignationOptions;
+  const paymentTypeOptions: Option[] = [
+    { value: "basic", text: "Basic" },
+    { value: "prime", text: "Prime" },
+    { value: "prime_plus", text: "Prime Plus" },
+  ];
+
+  const paymentModeOptions: Option[] = [
+    { value: "neft", text: "NEFT" },
+    { value: "cash", text: "Cash" },
+    { value: "offline", text: "Offline" },
+  ];
 
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
@@ -111,7 +99,7 @@ export default function CreateEmployee() {
   const countries = [{ code: "IN", label: "+91" }];
 
   const handleSingleChange =
-    (field: "name" | "mobile" | "email" | "password" | "pincode") =>
+    (field: "name" | "mobile" | "email" | "password" | "pincode" | "paymentType" | "paymentMode" | "designation") =>
     (value: string) => {
       setFormData({ ...formData, [field]: value });
       if (errors[field]) {
@@ -120,7 +108,7 @@ export default function CreateEmployee() {
     };
 
   const handleMultiSelectChange =
-    (field: "designation" | "city" | "state") =>
+    (field: "city" | "state") => // Removed "designation" from here
     (values: string[]) => {
       setFormData({ ...formData, [field]: values });
       if (errors[field]) {
@@ -138,8 +126,8 @@ export default function CreateEmployee() {
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid";
     }
-    if (formData.designation.length === 0)
-      newErrors.designation = "At least one designation is required";
+    if (!formData.designation) // Changed from length check to simple truthy check
+      newErrors.designation = "Designation is required";
     if (!formData.password) newErrors.password = "Password is required";
     if (formData.city.length === 0)
       newErrors.city = "At least one city is required";
@@ -150,6 +138,8 @@ export default function CreateEmployee() {
     } else if (!/^\d{6}$/.test(formData.pincode)) {
       newErrors.pincode = "Pincode must be 6 digits";
     }
+    if (!formData.paymentType) newErrors.paymentType = "Payment Type is required";
+    if (!formData.paymentMode) newErrors.paymentMode = "Payment Mode is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -162,16 +152,14 @@ export default function CreateEmployee() {
       const createdBy = localStorage.getItem("name");
       const createdUserIdRaw = localStorage.getItem("userId");
 
-      // Map city ID to city name
       const selectedCityId = formData.city[0];
       const cityName = cityOptions.find((option) => option.value === selectedCityId)?.text || selectedCityId;
 
-      // Map state ID to state name
       const selectedStateId = formData.state[0];
       const stateName = stateOptions.find((option) => option.value === selectedStateId)?.text || selectedStateId;
 
-      // Map designation value to text
-      const selectedDesignationId = formData.designation[0];
+      // Designation is now a single string value
+      const selectedDesignationId = formData.designation;
       const designationName = designationOptions.find((option) => option.value === selectedDesignationId)?.text || selectedDesignationId;
 
       const employeeData = {
@@ -183,30 +171,20 @@ export default function CreateEmployee() {
         city: cityName,
         state: stateName,
         pincode: formData.pincode,
+        payment_type: formData.paymentType,
+        payment_mode: formData.paymentMode,
         user_type: parseInt(selectedDesignationId),
         created_by: createdBy || "Unknown",
         created_userID: createdUserIdRaw ? parseInt(createdUserIdRaw) : 1,
       };
 
-      dispatch(createEmployee(employeeData));
       console.log(employeeData);
     }
   };
 
   return (
-    <ComponentCard title="Create Employee">
+    <ComponentCard title="Create Users">
       <form onSubmit={handleSubmit} className="space-y-6">
-        {createSuccess && (
-          <div className="p-3 bg-green-100 text-green-700 rounded-md">
-            {createSuccess}
-          </div>
-        )}
-        {createError && (
-          <div className="p-3 bg-red-100 text-red-700 rounded-md">
-            {createError}
-          </div>
-        )}
-
         <div className="min-h-[80px]">
           <Label htmlFor="name">Name</Label>
           <Input
@@ -215,7 +193,6 @@ export default function CreateEmployee() {
             value={formData.name}
             onChange={(e) => handleSingleChange("name")(e.target.value)}
             placeholder="Enter your name"
-            disabled={createLoading}
           />
           {errors.name && (
             <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -246,7 +223,6 @@ export default function CreateEmployee() {
               onChange={(e) => handleSingleChange("email")(e.target.value)}
               placeholder="example@domain.com"
               className="pl-[62px]"
-              disabled={createLoading}
             />
             <span className="absolute left-0 top-1/2 -translate-y-1/2 border-r border-gray-200 px-3.5 py-3 text-gray-500 dark:border-gray-800 dark:text-gray-400">
               <EnvelopeIcon className="size-6" />
@@ -257,14 +233,21 @@ export default function CreateEmployee() {
           )}
         </div>
 
-        <div className="relative mb-10 min-h-[80px]">
-          <MultiSelect
-            label="Designation"
-            options={designationOptions}
-            defaultSelected={formData.designation}
-            onChange={handleMultiSelectChange("designation")}
-            disabled={createLoading}
-          />
+        <div className="min-h-[80px]">
+          <Label htmlFor="designation">Designation</Label>
+          <select
+            id="designation"
+            value={formData.designation}
+            onChange={(e) => handleSingleChange("designation")(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1D3A76] dark:border-gray-800 dark:bg-gray-900 dark:text-white"
+          >
+            <option value="">Select designation</option>
+            {designationOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.text}
+              </option>
+            ))}
+          </select>
           {errors.designation && (
             <p className="text-red-500 text-sm mt-1">{errors.designation}</p>
           )}
@@ -278,13 +261,11 @@ export default function CreateEmployee() {
               value={formData.password}
               onChange={(e) => handleSingleChange("password")(e.target.value)}
               placeholder="Enter password"
-              disabled={createLoading}
             />
             <button
               type="button"
               onClick={() => setShowPassword(!showPassword)}
               className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
-              disabled={createLoading}
             >
               {showPassword ? (
                 <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
@@ -298,12 +279,52 @@ export default function CreateEmployee() {
           )}
         </div>
 
+        <div className="min-h-[80px]">
+          <Label htmlFor="paymentType">Payment Type</Label>
+          <select
+            id="paymentType"
+            value={formData.paymentType}
+            onChange={(e) => handleSingleChange("paymentType")(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1D3A76] dark:border-gray-800 dark:bg-gray-900 dark:text-white"
+          >
+            <option value="">Select payment type</option>
+            {paymentTypeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.text}
+              </option>
+            ))}
+          </select>
+          {errors.paymentType && (
+            <p className="text-red-500 text-sm mt-1">{errors.paymentType}</p>
+          )}
+        </div>
+
+        <div className="min-h-[80px]">
+          <Label htmlFor="paymentMode">Payment Mode</Label>
+          <select
+            id="paymentMode"
+            value={formData.paymentMode}
+            onChange={(e) => handleSingleChange("paymentMode")(e.target.value)}
+            className="w-full px-4 py-2 border border-gray-200 rounded-md focus:outline-none focus:ring-2 focus:ring-[#1D3A76] dark:border-gray-800 dark:bg-gray-900 dark:text-white"
+          >
+            <option value="">Select payment mode</option>
+            {paymentModeOptions.map((option) => (
+              <option key={option.value} value={option.value}>
+                {option.text}
+              </option>
+            ))}
+          </select>
+          {errors.paymentMode && (
+            <p className="text-red-500 text-sm mt-1">{errors.paymentMode}</p>
+          )}
+        </div>
+
         <div className="relative mb-10 min-h-[80px]">
           <MultiSelect
             label="City"
             options={cityOptions}
+            defaultSelected={formData.city}
             onChange={handleMultiSelectChange("city")}
-            disabled={createLoading}
           />
           {errors.city && (
             <p className="text-red-500 text-sm mt-1">{errors.city}</p>
@@ -318,7 +339,6 @@ export default function CreateEmployee() {
             value={formData.pincode}
             onChange={(e) => handleSingleChange("pincode")(e.target.value)}
             placeholder="Enter pincode"
-            disabled={createLoading}
           />
           {errors.pincode && (
             <p className="text-red-500 text-sm mt-1">{errors.pincode}</p>
@@ -331,7 +351,6 @@ export default function CreateEmployee() {
             options={stateOptions}
             defaultSelected={formData.state}
             onChange={handleMultiSelectChange("state")}
-            disabled={createLoading}
           />
           {errors.state && (
             <p className="text-red-500 text-sm mt-1">{errors.state}</p>
@@ -342,9 +361,8 @@ export default function CreateEmployee() {
           <button
             type="submit"
             className="w-[60%] px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-            disabled={createLoading}
           >
-            {createLoading ? "Submitting..." : "Submit"}
+            {"Submit"}
           </button>
         </div>
       </form>

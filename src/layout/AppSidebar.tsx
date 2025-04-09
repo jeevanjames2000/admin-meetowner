@@ -148,6 +148,14 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    name: "Users",
+    icon: <FaFileInvoice />,
+    subItems: [
+      { name: "Create User", path: "/create-user", pro: false },
+    
+    ],
+  },
+  {
     name: "Maps",
     icon: <FaSearchLocation />,
     subItems: [
@@ -167,14 +175,39 @@ const AppSidebar: React.FC = () => {
   const [openNestedSubmenu, setOpenNestedSubmenu] = useState<{ type: "main"; index: number; subIndex: number } | null>(null);
   const [openDeepNestedSubmenu, setOpenDeepNestedSubmenu] = useState<{ type: "main"; index: number; subIndex: number; nestedIndex: number } | null>(null);
 
-  const filteredNavItems = navItems.filter(item => {
-    if (userType === 7) return !["Accounts"].includes(item.name);
-    if (userType === 8) return !["Accounts", "Employees", "Pages", "Maps"].includes(item.name);
-    if (userType === 9) return !["Accounts", "Employees", "Pages", "Maps"].includes(item.name);
-    if (userType === 10) return !["Accounts", "Employees", "Pages", "Maps"].includes(item.name);
-    if (userType === 11) return !["Accounts", "Employees", "Pages", "Maps"].includes(item.name);
-    return true;
-  });
+  const filterAccountsSubItems = (subItems: NavItem["subItems"]) => {
+    if (!subItems) return subItems;
+    return subItems.map(subItem => ({
+      ...subItem,
+      nestedItems: subItem.nestedItems?.filter(nestedItem => {
+        if (userType === 8) {
+          return ["Payment Failure", "Expiry Soon"].includes(nestedItem.name);
+        }
+        return true; // Keep all items for other user types
+      }),
+    }));
+  };
+
+ 
+  const filteredNavItems = navItems
+    .filter(item => {
+      if (userType === 7) return !["Accounts", "Pages", "Maps"].includes(item.name); // Manager
+      if (userType === 8) return !["Pages", "Maps", "Commercial Rent", "Commercial Buy", "Residential Rent", "Residential Buy", "Employees", "Lead Management", "Users"].includes(item.name); // Telecaller
+      if (userType === 9) return !["Accounts", "Pages", "Maps", "Employees"].includes(item.name); // Marketing Executive
+      if (userType === 10) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users"].includes(item.name); // Customer Support
+      if (userType === 11) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users"].includes(item.name); // Customer Service
+      return true;
+    })
+    .map(item => {
+      if (userType === 8 && item.name === "Accounts") {
+        return {
+          ...item,
+          subItems: filterAccountsSubItems(item.subItems),
+        };
+      }
+      return item;
+    });
+
 
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const nestedSubMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
