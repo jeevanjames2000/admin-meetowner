@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, RefObject } from "react";
 interface BreadcrumbProps {
   pageTitle: string;
   pagePlacHolder?: string;
+  searchValue?:string;
   onFilter?: (value: string) => void;
   inputRef?: RefObject<HTMLInputElement | null>;
   persistSearch?: boolean;
@@ -37,7 +38,7 @@ const PageBreadcrumb: React.FC<BreadcrumbProps> = ({
     return persistSearch ? localStorage.getItem("searchQuery") || "" : "";
   });
   const localInputRef = useRef<HTMLInputElement>(null);
-  const debouncedInputValue = useDebounce(inputValue, 500);
+  const debouncedInputValue = useDebounce(inputValue, 600);
 
   const effectiveInputRef = inputRef || localInputRef;
 

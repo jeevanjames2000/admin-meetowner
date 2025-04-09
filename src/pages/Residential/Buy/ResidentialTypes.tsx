@@ -205,37 +205,7 @@ const ResidentialTypes: React.FC = () => {
     return pages;
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-        <PageBreadcrumb
-          pageTitle={`Residential ${property_for === "buy" ? "Sell" : "Rent"}`}
-          pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
-          onFilter={handleSearch}
-          inputRef={searchInputRef} // Pass the ref
-        />
-        <ComponentCard title={getPageTitle()}>
-          <TableLoader
-            title={getPageTitle()}
-            hasActions={parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1}
-          />
-        </ComponentCard>
-      </div>
-    );
-  }
-
-  if (error) return <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8"><h2 className="text-2xl font-bold text-gray-800 dark:text-white">Error: {error}</h2></div>;
-  if (!listings || listings.length === 0) return (
-    <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-      <PageBreadcrumb
-        pageTitle={`Residential ${property_for === "buy" ? "Sell" : "Rent"}`}
-        pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
-        onFilter={handleSearch}
-        inputRef={searchInputRef}
-      />
-      <h2 className="text-2xl font-bold text-gray-800 dark:text-white">No Data Available</h2>
-    </div>
-  );
+ 
 
   return (
     <div className="relative min-h-screen">
@@ -246,9 +216,32 @@ const ResidentialTypes: React.FC = () => {
         pageTitle={`Residential ${property_for === "buy" ? "Sell" : "Rent"}`}
         pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
         onFilter={handleSearch}
+        
         inputRef={searchInputRef} // Pass the ref
       />
-      {totalCount}
+      {/* Loading State */}
+      {loading ? (
+        <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+          <ComponentCard title={getPageTitle()}>
+            <TableLoader
+              title={getPageTitle()}
+              hasActions={parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1}
+            />
+          </ComponentCard>
+        </div>
+      ) : error ? (
+       
+        <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Error: {error}</h2>
+        </div>
+      ) : !listings || listings.length === 0 ? (
+        /* Empty State */
+        <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">No Users Found</h2>
+        </div>
+      ) : (
+        <>
+      <h2 className="p-2">Search result - {totalCount}</h2>
       <div className="space-y-6">
         <ComponentCard title={getPageTitle()}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -379,7 +372,10 @@ const ResidentialTypes: React.FC = () => {
           )}
         </ComponentCard>
       </div>
+      </>
+      )}
     </div>
+  
   );
 };
 

@@ -14,7 +14,7 @@ interface FormData {
   name: string;
   mobile: string;
   email: string;
-  designation: string; // Changed from string[] to string for single select
+  designation: string; // Single select
   password: string;
   city: string[];
   state: string[];
@@ -45,6 +45,7 @@ export default function CreateUser() {
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
   const { cities, states } = useSelector((state: RootState) => state.property);
+  const pageUserType = useSelector((state: RootState) => state.auth.user?.user_type);
 
   useEffect(() => {
     dispatch(getCities());
@@ -55,7 +56,7 @@ export default function CreateUser() {
     name: "",
     mobile: "",
     email: "",
-    designation: "", // Changed from [] to "" for single select
+    designation: "",
     password: "",
     city: [],
     state: [],
@@ -66,11 +67,29 @@ export default function CreateUser() {
 
   const [errors, setErrors] = useState<Errors>({});
 
-  const designationOptions: Option[] = [
+  // Base designation options (all possible options)
+  const allDesignationOptions: Option[] = [
+    { value: "2", text: "User" },
     { value: "3", text: "Builder" },
     { value: "4", text: "Agent" },
+    { value: "5", text: "Owner" },
     { value: "6", text: "Channel Partner" },
   ];
+
+  // Filter designation options based on pageUserType
+  const designationOptions: Option[] = (() => {
+    if (pageUserType === 7 || pageUserType === 9) {
+      // For Manager (7) and Marketing Executive (9), show Builder, Agent, Channel Partner
+      return allDesignationOptions.filter(option =>
+        ["3", "4", "6"].includes(option.value) // Builder, Agent, Channel Partner
+      );
+    } else if (pageUserType === 1) {
+      // For userType 1, show all options
+      return allDesignationOptions;
+    }
+    // Default case: show all options (or adjust as needed)
+    return allDesignationOptions;
+  })();
 
   const paymentTypeOptions: Option[] = [
     { value: "basic", text: "Basic" },
@@ -108,7 +127,7 @@ export default function CreateUser() {
     };
 
   const handleMultiSelectChange =
-    (field: "city" | "state") => // Removed "designation" from here
+    (field: "city" | "state") =>
     (values: string[]) => {
       setFormData({ ...formData, [field]: values });
       if (errors[field]) {
@@ -126,13 +145,10 @@ export default function CreateUser() {
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid";
     }
-    if (!formData.designation) // Changed from length check to simple truthy check
-      newErrors.designation = "Designation is required";
+    if (!formData.designation) newErrors.designation = "Designation is required";
     if (!formData.password) newErrors.password = "Password is required";
-    if (formData.city.length === 0)
-      newErrors.city = "At least one city is required";
-    if (formData.state.length === 0)
-      newErrors.state = "At least one state is required";
+    if (formData.city.length === 0) newErrors.city = "At least one city is required";
+    if (formData.state.length === 0) newErrors.state = "At least one state is required";
     if (!formData.pincode.trim()) {
       newErrors.pincode = "Pincode is required";
     } else if (!/^\d{6}$/.test(formData.pincode)) {
@@ -158,7 +174,6 @@ export default function CreateUser() {
       const selectedStateId = formData.state[0];
       const stateName = stateOptions.find((option) => option.value === selectedStateId)?.text || selectedStateId;
 
-      // Designation is now a single string value
       const selectedDesignationId = formData.designation;
       const designationName = designationOptions.find((option) => option.value === selectedDesignationId)?.text || selectedDesignationId;
 
