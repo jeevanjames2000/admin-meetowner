@@ -14,6 +14,7 @@ import Button from "../../ui/button/Button";
 import { MoreVertical } from "lucide-react";
 import ComponentCard from "../../common/ComponentCard";
 import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
+import { clearMessages, deleteEmployee } from "../../../store/slices/employee";
 
 const userTypeMap: { [key: number]: string } = {
   1: "Admin",
@@ -43,6 +44,9 @@ export default function BasicTableOne() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
   const pageuserType = useSelector((state: RootState) => state.auth.user?.user_type);
+  const {  deleteError, deleteSuccess,  } = useSelector(
+    (state: RootState) => state.employee
+  );
   console.log(pageuserType);
 
   const queryParams = new URLSearchParams(location.search);
@@ -92,11 +96,29 @@ export default function BasicTableOne() {
 
   const handleDelete = (id: number) => {
     console.log(`Delete user with ID: ${id}`);
+    dispatch(deleteEmployee(id)).then((action) => {
+          if (deleteEmployee.fulfilled.match(action)) {
+            console.log("Delete successful, employeeId:", id);
+          } else if (deleteEmployee.rejected.match(action)) {
+            console.log("Delete failed:", deleteError);
+          }
+    });
     setActiveMenu(null);
   };
 
-  const handleSuspend = (id: number) => {
-    console.log(`Suspend user with ID: ${id}`);
+  useEffect(()=> {
+    if (deleteSuccess){
+      if (userType) {
+        console.log(userType, "basic");
+        dispatch(fetchUsersByType({ user_type: parseInt(userType)})).then(()=>{
+          dispatch(clearMessages());
+        });
+      }
+    }
+  },[deleteSuccess,dispatch]);
+
+  const handleStatusChange = (user:any) => {
+    console.log(`Suspend user with ID: `,user);
     setActiveMenu(null);
   };
 
@@ -154,6 +176,17 @@ export default function BasicTableOne() {
         pagePlacHolder="Filter users by name, mobile, email, city, or state"
         onFilter={handleFilter}
       />
+ 
+        {deleteSuccess && (
+          <div className="p-3 bg-green-100 text-green-700 rounded-md">
+            {deleteSuccess}
+          </div>
+        )}
+        {deleteError && (
+          <div className="p-3 bg-red-100 text-red-700 rounded-md">
+            {deleteError}
+          </div>
+        )}
       <div className="space-y-6">
         <ComponentCard title={`${categoryLabel} Table`}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -215,7 +248,7 @@ export default function BasicTableOne() {
                               : "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
                           }`}
                         >
-                          {user.status === 0 ? "Inactive" : "Active"}
+                         {user.status === 0 ? "Active" : user.status === null ? "N/A" : user.status === 2 ? "Suspended" : user.status === 3 ? "Blocked" : "Inactive"}
                         </span>
                       </TableCell>
                       
@@ -240,7 +273,7 @@ export default function BasicTableOne() {
                                 </button>
                                 <button
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  onClick={() => handleSuspend(user.id)}
+                                  onClick={() => handleStatusChange(user)}
                                 >
                                   {user.status === 0 ? "Activate" : "Suspend"}
                                 </button>

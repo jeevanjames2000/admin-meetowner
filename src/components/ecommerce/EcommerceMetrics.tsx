@@ -42,7 +42,7 @@ interface UserCountItem {
 
 export default function Home() {
   const dispatch = useDispatch<AppDispatch>();
-  const { userCounts, loading, error } = useSelector((state: RootState) => state.auth);
+  const { userCounts, loading, error,user } = useSelector((state: RootState) => state.auth);
   const userType = useSelector((state: RootState) => state.auth.user?.user_type);
   const navigate = useNavigate();
 
@@ -68,6 +68,9 @@ export default function Home() {
 
   return (
     <div className="p-6">
+       <h1 className="mb-4 text-2xl font-semibold text-[#1D3A76] dark:text-white">
+        Welcome {user?.name} !
+      </h1>
       <h1 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white">
         Dashboard
       </h1>
