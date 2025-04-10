@@ -28,7 +28,7 @@ const userTypeMap: { [key: string]: string } = {
 // Define allowed user types for each user_type
 const allowedUserTypes: { [key: string]: string[] } = {
   "1": Object.keys(userTypeMap), // Admin sees all
-  "7": ["2", "4", "6", "8", "9", "10", "11"], // Channel Partners, Agents, Users, Marketing Executives, Telecallers, Customer Support, Customer Service
+  "7": ["2","3", "4","5", "6", "8", "9", "10", "11"], // Channel Partners, Agents, Users, Marketing Executives, Telecallers, Customer Support, Customer Service //manager
   "9": ["3", "4", "6"], // Channel Partners, Agents, Builders
 };
 

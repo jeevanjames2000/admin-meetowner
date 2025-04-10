@@ -57,8 +57,7 @@ export default function BasicTableOne() {
   // Condition to show Mobile and Email columns
   const showMobileAndEmail = pageuserType === 7 && userType !== null && parseInt(userType) === 2;
 
-  const excludedPageUserTypes = [7, 9]; // Manager and Marketing Executive
-  const shouldShowActions = pageuserType !== undefined && !excludedPageUserTypes.includes(pageuserType);
+  
 
 
   useEffect(() => {
@@ -178,9 +177,9 @@ export default function BasicTableOne() {
                     {showReraNumber && <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">RERA Number</TableCell>}
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Since</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
-                    {shouldShowActions && (
+                   
                       <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
-                    )}
+                    
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -219,7 +218,7 @@ export default function BasicTableOne() {
                           {user.status === 0 ? "Inactive" : "Active"}
                         </span>
                       </TableCell>
-                      {shouldShowActions && (
+                      
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                           <Button variant="outline" size="sm" onClick={() => toggleMenu(user.id)}>
                             <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
@@ -249,7 +248,7 @@ export default function BasicTableOne() {
                             </div>
                           )}
                         </TableCell>
-                      )}
+                      
                     </TableRow>
                   ))}
                 </TableBody>

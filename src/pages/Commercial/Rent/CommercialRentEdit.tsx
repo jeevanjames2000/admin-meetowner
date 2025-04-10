@@ -7,7 +7,7 @@ import Input from "../../../components/form/input/InputField";
 import Select from "../../../components/form/Select";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import PropertyLocationFields from "../../Residential/components/propertyLocationFields";
-import MediaUploadSection from "../../Residential/components/MediaUploadSection";
+// import MediaUploadSection from "../../Residential/components/MediaUploadSection";
 import DatePicker from "../../../components/form/date-picker";
 import { updateListing } from "../../../store/slices/listings";
 import { AppDispatch } from "../../../store/store";
@@ -61,10 +61,10 @@ interface CommercialRentFormData {
   locality: string;
   floorNo: string;
   totalFloors: string;
-  photos: File[];
-  video: File | null;
-  floorPlan: File | null;
-  featuredImageIndex: number | null;
+  // photos: File[];
+  // video: File | null;
+  // floorPlan: File | null;
+  // featuredImageIndex: number | null;
 }
 
 // Define the type for the Select options
@@ -112,6 +112,10 @@ const CommercialRentEdit: React.FC = () => {
   };
 
   const [originalData, setOriginalData] = useState<any>(property || {});
+  const transformParkingValue = (value: string | number | undefined): "0" | "1" | "2" | "3" | "4+" => {
+    const stringValue = String(value); // Convert to string for consistent comparison
+    return stringValue === "5" ? "4+" : (stringValue as "0" | "1" | "2" | "3" | "4+");
+  };
   const [formData, setFormData] = useState<CommercialRentFormData>(() => {
     if (property) {
 
@@ -129,21 +133,6 @@ const CommercialRentEdit: React.FC = () => {
       const availableFromDate = property.available_from
         ? new Date(property.available_from).toISOString().split("T")[0]
         : "";
-      const carParkingValue = property.car_parking
-        ? parseInt(property.car_parking) > 4
-          ? "4+"
-          : String(property.car_parking)
-        : "0";
-      const bikeParkingValue = property.bike_parking
-        ? parseInt(property.bike_parking) > 4
-          ? "4+"
-          : String(property.bike_parking)
-        : "0";
-      const openParkingValue = property.open_parking
-        ? parseInt(property.open_parking) > 4
-          ? "4+"
-          : String(property.open_parking)
-        : "0";
       const securityDepositValue = property.security_deposit
         ? `${parseInt(property.security_deposit)} Months`
         : "";
@@ -187,9 +176,9 @@ const CommercialRentEdit: React.FC = () => {
         zoneType: property.zone_types || "Commercial",
         suitable: property.business_types || "Others",
         facing: property.facing || "",
-        carParking: carParkingValue as "0" | "1" | "2" | "3" | "4+",
-        bikeParking: bikeParkingValue as "0" | "1" | "2" | "3" | "4+",
-        openParking: openParkingValue as "0" | "1" | "2" | "3" | "4+",
+        carParking: transformParkingValue(property.car_parking), // Transform "5" or 5 to "4+"
+        bikeParking: transformParkingValue(property.bike_parking), // Transform "5" or 5 to "4+"
+        openParking: transformParkingValue(property.open_parking), // Transform "5" or 5 to "4+"
         aroundProperty: [], // Adjust if API provides this data
         pantryRoom: property.pantry_room || "No",
         propertyDescription: property.description || "",
@@ -198,10 +187,10 @@ const CommercialRentEdit: React.FC = () => {
         locality: property.location_id || "",
         floorNo: property.floors || "",
         totalFloors: property.total_floors || "",
-        photos: [],
-        video: null,
-        floorPlan: null,
-        featuredImageIndex: null,
+        // photos: [],
+        // video: null,
+        // floorPlan: null,
+        // featuredImageIndex: null,
       };
     }
     return {
@@ -246,10 +235,10 @@ const CommercialRentEdit: React.FC = () => {
       locality: "",
       floorNo: "",
       totalFloors: "",
-      photos: [],
-      video: null,
-      floorPlan: null,
-      featuredImageIndex: null,
+      // photos: [],
+      // video: null,
+      // floorPlan: null,
+      // featuredImageIndex: null,
     };
   });
 
@@ -288,10 +277,10 @@ const CommercialRentEdit: React.FC = () => {
     locality: "",
     floorNo: "",
     totalFloors: "",
-    photos: "",
-    video: "",
-    floorPlan: "",
-    featuredImage: "",
+    // photos: "",
+    // video: "",
+    // floorPlan: "",
+    // featuredImage: "",
   });
 
   const [placeAroundProperty, setPlaceAroundProperty] = useState("");
@@ -576,9 +565,21 @@ const CommercialRentEdit: React.FC = () => {
       zoneType: { apiField: "zone_types", applicableTo: ["Office", "Warehouse"] },
       suitable: { apiField: "business_types", applicableTo: ["Retail Shop", "Show Room", "Plot", "Others"] },
       facing: { apiField: "facing", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
-      carParking: { apiField: "car_parking", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
-      bikeParking: { apiField: "bike_parking", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
-      openParking: { apiField: "open_parking", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
+      carParking: { 
+        apiField: "car_parking", 
+        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)), // Transform "4+" to 5
+        applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"]
+      },
+      bikeParking: { 
+        apiField: "bike_parking", 
+        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)), // Transform "4+" to 5
+        applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"]
+      },
+      openParking: { 
+        apiField: "open_parking", 
+        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)), // Transform "4+" to 5
+        applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"]
+      },
       pantryRoom: { apiField: "pantry_room", applicableTo: ["Office", "Show Room", "Others"] },
       propertyDescription: { apiField: "description", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
       city: { apiField: "city_id", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
@@ -682,7 +683,7 @@ const CommercialRentEdit: React.FC = () => {
     if (formData.propertySubType !== "Plot" && !formData.floorNo) newErrors.floorNo = "Floor number is required";
     if (formData.propertySubType !== "Plot" && !formData.totalFloors) newErrors.totalFloors = "Total floors is required";
 
-    if (formData.photos.length === 0) newErrors.photos = "At least one photo is required";
+    // if (formData.photos.length === 0) newErrors.photos = "At least one photo is required";
 
     setErrors((prev) => ({ ...prev, ...newErrors }));
 
@@ -1409,7 +1410,7 @@ const CommercialRentEdit: React.FC = () => {
             isPlot={formData.propertySubType === "Plot"}
           />
 
-          <div>
+          {/* <div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Upload Media</h3>
             <MediaUploadSection
               photos={formData.photos}
@@ -1425,7 +1426,7 @@ const CommercialRentEdit: React.FC = () => {
               floorPlanError={errors.floorPlan}
               featuredImageError={errors.featuredImage}
             />
-          </div>
+          </div> */}
 
           <div className="flex justify-end">
             <button

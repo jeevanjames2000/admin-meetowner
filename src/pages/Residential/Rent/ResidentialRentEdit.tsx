@@ -8,7 +8,7 @@ import Select from "../../../components/form/Select";
 import DatePicker from "../../../components/form/date-picker";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import PropertyLocationFields from "../components/propertyLocationFields";
-import MediaUploadSection from "../components/MediaUploadSection";
+// import MediaUploadSection from "../components/MediaUploadSection";
 import { updateListing } from "../../../store/slices/listings";
 import { AppDispatch } from "../../../store/store";
 
@@ -129,6 +129,11 @@ const ResidentialRentEdit: React.FC = () => {
     None: false,
   };
   const [originalData, setOriginalData] = useState<any>(property || {});
+  const transformParkingValue = (value: string | number | undefined): "0" | "1" | "2" | "3" | "4+" => {
+    const stringValue = String(value); // Convert to string for consistent comparison
+    return stringValue === "5" ? "4+" : (stringValue as "0" | "1" | "2" | "3" | "4+");
+  };
+
   const [formData, setFormData] = useState<ResidentialRentFormData>(() => {
     if (property) {
       const facilitiesString = property.facilities || "";
@@ -178,9 +183,9 @@ const ResidentialRentEdit: React.FC = () => {
         pentHouse: property.pent_house === "Yes" ? "Yes" : "No",
         facilities: updatedFacilities,
         facing: property.facing || "",
-        carParking: property.car_parking ? String(property.car_parking) : "0",
-        bikeParking: property.bike_parking ? String(property.bike_parking) : "0",
-        openParking: property.open_parking ? String(property.open_parking) : "0",
+        carParking: transformParkingValue(property.car_parking), // Transform "5" or 5 to "4+"
+        bikeParking: transformParkingValue(property.bike_parking), // Transform "5" or 5 to "4+"
+        openParking: transformParkingValue(property.open_parking), // Transform "5" or 5 to "4+"
         aroundProperty: [],
         servantRoom: property.servant_room || "No",
         propertyDescription: property.description || "",
@@ -191,10 +196,10 @@ const ResidentialRentEdit: React.FC = () => {
         plotNumber: property.plot_number || "",
         floorNo: property.floors || "",
         totalFloors: property.total_floors || "",
-        photos: [],
-        video: null,
-        floorPlan: null,
-        featuredImageIndex: null,
+        // photos: [],
+        // video: null,
+        // floorPlan: null,
+        // featuredImageIndex: null,
         uniquePropertyId: property.unique_property_id || "",
         userId: property.user_id || null,
         expiryDate: property.expiry_date || null,
@@ -259,10 +264,10 @@ const ResidentialRentEdit: React.FC = () => {
       plotNumber: "",
       floorNo: "",
       totalFloors: "",
-      photos: [],
-      video: null,
-      floorPlan: null,
-      featuredImageIndex: null,
+      // photos: [],
+      // video: null,
+      // floorPlan: null,
+      // featuredImageIndex: null,
       uniquePropertyId: "",
       userId: null,
       expiryDate: null,
@@ -319,10 +324,10 @@ const ResidentialRentEdit: React.FC = () => {
     plotNumber: "",
     floorNo: "",
     totalFloors: "",
-    photos: "",
-    video: "",
-    floorPlan: "",
-    featuredImage: "",
+    // photos: "",
+    // video: "",
+    // floorPlan: "",
+    // featuredImage: "",
     uniquePropertyId: "",
     bathroom: "",
     ageOfProperty: "", // Added ageOfProperty
@@ -599,9 +604,21 @@ const ResidentialRentEdit: React.FC = () => {
       },
       pentHouse: { apiField: "pent_house", applicableTo: ["Independent House", "Independent Villa"] },
       facing: { apiField: "facing", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
-      carParking: { apiField: "car_parking", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
-      bikeParking: { apiField: "bike_parking", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
-      openParking: { apiField: "open_parking", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
+      carParking: { 
+        apiField: "car_parking", 
+        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)), // Transform "4+" to 5
+        applicableTo: ["Apartment", "Independent House", "Independent Villa"],
+      },
+      bikeParking: { 
+        apiField: "bike_parking", 
+        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)), // Transform "4+" to 5
+        applicableTo: ["Apartment", "Independent House", "Independent Villa"],
+      },
+      openParking: { 
+        apiField: "open_parking", 
+        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)), // Transform "4+" to 5
+        applicableTo: ["Apartment", "Independent House", "Independent Villa"],
+      },
       servantRoom: { apiField: "servant_room", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
       propertyDescription: { apiField: "description", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
       city: { apiField: "city_id", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
@@ -753,7 +770,7 @@ const ResidentialRentEdit: React.FC = () => {
     if (formData.propertySubType !== "Plot" && formData.propertySubType !== "Land" && !formData.totalFloors) {
       newErrors.totalFloors = "Total floors is required";
     }
-    if (formData.photos.length === 0) newErrors.photos = "At least one photo is required";
+    // if (formData.photos.length === 0) newErrors.photos = "At least one photo is required";
     if (!formData.uniquePropertyId) newErrors.uniquePropertyId = "Unique property ID is required";
     if (formData.propertySubType === "Apartment" && !formData.bathroom) {
       newErrors.bathroom = "Bathroom is required";
@@ -1570,7 +1587,7 @@ const ResidentialRentEdit: React.FC = () => {
             isPlot={formData.propertySubType === "Plot" || formData.propertySubType === "Land"}
           />
 
-          <div>
+          {/* <div>
             <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Upload Media</h3>
             <MediaUploadSection
               photos={formData.photos}
@@ -1588,7 +1605,7 @@ const ResidentialRentEdit: React.FC = () => {
               floorPlanError={errors.floorPlan}
               featuredImageError={errors.featuredImage}
             />
-          </div>
+          </div> */}
 
           <div className="flex justify-end">
             <button
