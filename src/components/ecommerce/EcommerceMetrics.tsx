@@ -1,6 +1,6 @@
 import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { getAllUsersCount } from "../../store/slices/authSlice"; // Adjust path as needed
+import { getAllUsersCount } from "../../store/slices/authSlice";
 import { RootState, AppDispatch } from "../../store/store";
 
 import { GroupIcon } from "../../icons";

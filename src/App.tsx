@@ -20,7 +20,7 @@ import CommercialBuyEdit from "./pages/Commercial/Buy/CommercialBuyEdit";
 import CommercialRentEdit from "./pages/Commercial/Rent/CommercialRentEdit";
 import CreateEmployee from "./pages/Employee/CreateEmployee";
 import AllEmployees from "./pages/Employee/AllEmployees";
-import PaymentSuccessUsers from "./pages/Accounts/Users/paymentSuccess";
+import PaymentSuccessUsers from "./pages/Accounts/Payments/paymentSuccess";
 import PaymentSuccessAgents from "./pages/Accounts/Agents/PaymentSuccess";
 import InvoiceDownload from "./pages/Employee/Invoice";
 import BasicTables from "./pages/Tables/BasicTables";
@@ -37,6 +37,8 @@ import axiosInstance from "./utils/axiosInstance";
 import EditEmployee from "./pages/Employee/EditEmployee";
 import HomeFooter from "./pages/Forms/HomeFooter";
 import CreateUser from "./pages/users/CreateUsers";
+import AllAdsPage from "./pages/Ads/AllAds";
+import CreateAds from "./pages/Ads/CreateAds";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -385,7 +387,29 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
+              <Route
+                path="/adds/all-ads"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AllAdsPage />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="/adds/upload-ads"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <CreateAds />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
             </Route>
+            
+        
 
             {/* Public Routes */}
             <Route path="/signin" element={<SignIn />} />

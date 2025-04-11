@@ -173,7 +173,7 @@ export default function BasicTableOne() {
     <div className="relative min-h-screen">
       <PageBreadcrumbList
         pageTitle={`${categoryLabel} Table`}
-        pagePlacHolder="Filter users by name, mobile, email, city, or state"
+        pagePlacHolder="Filter users by name, mobile, email, city"
         onFilter={handleFilter}
       />
  

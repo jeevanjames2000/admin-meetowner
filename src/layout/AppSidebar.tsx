@@ -10,7 +10,7 @@ import {
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import { FaFileInvoice, FaSearchLocation } from "react-icons/fa";
+import { FaAd, FaFileInvoice, FaSearchLocation } from "react-icons/fa";
 import { useSelector } from "react-redux";
 
 import { RootState } from "../store/store";
@@ -161,6 +161,14 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Locality", path: "/maps/locality", pro: false },
       { name: "Invoice Generator", path: "/invoice", pro: false },
+    ],
+  },
+  {
+    name: "Ads",
+    icon: <FaAd />,
+    subItems: [
+      { name: "All Ads", path: "/adds/all-ads", pro: false },
+      { name: "Create Ads", path: "/adds/upload-ads", pro: false },
     ],
   },
 ];

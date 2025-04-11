@@ -69,7 +69,7 @@ export default function SignInForm() {
           password: formData.password,
         })
       ).unwrap();
-console.log(resultAction)
+    console.log(resultAction)
       // Only navigate on success
       navigate("/");
     } catch (err) {
