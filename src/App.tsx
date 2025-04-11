@@ -42,6 +42,7 @@ import CreateAds from "./pages/Ads/CreateAds";
 import BuilderPackages from "./pages/packages/BuilderPackages";
 import PaymentFailureUsers from "./pages/Accounts/Users/PaymentFailure";
 import GeneratePayments from "./pages/Accounts/GeneratePaymentLink";
+import CitiesManager from "./pages/maps/cities";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -387,6 +388,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <InvoiceDownload />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="/maps/cities"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <CitiesManager />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
