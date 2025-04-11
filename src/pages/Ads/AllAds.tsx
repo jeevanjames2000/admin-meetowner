@@ -2,13 +2,9 @@ import React, { useState, useEffect, useRef } from "react";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
-import { Table ,TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
-
-
-import { MoreVertical } from "lucide-react"; // For the action menu icon
-import Input from "../../components/form/input/InputField";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
+import { MoreVertical } from "lucide-react";
 import Button from "../../components/ui/button/Button";
-
 
 // Define the type for the ads data
 interface Ad {
@@ -20,9 +16,20 @@ interface Ad {
   status: "Active" | "Suspended";
 }
 
-// Generate 30 sample ads
+// Place options (moved here for use in generateSampleAds)
+const placeOptions = [
+  { value: "best_deal", text: "Best Deal" },
+  { value: "best_meetowner", text: "Best MeetOwner" },
+  { value: "best_demanded", text: "Best Demanded Projects" },
+  { value: "meetowner_exclusive", text: "MeetOwner Exclusive" },
+  { value: "listing_side", text: "Listing Side Ad" },
+  { value: "property_view", text: "Property View" },
+  { value: "main_slider", text: "Main Slider" },
+];
+
+// Generate 30 sample ads using placeOptions
 const generateSampleAds = (): Ad[] => {
-  const adsTypes = ["Banner", "Sidebar", "Popup", "Slider", "Video"];
+  const adsTypes = placeOptions.map((option) => option.text); // Use text from placeOptions
   const cities = ["Hyderabad", "Bangalore", "Mumbai", "Delhi", "Chennai"];
   const propertyNames = [
     "Sunrise Villa", "Green Meadows", "Ocean Breeze", "Skyline Towers", "Golden Nest",
@@ -30,7 +37,7 @@ const generateSampleAds = (): Ad[] => {
     "Starlight Residency", "Moonlit Gardens", "Crystal Palace", "Emerald Heights", "Serenity Homes",
     "Majestic Manor", "Twilight Towers", "Harmony Homes", "Blissful Bungalows", "Paradise Plaza",
     "Silver Springs", "Golden Horizon", "Tranquil Terrace", "Elite Estates", "Royal Residency",
-    "Vibrant Villas", "Lush Landscapes", "Pinnacle Properties", "Zenith Zones", "Dream Dwellings"
+    "Vibrant Villas", "Lush Landscapes", "Pinnacle Properties", "Zenith Zones", "Dream Dwellings",
   ];
 
   const data: Ad[] = [];
@@ -69,9 +76,10 @@ const AllAdsPage: React.FC = () => {
     };
   }, []);
 
-  // Handle search
-  useEffect(() => {
-    const lowerQuery = searchQuery.toLowerCase();
+  // Handle search (moved to PageBreadcrumbList via onFilter)
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    const lowerQuery = query.toLowerCase();
     const filtered = adsList.filter(
       (ad) =>
         ad.propertyId.toLowerCase().includes(lowerQuery) ||
@@ -81,7 +89,7 @@ const AllAdsPage: React.FC = () => {
     );
     setFilteredAds(filtered);
     setCurrentPage(1); // Reset to first page on search
-  }, [searchQuery, adsList]);
+  };
 
   // Pagination logic
   const totalPages = Math.ceil(filteredAds.length / adsPerPage);
@@ -102,7 +110,6 @@ const AllAdsPage: React.FC = () => {
 
   const handleEdit = (propertyId: string) => {
     console.log(`Edit ad with Property ID: ${propertyId}`);
-    // Implement edit logic (e.g., navigate to edit page)
     setActiveMenu(null);
   };
 
@@ -134,27 +141,19 @@ const AllAdsPage: React.FC = () => {
 
   return (
     <div className="relative min-h-screen">
-      {/* Main content */}
       <div>
-        <PageMeta title="All Ads" />
-        <PageBreadcrumbList pageTitle="All Ads" pagePlacHolder="Search ads" />
+        <PageMeta title="Meet owner All Ads" />
+        <PageBreadcrumbList
+          pageTitle="All Ads"
+          pagePlacHolder="Search by Property ID, Name, City, or Ads Type"
+          onFilter={handleSearch} // Pass search handler
+        />
         <div className="space-y-6">
-          {/* Search Bar */}
-          <div className="flex justify-between items-center">
-            <Input
-              type="text"
-              placeholder="Search by Property ID, Name, City, or Ads Type"
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-[300px] p-2 border rounded-lg dark:bg-dark-900 dark:text-gray-300 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
-            />
-          </div>
-
+          {/* Removed Search Bar from here */}
           <ComponentCard title="All Ads">
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
               <div className="max-w-full overflow-x-auto">
                 <Table>
-                  {/* Table Header */}
                   <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                     <TableRow>
                       <TableCell
@@ -201,8 +200,6 @@ const AllAdsPage: React.FC = () => {
                       </TableCell>
                     </TableRow>
                   </TableHeader>
-
-                  {/* Table Body */}
                   <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                     {currentAds.map((ad) => (
                       <TableRow key={ad.propertyId}>
@@ -218,15 +215,19 @@ const AllAdsPage: React.FC = () => {
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           <span
                             className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                              ad.adsType === "Banner"
+                              ad.adsType === "Best Deal"
                                 ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                                : ad.adsType === "Sidebar"
+                                : ad.adsType === "Best MeetOwner"
                                 ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                                : ad.adsType === "Popup"
+                                : ad.adsType === "Best Demanded Projects"
                                 ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : ad.adsType === "Slider"
+                                : ad.adsType === "MeetOwner Exclusive"
                                 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                : "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                : ad.adsType === "Listing Side Ad"
+                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                : ad.adsType === "Property View"
+                                ? "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200"
+                                : "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200"
                             }`}
                           >
                             {ad.adsType}

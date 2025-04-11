@@ -11,6 +11,7 @@ interface MultiSelectProps {
   defaultSelected?: string[];
   onChange?: (selected: string[]) => void;
   disabled?: boolean;
+  singleSelect?: boolean; // New optional prop to enforce single selection
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
@@ -19,6 +20,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   defaultSelected = [],
   onChange,
   disabled = false,
+  singleSelect = false, // Default to false (multiple selections allowed)
 }) => {
   const [selectedOptions, setSelectedOptions] = useState<string[]>(defaultSelected);
   const [isOpen, setIsOpen] = useState(false);
@@ -30,13 +32,22 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   };
 
   const handleSelect = (optionValue: string) => {
-    const newSelectedOptions = selectedOptions.includes(optionValue)
-      ? selectedOptions.filter((value) => value !== optionValue)
-      : [...selectedOptions, optionValue];
+    let newSelectedOptions: string[];
+
+    if (singleSelect) {
+      // For single selection: replace the current selection with the new one
+      newSelectedOptions = [optionValue];
+    } else {
+      // For multiple selections: toggle the option
+      newSelectedOptions = selectedOptions.includes(optionValue)
+        ? selectedOptions.filter((value) => value !== optionValue)
+        : [...selectedOptions, optionValue];
+    }
 
     setSelectedOptions(newSelectedOptions);
     onChange?.(newSelectedOptions);
     setSearchTerm(""); // Clear search term after selection
+    if (singleSelect) setIsOpen(false); // Close dropdown after single selection
   };
 
   const removeOption = (value: string) => {
@@ -57,10 +68,10 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filter options based on search term and exclude selected options
+  // Filter options based on search term and exclude selected options (for multi-select only)
   const filteredOptions = options.filter(
     (option) =>
-      !selectedOptions.includes(option.value) &&
+      (!singleSelect || !selectedOptions.includes(option.value)) && // Exclude selected for single-select after selection
       option.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -122,7 +133,7 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
 
           {/* Display selected options below the input */}
           {selectedValuesText.length > 0 && (
-            <div className="flex flex-wrap  items-start gap-2 mt-2">
+            <div className="flex flex-wrap items-start gap-2 mt-2">
               {selectedValuesText.map((text, index) => (
                 <div
                   key={index}

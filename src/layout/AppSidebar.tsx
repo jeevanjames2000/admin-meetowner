@@ -199,11 +199,11 @@ const AppSidebar: React.FC = () => {
  
   const filteredNavItems = navItems
     .filter(item => {
-      if (userType === 7) return !["Accounts", "Pages", "Maps"].includes(item.name); // Manager
-      if (userType === 8) return !["Pages", "Maps", "Commercial Rent", "Commercial Buy", "Residential Rent", "Residential Buy", "Employees", "Lead Management", "Users"].includes(item.name); // Telecaller
-      if (userType === 9) return !["Accounts", "Pages", "Maps", "Employees"].includes(item.name); // Marketing Executive
-      if (userType === 10) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users"].includes(item.name); // Customer Support
-      if (userType === 11) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users"].includes(item.name); // Customer Service
+      if (userType === 7) return !["Accounts", "Pages", "Maps","Ads"].includes(item.name); // Manager
+      if (userType === 8) return !["Pages", "Maps", "Commercial Rent", "Commercial Buy", "Residential Rent", "Residential Buy", "Employees", "Lead Management", "Users","Ads"].includes(item.name); // Telecaller
+      if (userType === 9) return !["Accounts", "Pages", "Maps", "Employees","Ads"].includes(item.name); // Marketing Executive
+      if (userType === 10) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads"].includes(item.name); // Customer Support
+      if (userType === 11) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads"].includes(item.name); // Customer Service
       return true;
     })
     .map(item => {

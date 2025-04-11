@@ -9,6 +9,7 @@ export const initializeAuthState = (): AuthState => {
   const city = localStorage.getItem('city');
   const state = localStorage.getItem('state');
   const userId = localStorage.getItem('userId');
+  const photo = localStorage.getItem('photo')!;
 
   if (token && name && userType && email && mobile && city && state && userId) {
     return {
@@ -24,7 +25,8 @@ export const initializeAuthState = (): AuthState => {
         pincode: '', // Add default value or get from localStorage if needed
         status: 0,   // Default value
         created_userID: 0, // Default value
-        created_by: ''    // Default empty string
+        created_by: '' ,
+        photo,   // Default empty string
       },
       token,
       loading: false,

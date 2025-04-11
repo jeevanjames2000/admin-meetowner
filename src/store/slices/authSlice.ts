@@ -22,6 +22,7 @@ interface User {
   status: number;
   created_userID: number;
   created_by: string;
+  photo?:string;
 }
 
 interface LoginResponse {
@@ -191,7 +192,8 @@ const authSlice = createSlice({
           pincode: action.payload.user.pincode,
           status: action.payload.user.status,
           created_userID: action.payload.user.created_userID,
-          created_by: action.payload.user.created_by
+          created_by: action.payload.user.created_by,
+          photo:action.payload.user?.photo
         };
         state.token = action.payload.token;
         
@@ -203,6 +205,7 @@ const authSlice = createSlice({
         localStorage.setItem('city', action.payload.user.city);
         localStorage.setItem('state', action.payload.user.state);
         localStorage.setItem('userId', action.payload.user.user_id.toString());
+        localStorage.setItem('photo',action.payload.user.photo!);
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;

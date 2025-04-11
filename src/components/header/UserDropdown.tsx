@@ -7,9 +7,11 @@ import Button from "../ui/button/Button";
 import { logout } from "../../store/slices/authSlice";
 import { RootState } from "../../store/store";
 
+
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const {  user } = useSelector((state: RootState) => state.auth);
+  
 
 
   const dispatch = useDispatch();
@@ -31,16 +33,43 @@ export default function UserDropdown() {
     navigate('/signin');
   }
 
+  const getInitial = () => {
+    if (user?.name) {
+      return user.name.charAt(0).toUpperCase();
+    }
+    return "?"; // Fallback if no name is available
+  };
+
+  const hasValidPhoto = () => {
+    return user?.photo && user.photo !== "null" && user.photo !== null;
+  };
+
   return (
     <div className="relative">
       <button
         onClick={toggleDropdown}
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
-        <span className="mr-3 overflow-hidden rounded-full h-11 w-11">
-          <img src="/images/user/owner.jpg" alt="User" />
+          <span className="mr-3 overflow-hidden rounded-full h-11 w-11 flex items-center justify-center bg-gray-200 dark:bg-gray-700">
+          {hasValidPhoto() ? (
+            <img
+              src={user?.photo}
+              alt="User"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.style.display = "none"; // Hide image
+               
+              }}
+            />
+          ) : null}
+          <span
+            className={`text-xl font-medium text-gray-600 dark:text-gray-300 ${
+              hasValidPhoto() ? "hidden" : "flex items-center justify-center"
+            }`}
+          >
+            {getInitial()}
+          </span>
         </span>
-
         <span className="block mr-1 font-medium text-theme-sm">{user?.name}</span>
         <svg
           className={`stroke-gray-500 dark:stroke-gray-400 transition-transform duration-200 ${

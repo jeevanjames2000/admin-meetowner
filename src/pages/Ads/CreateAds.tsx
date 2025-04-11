@@ -7,13 +7,15 @@ import Input from "../../components/form/input/InputField";
 import MultiSelect from "../../components/form/MultiSelect";
 import { AppDispatch, RootState } from "../../store/store";
 import { getCities } from "../../store/slices/propertyDetails";
+import { fetchListings } from "../../store/slices/listings";
 import Switch from "../../components/form/switch/Switch";
+import PageMeta from "../../components/common/PageMeta";
 
 // Define interfaces for form data and errors
 interface FormData {
-  name: string;
+  name: string; // Keep as string for single selection (stores unique_property_id)
   places: string[];
-  media: File | null; // Combined photo or video
+  media: File | null;
   order: string;
   visibilityCities: string[];
   title: string;
@@ -43,6 +45,7 @@ interface Option {
 export default function CreateAds() {
   const dispatch = useDispatch<AppDispatch>();
   const { cities } = useSelector((state: RootState) => state.property);
+  const { listings } = useSelector((state: RootState) => state.listings); // Access listings from Redux
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -60,8 +63,17 @@ export default function CreateAds() {
   const [errors, setErrors] = useState<Errors>({});
   const [localMediaError, setLocalMediaError] = useState<string>("");
 
+  // Fetch cities and listings on mount
   useEffect(() => {
     dispatch(getCities());
+    const filters = {
+      property_status: 1,
+      property_for: "",
+      property_in: "",
+      page: 0,
+      search: "",
+    };
+    dispatch(fetchListings(filters));
   }, [dispatch]);
 
   // Options for places
@@ -82,8 +94,14 @@ export default function CreateAds() {
       text: city.label,
     })) || [];
 
+  // Options for property names from API, showing both ID and name
+  const propertyOptions: Option[] = listings.map((property) => ({
+    value: property.unique_property_id,
+    text: `${property.unique_property_id} - ${property.property_name || "Unnamed Property"}`, // Concatenate ID and name
+  }));
+
   const handleSingleChange =
-    (field: "name" | "order" | "title" | "description" | "adsButton" | "adsButtonLink") =>
+    (field: "order" | "title" | "description" | "adsButton" | "adsButtonLink") =>
     (value: string) => {
       setFormData({ ...formData, [field]: value });
       if (errors[field]) {
@@ -99,6 +117,15 @@ export default function CreateAds() {
         setErrors({ ...errors, [field]: undefined });
       }
     };
+
+  // Handle single selection for name
+  const handleNameChange = (values: string[]) => {
+    const selectedValue = values.length > 0 ? values[0] : ""; // Take only the first value
+    setFormData({ ...formData, name: selectedValue });
+    if (errors.name) {
+      setErrors({ ...errors, name: undefined });
+    }
+  };
 
   const handleStatusChange = (checked: boolean) => {
     setFormData({ ...formData, status: checked });
@@ -180,8 +207,13 @@ export default function CreateAds() {
           (id) => placeOptions.find((option) => option.value === id)?.text || id
         );
 
+        const selectedProperty = propertyOptions.find(
+          (option) => option.value === formData.name
+        );
+
         const adData = {
-          name: formData.name,
+          unique_property_id: formData.name, // Submit unique_property_id
+          property_name: selectedProperty ? selectedProperty.text.split(" - ")[1] : "", // Extract property_name
           places: placeNames,
           media: formData.media,
           order: parseInt(formData.order),
@@ -200,16 +232,17 @@ export default function CreateAds() {
   };
 
   return (
+    <div className="relative min-h-screen">
+    <PageMeta title="Meet Owner Create Ads" />
     <ComponentCard title="Create Ad">
       <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="min-h-[80px]">
-          <Label htmlFor="name">Name</Label>
-          <Input
-            type="text"
-            id="name"
-            value={formData.name}
-            onChange={(e) => handleSingleChange("name")(e.target.value)}
-            placeholder="Enter ad name"
+        <div className="relative mb-10 min-h-[80px]">
+          <MultiSelect
+            label="Name"
+            options={propertyOptions}
+            defaultSelected={formData.name ? [formData.name] : []} // Pass as array for MultiSelect
+            onChange={handleNameChange}
+            singleSelect={true}
           />
           {errors.name && (
             <p className="text-red-500 text-sm mt-1">{errors.name}</p>
@@ -378,5 +411,6 @@ export default function CreateAds() {
         </div>
       </form>
     </ComponentCard>
+    </div>
   );
 }

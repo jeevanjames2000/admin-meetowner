@@ -20,7 +20,7 @@ import CommercialBuyEdit from "./pages/Commercial/Buy/CommercialBuyEdit";
 import CommercialRentEdit from "./pages/Commercial/Rent/CommercialRentEdit";
 import CreateEmployee from "./pages/Employee/CreateEmployee";
 import AllEmployees from "./pages/Employee/AllEmployees";
-import PaymentSuccessUsers from "./pages/Accounts/Payments/paymentSuccess";
+import PaymentSuccessUsers from "./pages/Accounts/Users/paymentSuccess";
 import PaymentSuccessAgents from "./pages/Accounts/Agents/PaymentSuccess";
 import InvoiceDownload from "./pages/Employee/Invoice";
 import BasicTables from "./pages/Tables/BasicTables";
