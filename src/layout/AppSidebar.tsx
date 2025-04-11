@@ -112,31 +112,32 @@ const navItems: NavItem[] = [
     icon: <CalenderIcon />,
     name: "Accounts",
     subItems: [
+      { name: "Generate Payments", path: "/accounts/generate-payment-links", pro: false },
       { name: "Users", nestedItems: [
         { name: "Payment Success", path: "/users/payment-success" },
-        { name: "Payment Failure", path: "/payment-failure" },
+        { name: "Payment Failure", path: "/users/payment-failure" },
         { name: "Expiry Soon", path: "/expiry-soon" },
       ]},
-      { name: "Agents", nestedItems: [
-        { name: "Payment Success", path: "/agents/payment-success" },
-        { name: "Payment Failure", path: "/agents/payment-failure" },
-        { name: "Expiry Soon", path: "/agents/expiry-soon" },
-      ]},
-      { name: "Owner", nestedItems: [
-        { name: "Payment Success", path: "/users/payment-success" },
-        { name: "Payment Failure", path: "/payment-failure" },
-        { name: "Expiry Soon", path: "/expiry-soon" },
-      ]},
-      { name: "Channel Partner", nestedItems: [
-        { name: "Payment Success", path: "/agents/payment-success" },
-        { name: "Payment Failure", path: "/agents/payment-failure" },
-        { name: "Expiry Soon", path: "/agents/expiry-soon" },
-      ]},
-      { name: "Builder", nestedItems: [
-        { name: "Payment Success", path: "/agents/payment-success" },
-        { name: "Payment Failure", path: "/agents/payment-failure" },
-        { name: "Expiry Soon", path: "/agents/expiry-soon" },
-      ]},
+      // { name: "Agents", nestedItems: [
+      //   { name: "Payment Success", path: "/agents/payment-success" },
+      //   { name: "Payment Failure", path: "/agents/payment-failure" },
+      //   { name: "Expiry Soon", path: "/agents/expiry-soon" },
+      // ]},
+      // { name: "Owner", nestedItems: [
+      //   { name: "Payment Success", path: "/users/payment-success" },
+      //   { name: "Payment Failure", path: "/payment-failure" },
+      //   { name: "Expiry Soon", path: "/expiry-soon" },
+      // ]},
+      // { name: "Channel Partner", nestedItems: [
+      //   { name: "Payment Success", path: "/agents/payment-success" },
+      //   { name: "Payment Failure", path: "/agents/payment-failure" },
+      //   { name: "Expiry Soon", path: "/agents/expiry-soon" },
+      // ]},
+      // { name: "Builder", nestedItems: [
+      //   { name: "Payment Success", path: "/agents/payment-success" },
+      //   { name: "Payment Failure", path: "/agents/payment-failure" },
+      //   { name: "Expiry Soon", path: "/agents/expiry-soon" },
+      // ]},
     ],
   },
   {
@@ -171,6 +172,17 @@ const navItems: NavItem[] = [
       { name: "Create Ads", path: "/adds/upload-ads", pro: false },
     ],
   },
+  {
+    name: "Packages",
+    icon: <FaAd />,
+    subItems: [
+      { name: "Builder", path: "/packages/builder", pro: false },
+      { name: "Agents", path: "/packages/agents", pro: false },
+      { name: "Channel Partners", path: "/packages/channelpartners", pro: false },
+      { name: "Users", path: "/packages/users", pro: false },
+     
+    ],
+  },
 ];
 
 const AppSidebar: React.FC = () => {
@@ -199,11 +211,11 @@ const AppSidebar: React.FC = () => {
  
   const filteredNavItems = navItems
     .filter(item => {
-      if (userType === 7) return !["Accounts", "Pages", "Maps","Ads"].includes(item.name); // Manager
-      if (userType === 8) return !["Pages", "Maps", "Commercial Rent", "Commercial Buy", "Residential Rent", "Residential Buy", "Employees", "Lead Management", "Users","Ads"].includes(item.name); // Telecaller
-      if (userType === 9) return !["Accounts", "Pages", "Maps", "Employees","Ads"].includes(item.name); // Marketing Executive
-      if (userType === 10) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads"].includes(item.name); // Customer Support
-      if (userType === 11) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads"].includes(item.name); // Customer Service
+      if (userType === 7) return !["Accounts", "Pages", "Maps","Ads","Packages"].includes(item.name); // Manager
+      if (userType === 8) return !["Pages", "Maps", "Commercial Rent", "Commercial Buy", "Residential Rent", "Residential Buy", "Employees", "Lead Management", "Users","Ads","Packages"].includes(item.name); // Telecaller
+      if (userType === 9) return !["Accounts", "Pages", "Maps", "Employees","Ads","Packages"].includes(item.name); // Marketing Executive
+      if (userType === 10) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads","Packages"].includes(item.name); // Customer Support
+      if (userType === 11) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads","Packages"].includes(item.name); // Customer Service
       return true;
     })
     .map(item => {

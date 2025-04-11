@@ -1,5 +1,4 @@
-// src/pages/CommercialTypes.tsx
-import { useState, useRef, useEffect } from "react";
+import { useState, useRef, useEffect, ChangeEvent, FormEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams, useLocation } from "react-router";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
@@ -16,11 +15,13 @@ import Button from "../../../components/ui/button/Button";
 import { fetchListings, ListingState, updatePropertyStatus } from "../../../store/slices/listings";
 import { AppDispatch, RootState } from "../../../store/store";
 import { TableLoader } from "../../../components/Loaders/LoadingLisings";
+import Label from "../../../components/form/Label";
+import Input from "../../../components/form/input/InputField";
 
 const statusMap: { [key: number]: string } = {
   0: "Review",
   1: "Approved",
- 2: "Rejected",
+  2: "Rejected",
   3: "Deleted",
 };
 
@@ -46,6 +47,13 @@ const userTypeReverseMap: { [key: string]: string } = Object.keys(userTypeMap).r
   {} as { [key: string]: string }
 );
 
+// Define the type for the lead pull form data
+interface LeadPullFormData {
+  mobile: string;
+  email: string;
+  name: string;
+}
+
 const CommercialTypes: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const [hoveredUserId, setHoveredUserId] = useState<string | null>(null);
@@ -53,10 +61,17 @@ const CommercialTypes: React.FC = () => {
   const [localPage, setLocalPage] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [initialSearch, setInitialSearch] = useState<string>("");
-  const searchInputRef = useRef<HTMLInputElement>(null); // Ref for the search input
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false); // State for modal visibility
+  const [leadPullFormData, setLeadPullFormData] = useState<LeadPullFormData>({
+    mobile: "",
+    email: "",
+    name: "",
+  });
+  const [formErrors, setFormErrors] = useState<Partial<LeadPullFormData>>({});
+  const searchInputRef = useRef<HTMLInputElement>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-  const location = useLocation(); // To detect route changes
+  const location = useLocation();
   const { property_for, status } = useParams<{ property_for: string; status: string }>();
   const dispatch = useDispatch<AppDispatch>();
   const pageUserType = useSelector((state: RootState) => state.auth.user?.user_type);
@@ -64,25 +79,21 @@ const CommercialTypes: React.FC = () => {
     (state: RootState) => state.listings as ListingState
   );
 
-
   const excludedUserTypes = [9, 10, 11];
-  
-  // Initialize searchQuery from localStorage on mount
+
   useEffect(() => {
     const savedSearch = localStorage.getItem("searchQuery") || "";
     setInitialSearch(savedSearch);
     handleSearch(savedSearch);
   }, []);
 
-  // Clear search and localStorage on route change (tab change)
   useEffect(() => {
     localStorage.removeItem("searchQuery");
     setSearchQuery("");
     setInitialSearch("");
     setLocalPage(1);
-  }, [location.pathname]); // Trigger on route change
+  }, [location.pathname]);
 
-  // Refocus the search input after loading completes
   useEffect(() => {
     if (!loading && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -110,7 +121,6 @@ const CommercialTypes: React.FC = () => {
     return `${day}-${month}-${year} ${hoursStr}:${minutes} ${ampm}`;
   };
 
-  // Fetch listings with filters
   useEffect(() => {
     const filters = {
       property_status: parseInt(status || "0", 10),
@@ -122,12 +132,10 @@ const CommercialTypes: React.FC = () => {
     dispatch(fetchListings(filters));
   }, [dispatch, property_for, status, searchQuery, refreshTrigger, localPage]);
 
-  // Reset localPage to 1 whenever searchQuery changes
   useEffect(() => {
     setLocalPage(1);
   }, [searchQuery]);
 
-  // Monitor localStorage for clearing the search
   useEffect(() => {
     const handleStorageChange = () => {
       const currentSearch = localStorage.getItem("searchQuery") || "";
@@ -158,11 +166,6 @@ const CommercialTypes: React.FC = () => {
     setDropdownOpen(null);
   };
 
-  const handleLead = (item : any) => {
-    console.log('lead pull clicked',item.user);
-    
-  }
-
   const handleDelete = (unique_property_id: string) => {
     const property_status = 3;
     dispatch(updatePropertyStatus({ property_status, unique_property_id }))
@@ -181,12 +184,16 @@ const CommercialTypes: React.FC = () => {
     setDropdownOpen(null);
   };
 
+  const handleLead = (item: any) => {
+    setIsModalOpen(true); // Open the modal
+    setDropdownOpen(null);
+  };
+
   const handleSearch = (value: string) => {
     let searchValue = value.trim();
-    // Check if the search input matches a user type (e.g., "Agent" → "4")
     const userTypeKey = userTypeReverseMap[searchValue.toLowerCase()];
     if (userTypeKey) {
-      searchValue = userTypeKey; // Use numeric value for user type
+      searchValue = userTypeKey;
     }
     setSearchQuery(searchValue);
   };
@@ -218,12 +225,62 @@ const CommercialTypes: React.FC = () => {
 
     return pages;
   };
+
   const shouldShowActions = (userType: number | undefined) => {
     if (userType === undefined) return false;
     return !excludedUserTypes.includes(userType) && (parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1);
   };
-  console.log(shouldShowActions);
- 
+
+  // Modal Form Handlers
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setLeadPullFormData((prev) => ({ ...prev, [name]: value }));
+    setFormErrors((prev) => ({ ...prev, [name]: "" }));
+  };
+
+  const validateLeadPullForm = (): boolean => {
+    const newErrors: Partial<LeadPullFormData> = {};
+
+    // Mobile validation (must be 10 digits)
+    if (!leadPullFormData.mobile) {
+      newErrors.mobile = "Mobile number is required";
+    } else if (!/^\d{10}$/.test(leadPullFormData.mobile)) {
+      newErrors.mobile = "Mobile number must be exactly 10 digits";
+    }
+
+    // Email validation
+    if (!leadPullFormData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadPullFormData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    // Name validation
+    if (!leadPullFormData.name) {
+      newErrors.name = "Name is required";
+    }
+
+    setFormErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleLeadPullSubmit = (e: FormEvent<HTMLFormElement>) => {
+    e.preventDefault();
+    if (validateLeadPullForm()) {
+      console.log("Lead Pull Form Data:", leadPullFormData);
+      // Add your API call here to submit the lead pull data
+      alert("Lead pull submitted successfully!");
+      setIsModalOpen(false);
+      setLeadPullFormData({ mobile: "", email: "", name: "" });
+      setFormErrors({});
+    }
+  };
+
+  const handleModalClose = () => {
+    setIsModalOpen(false);
+    setLeadPullFormData({ mobile: "", email: "", name: "" });
+    setFormErrors({});
+  };
 
   return (
     <div className="relative min-h-screen">
@@ -235,10 +292,9 @@ const CommercialTypes: React.FC = () => {
         pageTitle={`Commercial ${property_for === "buy" ? "Sell" : "Rent"}`}
         pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
         onFilter={handleSearch}
-        inputRef={searchInputRef} 
+        inputRef={searchInputRef}
       />
-       {/* Loading State */}
-       {loading ? (
+      {loading ? (
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
           <ComponentCard title={getPageTitle()}>
             <TableLoader
@@ -248,75 +304,73 @@ const CommercialTypes: React.FC = () => {
           </ComponentCard>
         </div>
       ) : error ? (
-       
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Error: {error}</h2>
         </div>
       ) : !listings || listings.length === 0 ? (
-        /* Empty State */
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">No Users Found</h2>
         </div>
       ) : (
         <>
-       <h2 className="p-2">Search result - {totalCount}</h2>
-      <div className="space-y-6">
-        <ComponentCard title={getPageTitle()}>
-          <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full overflow-x-auto">
-              <Table>
-                <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
-                  <TableRow>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">ID</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl. No</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property SubType</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Type</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Listing Time & Date</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Location</TableCell>
-                    {shouldShowActions(pageUserType)  && (
-                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
-                    )}
-                  </TableRow>
-                </TableHeader>
-                <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {listings.map((item, index) => (
-                    <TableRow key={item.id}>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.unique_property_id || item.id}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{(currentPage - 1) * currentCount + index + 1}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.property_name || "N/A"}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.sub_type || "N/A"}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                        <div
-                          onMouseEnter={() => setHoveredUserId(item.id.toString())}
-                          onMouseLeave={() => setHoveredUserId(null)}
-                          className="inline-block"
-                        >
-                          <span style={{ color: "#1D3A76", fontWeight: "bold" }}>
-                            {item.user.user_type === 1 ? "Admin" :
-                             item.user.user_type === 2 ? "User" :
-                             item.user.user_type === 3 ? "Builder" :
-                             item.user.user_type === 4 ? "Agent" :
-                             item.user.user_type === 5 ? "Owner" :
-                             item.user.user_type === 6 ? "Channel Partner" : "Unknown"}
-                          </span>
-                          {hoveredUserId === item.id.toString() && item.user && (
-                            <div className="absolute z-10 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
-                              <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
-                                <p><strong>Name:</strong> {item.user.name || "N/A"}</p>
-                                <p><strong>Mobile:</strong> {item.user.mobile || "N/A"}</p>
-                              </div>
+          <h2 className="p-2">Search result - {totalCount}</h2>
+          <div className="space-y-6">
+            <ComponentCard title={getPageTitle()}>
+              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+                <div className="max-w-full overflow-x-auto">
+                  <Table>
+                    <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+                      <TableRow>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">ID</TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl. No</TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property SubType</TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Type</TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Listing Time & Date</TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Location</TableCell>
+                        {shouldShowActions(pageUserType) && (
+                          <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                        )}
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                      {listings.map((item, index) => (
+                        <TableRow key={item.id}>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.unique_property_id || item.id}</TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{(currentPage - 1) * currentCount + index + 1}</TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.property_name || "N/A"}</TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.sub_type || "N/A"}</TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                            <div
+                              onMouseEnter={() => setHoveredUserId(item.id.toString())}
+                              onMouseLeave={() => setHoveredUserId(null)}
+                              className="inline-block"
+                            >
+                              <span style={{ color: "#1D3A76", fontWeight: "bold" }}>
+                                {item.user.user_type === 1 ? "Admin" :
+                                 item.user.user_type === 2 ? "User" :
+                                 item.user.user_type === 3 ? "Builder" :
+                                 item.user.user_type === 4 ? "Agent" :
+                                 item.user.user_type === 5 ? "Owner" :
+                                 item.user.user_type === 6 ? "Channel Partner" : "Unknown"}
+                              </span>
+                              {hoveredUserId === item.id.toString() && item.user && (
+                                <div className="absolute z-10 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">
+                                  <div className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200">
+                                    <p><strong>Name:</strong> {item.user.name || "N/A"}</p>
+                                    <p><strong>Mobile:</strong> {item.user.mobile || "N/A"}</p>
+                                  </div>
+                                </div>
+                              )}
                             </div>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {formatDateTime(item.created_date!, item.created_time!)}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {item.location_id}
-                      </TableCell>
-                       {shouldShowActions(pageUserType) && (
+                          </TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {formatDateTime(item.created_date!, item.created_time!)}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {item.location_id}
+                          </TableCell>
+                          {shouldShowActions(pageUserType) && (
                             <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                               <Button
                                 variant="outline"
@@ -334,64 +388,155 @@ const CommercialTypes: React.FC = () => {
                                   <button onClick={() => handleApprove(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
                                     {parseInt(status || "0", 10) === 0 ? "Approve" : "Reject"}
                                   </button>
-                                  <button onClick={() => handleLead(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Lead Pull</button>
+                                  {parseInt(status || "0", 10) === 1 && (
+                                    <button onClick={() => handleLead(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Lead Pull</button>
+                                  )}
                                 </div>
                               )}
                             </TableCell>
                           )}
-                      
-                    </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
-            </div>
-          </div>
-          {totalCount > currentCount && (
-            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Showing {(currentPage - 1) * currentCount + 1} to {Math.min(currentPage * currentCount, totalCount)} of {totalCount} entries
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </div>
-              <div className="flex gap-2 flex-wrap justify-center">
-                <Button
-                  variant={currentPage === 1 ? "outline" : "primary"}
-                  size="sm"
-                  onClick={goToPreviousPage}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                {getPaginationItems().map((page, index) => {
-                  const uniqueKey = `${page}-${index}`;
-                  return page === "..." ? (
-                    <span key={uniqueKey} className="px-3 py-1 text-gray-500 dark:text-gray-400">
-                      ...
-                    </span>
-                  ) : (
+              {totalCount > currentCount && (
+                <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
+                  <div className="text-sm text-gray-500 dark:text-gray-400">
+                    Showing {(currentPage - 1) * currentCount + 1} to {Math.min(currentPage * currentCount, totalCount)} of {totalCount} entries
+                  </div>
+                  <div className="flex gap-2 flex-wrap justify-center">
                     <Button
-                      key={uniqueKey}
-                      variant="outline"
+                      variant={currentPage === 1 ? "outline" : "primary"}
                       size="sm"
-                      onClick={() => goToPage(page as number)}
-                      isActive={page === currentPage}
+                      onClick={goToPreviousPage}
+                      disabled={currentPage === 1}
                     >
-                      {page}
+                      Previous
                     </Button>
-                  );
-                })}
-                <Button
-                  variant={currentPage === totalPages ? "outline" : "primary"}
-                  size="sm"
-                  onClick={goToNextPage}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
+                    {getPaginationItems().map((page, index) => {
+                      const uniqueKey = `${page}-${index}`;
+                      return page === "..." ? (
+                        <span key={uniqueKey} className="px-3 py-1 text-gray-500 dark:text-gray-400">
+                          ...
+                        </span>
+                      ) : (
+                        <Button
+                          key={uniqueKey}
+                          variant="outline"
+                          size="sm"
+                          onClick={() => goToPage(page as number)}
+                          isActive={page === currentPage}
+                        >
+                          {page}
+                        </Button>
+                      );
+                    })}
+                    <Button
+                      variant={currentPage === totalPages ? "outline" : "primary"}
+                      size="sm"
+                      onClick={goToNextPage}
+                      disabled={currentPage === totalPages}
+                    >
+                      Next
+                    </Button>
+                  </div>
+                </div>
+              )}
+            </ComponentCard>
+          </div>
+          {/* Lead Pull Modal */}
+          {isModalOpen && (
+            <div className="fixed inset-0 bg-white/30 backdrop-blur-none flex items-center justify-center z-10">
+              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md relative">
+                {/* Modal Header */}
+                <div className="flex justify-between items-center mb-4">
+                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Enter Lead Pull Details</h2>
+                  <button
+                    onClick={handleModalClose}
+                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                    </svg>
+                  </button>
+                </div>
+
+                {/* Modal Form */}
+                <form onSubmit={handleLeadPullSubmit} className="space-y-4">
+                  {/* Name */}
+                  <div>
+                    <Label htmlFor="name">Name</Label>
+                    <Input
+                      type="text"
+                      id="name"
+                      name="name"
+                      value={leadPullFormData.name}
+                      onChange={handleInputChange}
+                      className="dark:bg-dark-900"
+                      placeholder="Enter user name"
+                    />
+                    {formErrors.name && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.name}</p>
+                    )}
+                  </div>
+
+                  {/* Mobile */}
+                  <div>
+                    <Label htmlFor="mobile">Mobile Number</Label>
+                    <Input
+                      type="text"
+                      id="mobile"
+                      name="mobile"
+                      value={leadPullFormData.mobile}
+                      onChange={handleInputChange}
+                      className="dark:bg-dark-900"
+                      placeholder="Enter 10-digit mobile number"
+                    />
+                    {formErrors.mobile && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.mobile}</p>
+                    )}
+                  </div>
+
+                  {/* Email */}
+                  <div>
+                    <Label htmlFor="email">Email Address</Label>
+                    <Input
+                      type="email"
+                      id="email"
+                      name="email"
+                      value={leadPullFormData.email}
+                      onChange={handleInputChange}
+                      className="dark:bg-dark-900"
+                      placeholder="Enter email address"
+                    />
+                    {formErrors.email && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.email}</p>
+                    )}
+                  </div>
+
+                  {/* Buttons */}
+                  <div className="flex justify-end space-x-3">
+                    <button
+                      type="button"
+                      onClick={handleModalClose}
+                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+                    >
+                      Submit
+                    </button>
+                  </div>
+                </form>
               </div>
             </div>
           )}
-        </ComponentCard>
-      </div>
-      </>
+        </>
       )}
     </div>
   );

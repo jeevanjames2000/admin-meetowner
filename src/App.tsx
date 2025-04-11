@@ -21,7 +21,7 @@ import CommercialRentEdit from "./pages/Commercial/Rent/CommercialRentEdit";
 import CreateEmployee from "./pages/Employee/CreateEmployee";
 import AllEmployees from "./pages/Employee/AllEmployees";
 import PaymentSuccessUsers from "./pages/Accounts/Users/paymentSuccess";
-import PaymentSuccessAgents from "./pages/Accounts/Agents/PaymentSuccess";
+
 import InvoiceDownload from "./pages/Employee/Invoice";
 import BasicTables from "./pages/Tables/BasicTables";
 import { ProtectedRouteProps } from "./types/auth";
@@ -39,6 +39,9 @@ import HomeFooter from "./pages/Forms/HomeFooter";
 import CreateUser from "./pages/users/CreateUsers";
 import AllAdsPage from "./pages/Ads/AllAds";
 import CreateAds from "./pages/Ads/CreateAds";
+import BuilderPackages from "./pages/packages/BuilderPackages";
+import PaymentFailureUsers from "./pages/Accounts/Users/PaymentFailure";
+import GeneratePayments from "./pages/Accounts/GeneratePaymentLink";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -307,6 +310,16 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
+               <Route
+                path="/accounts/generate-payment-links"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <GeneratePayments />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
               <Route
                 path="/users/payment-success"
                 element={
@@ -317,16 +330,17 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-              <Route
-                path="/agents/payment-success"
+               <Route
+                path="/users/payment-failure"
                 element={
                   <ErrorBoundary>
                     <ProtectedRoute>
-                      <PaymentSuccessAgents />
+                      <PaymentFailureUsers />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
               />
+              
               <Route
                 path="/create-employee"
                 element={
@@ -403,6 +417,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <CreateAds />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="/packages/builder"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <BuilderPackages />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
