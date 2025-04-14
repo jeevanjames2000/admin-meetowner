@@ -1147,7 +1147,7 @@ const ResidentialBuyEdit: React.FC = () => {
                   onChange={handleInputChange}
                   className="dark:bg-dark-900 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
                 />
-                <p className="text-gray-500 text-sm mt-1">One Thousand Five Rupees</p>
+             
                 {errors.propertyCost && <p className="text-red-500 text-sm mt-1">{errors.propertyCost}</p>}
               </div>
 
