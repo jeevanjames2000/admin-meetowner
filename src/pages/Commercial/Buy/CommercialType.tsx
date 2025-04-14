@@ -347,12 +347,12 @@ const CommercialTypes: React.FC = () => {
                               className="inline-block"
                             >
                               <span style={{ color: "#1D3A76", fontWeight: "bold" }}>
-                                {item.user.user_type === 1 ? "Admin" :
-                                 item.user.user_type === 2 ? "User" :
-                                 item.user.user_type === 3 ? "Builder" :
-                                 item.user.user_type === 4 ? "Agent" :
-                                 item.user.user_type === 5 ? "Owner" :
-                                 item.user.user_type === 6 ? "Channel Partner" : "Unknown"}
+                                {item.user?.user_type === 1 ? "Admin" :
+                                 item.user?.user_type === 2 ? "User" :
+                                 item.user?.user_type === 3 ? "Builder" :
+                                 item.user?.user_type === 4 ? "Agent" :
+                                 item.user?.user_type === 5 ? "Owner" :
+                                 item.user?.user_type === 6 ? "Channel Partner" : "Unknown"}
                               </span>
                               {hoveredUserId === item.id.toString() && item.user && (
                                 <div className="absolute z-10 mt-2 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg">

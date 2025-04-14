@@ -7,9 +7,10 @@ import Input from "../../components/form/input/InputField";
 import MultiSelect from "../../components/form/MultiSelect";
 import { AppDispatch, RootState } from "../../store/store";
 import { getCities } from "../../store/slices/propertyDetails";
-import { fetchListings } from "../../store/slices/listings";
+
 import Switch from "../../components/form/switch/Switch";
 import PageMeta from "../../components/common/PageMeta";
+import { getAllApprovedListing } from "../../store/slices/approve_listings";
 
 // Define interfaces for form data and errors
 interface FormData {
@@ -45,7 +46,7 @@ interface Option {
 export default function CreateAds() {
   const dispatch = useDispatch<AppDispatch>();
   const { cities } = useSelector((state: RootState) => state.property);
-  const { listings } = useSelector((state: RootState) => state.listings); // Access listings from Redux
+  const { listings } = useSelector((state: RootState) => state.approved); // Access listings from Redux
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -66,14 +67,8 @@ export default function CreateAds() {
   // Fetch cities and listings on mount
   useEffect(() => {
     dispatch(getCities());
-    const filters = {
-      property_status: 1,
-      property_for: "",
-      property_in: "",
-      page: 0,
-      search: "",
-    };
-    dispatch(fetchListings(filters));
+   
+    dispatch(getAllApprovedListing());
   }, [dispatch]);
 
   // Options for places

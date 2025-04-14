@@ -43,6 +43,7 @@ import BuilderPackages from "./pages/packages/BuilderPackages";
 import PaymentFailureUsers from "./pages/Accounts/Users/PaymentFailure";
 import GeneratePayments from "./pages/Accounts/GeneratePaymentLink";
 import CitiesManager from "./pages/maps/cities";
+import StatesManager from "./pages/maps/state";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -398,6 +399,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <CitiesManager />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/maps/states"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <StatesManager />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

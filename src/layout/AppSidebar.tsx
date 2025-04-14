@@ -160,6 +160,7 @@ const navItems: NavItem[] = [
     name: "Maps",
     icon: <FaSearchLocation />,
     subItems: [
+      { name: "States", path: "/maps/states", pro: false },
       { name: "Cities", path: "/maps/cities", pro: false },
       { name: "Locality", path: "/maps/locality", pro: false },
     

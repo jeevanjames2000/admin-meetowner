@@ -7,6 +7,7 @@ import usersReducers from './slices/users';
 import leadsReducers from './slices/leads';
 import employeeReducer from './slices/employee'
 import uploadReducer from './slices/uploadSlice';
+import approvedReducer from './slices/approve_listings';
 import { initializeAuthState } from "../utils/authutils";
 
 const preloadedState = {
@@ -21,7 +22,8 @@ const store =  configureStore({
         users:usersReducers,
         leads:leadsReducers,
         employee:employeeReducer,
-        upload:uploadReducer
+        upload:uploadReducer,
+        approved:approvedReducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),

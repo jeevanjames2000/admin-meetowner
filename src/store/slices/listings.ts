@@ -109,7 +109,7 @@ interface Property {
 interface ListingsResponse {
   total_count: number;
   current_page: number;
-  currentCount: number;
+  current_count: number;
   total_pages: number;
   properties: Property[];
 }
@@ -346,7 +346,7 @@ const listingSlice = createSlice({
         state.listings = action.payload.properties;
         state.totalCount = action.payload.total_count;
         state.currentPage = action.payload.current_page;
-        state.currentCount = action.payload.currentCount;
+        state.currentCount = action.payload.current_count;
         state.totalPages = action.payload.total_pages;
       })
       .addCase(fetchListings.rejected, (state, action) => {
