@@ -85,7 +85,7 @@ export default function UserMetaCard() {
     <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
-          <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800 flex items-center justify-center bg-gray-200 dark:bg-gray-700 relative">
+          <div className="relative w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800 flex items-center justify-center bg-gray-200 dark:bg-gray-700 group">
             {hasValidPhoto() ? (
               <img
                 src={user?.photo}
@@ -93,47 +93,43 @@ export default function UserMetaCard() {
                 className="w-full h-full object-cover"
                 onError={(e) => {
                   e.currentTarget.style.display = "none"; // Hide image
-                  
                 }}
               />
-            ) : null}
-            <span
-              className={`w-full h-full flex items-center justify-center text-2xl font-medium text-gray-600 dark:text-gray-300 ${
-                hasValidPhoto() ? "hidden" : ""
-              }`}
-            >
-              {getInitial()}
-            </span>
-            {!hasValidPhoto() && (
-              <label
-                htmlFor="photo-upload"
-                className="absolute bottom-0 right-0 bg-blue-500 text-white rounded-full p-1 cursor-pointer hover:bg-blue-600 transition-colors"
-              >
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  className="h-4 w-4"
-                  fill="none"
-                  viewBox="0 0 24 24"
-                  stroke="currentColor"
-                >
-                  <path
-                    strokeLinecap="round"
-                    strokeLinejoin="round"
-                    strokeWidth={2}
-                    d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-                  />
-                </svg>
-                <input
-                  type="file"
-                  id="photo-upload"
-                  key={fileInputKey} // Reset input after upload
-                  accept=".jpg,.jpeg,.png"
-                  onChange={handleImageUpload}
-                  className="hidden"
-                  disabled={uploadLoading}
-                />
-              </label>
+            ) : (
+              <span className="w-full h-full flex items-center justify-center text-2xl font-medium text-gray-600 dark:text-gray-300">
+                {getInitial()}
+              </span>
             )}
+            {/* Edit Button - Always Available */}
+            <label
+              htmlFor="photo-upload"
+              className="absolute bottom-2 right-1 bg-blue-500 text-white rounded-full p-1 cursor-pointer hover:bg-blue-600 transition-colors opacity-0 group-hover:opacity-100"
+              title="Edit profile photo"
+            >
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                className="h-4 w-4"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+                />
+              </svg>
+              <input
+                type="file"
+                id="photo-upload"
+                key={fileInputKey} // Reset input after upload
+                accept=".jpg,.jpeg,.png"
+                onChange={handleImageUpload}
+                className="hidden"
+                disabled={uploadLoading}
+              />
+            </label>
           </div>
           <div className="order-3 xl:order-2">
             <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
