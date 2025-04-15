@@ -4,6 +4,26 @@ import { toast } from "react-hot-toast";
 import axiosIstance from "../../utils/axiosInstance";
 
 // Define interfaces for the user and API response
+
+interface UserActivity {
+  id: number;
+  property_id: string;
+  user_id: number;
+  name: string;
+  mobile: string;
+  email: string;
+  searched_on_date: string;
+  searched_on_time: string;
+  interested_status: number;
+  property_user_id: number;
+  searched_filter_desc: string;
+  shedule_date: string | null;
+  shedule_time: string | null;
+  view_status: number;
+  property_name : String | null;
+  location_id : String | null;
+  google_address:string | null;
+}
 interface User {
   id: number;
   user_type: number;
@@ -27,6 +47,7 @@ interface User {
   gst_number: string;
   rera_number: string;
   uploaded_from_seller_panel: string;
+  userActivity?: UserActivity[]; 
 }
 
 interface UsersResponse {

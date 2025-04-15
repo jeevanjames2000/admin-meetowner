@@ -149,6 +149,14 @@ const navItems: NavItem[] = [
     ],
   },
   {
+    name: "Projects",
+    icon: <FaFileInvoice />,
+    subItems: [
+      { name: "Add Projects", path: "/projects/add-projects", pro: false },
+      { name: "All Projects", path: "/projects/all-projects", pro: false },
+    ],
+  },
+  {
     name: "Users",
     icon: <FaFileInvoice />,
     subItems: [
@@ -160,7 +168,7 @@ const navItems: NavItem[] = [
     name: "Maps",
     icon: <FaSearchLocation />,
     subItems: [
-      { name: "States", path: "/maps/states", pro: false },
+      { name: "States", path: "/maps/cities", pro: false },
       { name: "Cities", path: "/maps/cities", pro: false },
       { name: "Locality", path: "/maps/locality", pro: false },
     

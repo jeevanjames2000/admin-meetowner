@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { useLocation } from "react-router";
+import { useLocation,useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsersByType } from "../../../store/slices/users";
 import { RootState, AppDispatch } from "../../../store/store";
@@ -31,13 +31,8 @@ const userTypeMap: { [key: number]: string } = {
   11: "Customer Service",
 };
 
-// Static user details for user_type: 2 (User)
-const staticUserDetails = {
-  locationSearches: ["Banjara Hills", "Jubilee Hills", "Gachibowli"],
-  propertyViews: ["Skyline Apartments", "Greenview Residency", "Lakeview Towers"],
-  interestedCount: 5,
-  contactSellerCount: 3,
-};
+
+
 
 // Format date function
 const formatDate = (dateString: string): string => {
@@ -52,10 +47,11 @@ export default function BasicTableOne() {
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [hoveredUserId, setHoveredUserId] = useState<number | null>(null);
+
   const itemsPerPage = 10;
   const pageuserType = useSelector((state: RootState) => state.auth.user?.user_type);
   const { deleteError, deleteSuccess } = useSelector((state: RootState) => state.employee);
+  const navigate = useNavigate();
 
   const queryParams = new URLSearchParams(location.search);
   const userType = queryParams.get("userType");
@@ -145,6 +141,12 @@ export default function BasicTableOne() {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
+  const handleUserClick = (userId: number) => {
+    navigate(`/user-activities?userId=${userId}`);
+  };
+
+ 
+
   const getPaginationItems = () => {
     const pages = [];
     const totalVisiblePages = 7;
@@ -219,56 +221,21 @@ export default function BasicTableOne() {
                   {paginatedUsers.map((user) => (
                     <TableRow key={user.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{user.id}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start relative">
-                        <div
-                          className="flex items-center gap-3"
-                          onMouseEnter={() => user.user_type === 2 && setHoveredUserId(user.id)}
-                          onMouseLeave={() => setHoveredUserId(null)}
-                        >
+                     
+                      <TableCell className="px-5 py-4 sm:px-6 text-start">
+                        <div className="flex items-center gap-3 "  onClick={() => handleUserClick(user.id)}>
                           <div>
-                            <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">{user.name}</span>
+                            <span
+                              className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline"
+                             
+                            >
+                              {user.name}
+                            </span>
                             <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
                               {userTypeMap[user.user_type] || "Unknown"}
                             </span>
                           </div>
                         </div>
-                        {hoveredUserId === user.id && user.user_type === 2 && (
-                          <div className="absolute z-10 mt-2 w-80 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg shadow-lg p-4">
-                            <h3 className="text-sm font-semibold text-gray-800 dark:text-white mb-2">User Activity Details</h3>
-                            <div className="space-y-3">
-                              {/* Location Search */}
-                              <div>
-                                <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Location Search:</p>
-                                <ul className="list-disc list-inside text-xs text-gray-500 dark:text-gray-400">
-                                  {staticUserDetails.locationSearches.map((location, index) => (
-                                    <li key={index}>{location}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                              {/* Property View */}
-                              <div>
-                                <p className="text-xs font-medium text-gray-600 dark:text-gray-300">Property View:</p>
-                                <ul className="list-disc list-inside text-xs text-gray-500 dark:text-gray-400">
-                                  {staticUserDetails.propertyViews.map((property, index) => (
-                                    <li key={index}>{property}</li>
-                                  ))}
-                                </ul>
-                              </div>
-                              {/* Interested */}
-                              <div>
-                                <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                                  Interested: <span className="text-blue-600 dark:text-blue-400">{staticUserDetails.interestedCount}</span>
-                                </p>
-                              </div>
-                              {/* Contact Seller */}
-                              <div>
-                                <p className="text-xs font-medium text-gray-600 dark:text-gray-300">
-                                  Contact Seller: <span className="text-blue-600 dark:text-blue-400">{staticUserDetails.contactSellerCount}</span>
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-                        )}
                       </TableCell>
                       {!showMobileAndEmail && (
                         <>

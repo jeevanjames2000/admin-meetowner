@@ -20,6 +20,11 @@ interface Lead {
   shedule_time: string | null;
   view_status: string | null;
   property_for: string;
+  property_name:string | null;
+  owner_name : string | null;
+  owner_mobile:string | null;
+  owner_type:string | null;
+  owner_email :string | null;
 }
 
 interface LeadsResponse {

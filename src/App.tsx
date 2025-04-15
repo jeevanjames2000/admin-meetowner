@@ -44,6 +44,8 @@ import PaymentFailureUsers from "./pages/Accounts/Users/PaymentFailure";
 import GeneratePayments from "./pages/Accounts/GeneratePaymentLink";
 import CitiesManager from "./pages/maps/cities";
 import StatesManager from "./pages/maps/state";
+import UserActivities from "./components/tables/userActivities";
+import CreateProperty from "./pages/Project/AddProject";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -143,6 +145,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <BasicTableOne />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/user-activities"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <UserActivities />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
@@ -359,6 +371,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <CreateUser />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/projects/add-projects"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <CreateProperty />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

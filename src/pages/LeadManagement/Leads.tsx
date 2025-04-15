@@ -16,6 +16,21 @@ import { AppDispatch, RootState } from "../../store/store";
 import { fetchLeads, LeadsState } from "../../store/slices/leads";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 
+const userTypeMap: { [key: string]: string } = {
+  "1": "Admin",
+  "2": "User",
+  "3": "Builder",
+  "4": "Agent",
+  "5": "Owner",
+  "6": "Channel Partner",
+  "7": "Manager",
+  "8": "Telecaller",
+  "9": "Marketing Executive",
+  "10": "Customer Support",
+  "11": "Customer Service",
+  Total: "Total",
+};
+
 const PropertyLeadsBuy: React.FC = () => {
   const { property_for, status } = useParams<{ property_for: string; status: string }>();
   const dispatch = useDispatch<AppDispatch>();
@@ -63,6 +78,9 @@ const PropertyLeadsBuy: React.FC = () => {
       lead.interested_status === 1 ? "Interested" :
       lead.interested_status === 2 ? "Follows-up" :
       lead.interested_status === 3 ? "Site Visited" : "Contacted",
+      lead.property_name || "",
+      lead.owner_name || "",
+      lead.owner_mobile || "",
     ].some((field) => field.toLowerCase().includes(filterValue.toLowerCase()))
   );
 
@@ -133,13 +151,7 @@ const PropertyLeadsBuy: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  const getUserDetails = (leadId: number) => {
-    return {
-      userName: "John Doe",
-      phoneNumber: "+1-555-123-4567",
-      userType: "Buyer",
-    };
-  };
+  
 
   if (loading) {
     return (
@@ -207,7 +219,7 @@ const PropertyLeadsBuy: React.FC = () => {
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {paginatedLeads.map((lead, index) => {
-                    const userDetails = getUserDetails(lead.id);
+                  
                     return (
                       <TableRow key={lead.id}>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
@@ -241,13 +253,14 @@ const PropertyLeadsBuy: React.FC = () => {
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
                           <span className="text-black dark:text-gray-400 cursor-default">
-                            Sample Project
+                            {lead.property_name}
                           </span>
                           <div className="absolute z-10 w-64 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 left-0 top-full mt-1 hidden group-hover:block">
                             <div className="text-sm text-gray-800 dark:text-gray-200">
-                              <p className="font-semibold">User Name: <span className="font-normal">{userDetails.userName}</span></p>
-                              <p className="font-semibold">Phone Number: <span className="font-normal">{userDetails.phoneNumber}</span></p>
-                              <p className="font-semibold">User Type: <span className="font-normal">{userDetails.userType}</span></p>
+                              <p className="font-semibold">User Name: <span className="font-normal">{lead.owner_name}</span></p>
+                              <p className="font-semibold">Phone Number: <span className="font-normal">{lead.owner_mobile}</span></p>
+                              
+                              <p className="font-semibold">Owner Type: <span className="font-normal">{userTypeMap[lead.owner_type!] || "Unknown"}</span></p>
                             </div>
                             {/* Triangle pointer */}
                             <div className="absolute top-[-6px] left-10 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white dark:border-b-gray-800" />

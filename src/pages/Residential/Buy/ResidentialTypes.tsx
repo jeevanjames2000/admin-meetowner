@@ -87,13 +87,7 @@ const ResidentialTypes: React.FC = () => {
     handleSearch(savedSearch);
   }, []);
 
-  useEffect(() => {
-    localStorage.removeItem("searchQuery");
-    setSearchQuery("");
-    setInitialSearch("");
-    setLocalPage(1);
-  }, [location.pathname]);
-
+ 
   useEffect(() => {
     if (!loading && searchInputRef.current) {
       searchInputRef.current.focus();
@@ -107,19 +101,38 @@ const ResidentialTypes: React.FC = () => {
 
   const formatDateTime = (date: string | undefined, time: string | undefined): string => {
     if (!date || !time) return "N/A";
-    const dateTime = new Date(`${date.split("T")[0]}T${time}Z`);
-    const timeZoneOffset = dateTime.getTimezoneOffset();
-    dateTime.setMinutes(dateTime.getMinutes() - timeZoneOffset);
-    const day = String(dateTime.getUTCDate()).padStart(2, "0");
-    const month = String(dateTime.getUTCMonth() + 1).padStart(2, "0");
-    const year = dateTime.getUTCFullYear();
-    let hours = dateTime.getUTCHours();
-    const minutes = String(dateTime.getUTCMinutes()).padStart(2, "0");
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12 || 12;
-    const hoursStr = String(hours).padStart(2, "0");
-    return `${day}-${month}-${year} ${hoursStr}:${minutes} ${ampm}`;
+
+    // Parse date (e.g., "2025-04-15")
+    const [year, month, day] = date.split("-").map(Number);
+
+    // Parse time (e.g., "12:51:44")
+    const [hours, minutes, seconds] = time.split(":").map(Number);
+
+    // Create a Date object (local time, no UTC assumption)
+    const dateTime = new Date(year, month - 1, day, hours, minutes, seconds);
+
+    // Format date
+    const formattedDay = String(dateTime.getDate()).padStart(2, "0");
+    const formattedMonth = String(dateTime.getMonth() + 1).padStart(2, "0");
+    const formattedYear = dateTime.getFullYear();
+
+    // Format time in 12-hour format with AM/PM
+    let formattedHours = dateTime.getHours();
+    const formattedMinutes = String(dateTime.getMinutes()).padStart(2, "0");
+    const ampm = formattedHours >= 12 ? "PM" : "AM";
+    formattedHours = formattedHours % 12 || 12; // Convert 0 or 12 to 12 for 12 AM/PM
+
+    const formattedTime = `${String(formattedHours).padStart(2, "0")}:${formattedMinutes} ${ampm}`;
+
+    return `${formattedDay}-${formattedMonth}-${formattedYear} ${formattedTime}`;
   };
+
+  useEffect(() => {
+    localStorage.removeItem("searchQuery");
+    setSearchQuery("");
+    setInitialSearch("");
+    setLocalPage(1);
+  }, [location.pathname]);
 
   useEffect(() => {
     const filters = {
@@ -325,7 +338,9 @@ const ResidentialTypes: React.FC = () => {
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property Type</TableCell>
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Type</TableCell>
-                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Listing Time & Date</TableCell>
+                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                        {parseInt(status || "0", 10) === 0 ? "Listing Time & Date" : "Updated Time & Date"}
+                          </TableCell>
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Location</TableCell>
                         {shouldShowActions(pageUserType) && (
                           <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
@@ -364,7 +379,9 @@ const ResidentialTypes: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {formatDateTime(item.created_date!, item.created_time!)}
+                            {parseInt(status || "0", 10) === 0
+                              ? formatDateTime(item.created_date!, item.created_time!)
+                              : formatDateTime(item.updated_date!, item.updated_time!)}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                             {item.location_id}
