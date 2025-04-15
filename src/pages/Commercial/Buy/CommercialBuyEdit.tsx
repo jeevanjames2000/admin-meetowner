@@ -501,7 +501,14 @@ const CommercialBuyEdit: React.FC = () => {
   };
 
   const handleDateChange = (selectedDates: Date[]) => {
-    const date = selectedDates[0] ? selectedDates[0].toISOString().split("T")[0] : "";
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj){
+      const year = dateObj.getFullYear();
+      const month =String(dateObj.getMonth()+1).padStart(2,"0");
+      const day = String(dateObj.getDate()).padStart(2,"0");
+      date = `${year}-${month}-${day}`;
+    }
     setFormData((prev) => ({ ...prev, possessionEnds: date }));
     setErrors((prev) => ({ ...prev, possessionEnds: !date ? "Possession ends date is required" : "" }));
   };
@@ -918,7 +925,15 @@ const CommercialBuyEdit: React.FC = () => {
                     label="Possession Ends *"
                     placeholder="Select possession end date"
                     onChange={handleDateChange}
-                    defaultDate={formData.possessionEnds ? new Date(formData.possessionEnds) : undefined}
+                     defaultDate={
+                          formData.possessionEnds
+                            ? (() => {
+                                const defaultDate = new Date(formData.possessionEnds);
+                                console.log("Default date:", defaultDate, "From string:", formData.possessionEnds);
+                                return defaultDate;
+                              })()
+                            : undefined
+                        }
                   />
                   {errors.possessionEnds && <p className="text-red-500 text-sm mt-1">{errors.possessionEnds}</p>}
                 </div>

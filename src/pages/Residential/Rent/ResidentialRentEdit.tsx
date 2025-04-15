@@ -128,6 +128,12 @@ const ResidentialRentEdit: React.FC = () => {
     "Lawn with Stepping Stones": false,
     None: false,
   };
+
+  const transformToUIValue = (value: string | number | undefined): "0" | "1" | "2" | "3" | "4+" => {
+    const numValue = Number(value);
+    if (isNaN(numValue)) return "0"; // Handle undefined or invalid values
+    return numValue >= 5 ? "4+" : String(value) as "0" | "1" | "2" | "3" | "4+";
+  };
   const [originalData, setOriginalData] = useState<any>(property || {});
   const transformParkingValue = (value: string | number | undefined): "0" | "1" | "2" | "3" | "4+" => {
     const stringValue = String(value); // Convert to string for consistent comparison
@@ -154,8 +160,8 @@ const ResidentialRentEdit: React.FC = () => {
         location: property.google_address || "",
         propertySubType: property.sub_type || "Apartment",
         bhk: property.bedrooms ? `${property.bedrooms}BHK` : "1BHK",
-        bedroom: property.bedrooms || "1",
-        balcony: property.balconies ? String(property.balconies) : "1",
+        bedroom: transformToUIValue(property.bathroom),
+        balcony:  transformToUIValue(property.balconies),
         furnishType: property.furnished_status || "Semi",
         availableFrom: property.available_from
           ? new Date(property.available_from).toISOString().split("T")[0]
@@ -523,11 +529,19 @@ const ResidentialRentEdit: React.FC = () => {
   };
 
   const handleDateChange = (selectedDates: Date[]) => {
-    const date = selectedDates[0] ? selectedDates[0].toISOString().split("T")[0] : "";
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      // Format date in local time zone
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0"); // Months are 0-based
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+    }
+  
     setFormData((prev) => ({ ...prev, availableFrom: date }));
     setErrors((prev) => ({ ...prev, availableFrom: !date ? "Available from date is required" : "" }));
   };
-
   const getChangedFields = () => {
     const changedFields: Partial<any> = {};
 
@@ -549,13 +563,13 @@ const ResidentialRentEdit: React.FC = () => {
         applicableTo: ["Apartment", "Independent House", "Independent Villa"],
       },
       bedroom: {
-        apiField: "bedrooms",
-        transform: (value: string) => parseInt(value),
-        applicableTo: ["Apartment", "Independent House", "Independent Villa"],
+        apiField: "bathroom",
+        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)),
+        applicableTo: ["Apartment"],
       },
       balcony: {
         apiField: "balconies",
-        transform: (value: string) => parseInt(value),
+        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)),
         applicableTo: ["Apartment"],
       },
       furnishType: { apiField: "furnished_status", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
@@ -628,11 +642,7 @@ const ResidentialRentEdit: React.FC = () => {
       plotNumber: { apiField: "plot_number", applicableTo: ["Plot", "Land"] },
       floorNo: { apiField: "floors", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
       totalFloors: { apiField: "total_floors", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
-      bathroom: {
-        apiField: "bathroom",
-        transform: (value: string) => parseInt(value),
-        applicableTo: ["Apartment"],
-      },
+    
       reraApproved: {
         apiField: "rera_approved",
         transform: (value: string) => value === "1" ? 1 : 0,
@@ -971,21 +981,28 @@ const ResidentialRentEdit: React.FC = () => {
                 </div>
               )}
 
-              {formData.propertySubType === "Apartment" && (
+        {/* {formData.propertySubType === "Apartment" && (
                 <div>
-                  <Label htmlFor="bathroom">Bathroom *</Label>
-                  <Input
-                    type="number"
-                    id="bathroom"
-                    name="bathroom"
-                    value={formData.bathroom}
-                    onChange={handleInputChange}
-                    placeholder="Enter number of bathrooms"
-                    className="dark:bg-dark-900"
-                  />
-                  {errors.bathroom && <p className="text-red-500 text-sm mt-1">{errors.bathroom}</p>}
+                  <Label htmlFor="bedroom">Bathroom *</Label>
+                  <div className="flex space-x-4">
+                    {bedroomOptions.map((option) => (
+                      <button
+                        key={option.value}
+                        type="button"
+                        onClick={() => handleSelectChange("bedroom")(option.value)}
+                        className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
+                          formData.bedroom === option.value
+                            ? "bg-[#1D3A76] text-white border-blue-600"
+                            : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                        }`}
+                      >
+                        {option.label}
+                      </button>
+                    ))}
+                  </div>
+                  {errors.bedroom && <p className="text-red-500 text-sm mt-1">{errors.bedroom}</p>}
                 </div>
-              )}
+              )} */}
 
               {formData.propertySubType === "Apartment" && (
                 <div>
@@ -1052,20 +1069,30 @@ const ResidentialRentEdit: React.FC = () => {
                 </div>
               )}
 
-              <div>
-                <Label htmlFor="availableFrom">Available From *</Label>
-                <DatePicker
-                  id="availableFrom"
-                  mode="single"
-                  onChange={handleDateChange}
-                  defaultDate={formData.availableFrom}
-                  placeholder="Select available from date (mm/dd/yyyy)"
-                  label=""
-                />
-                {errors.availableFrom && (
-                  <p className="text-red-500 text-sm mt-1">{errors.availableFrom}</p>
-                )}
-              </div>
+          <div>
+            <Label htmlFor="availableFrom">Available From *</Label>
+            <DatePicker
+                id="availableFrom"
+                mode="single"
+                onChange={handleDateChange}
+                defaultDate={
+                  formData.availableFrom
+                    ? (() => {
+                        const defaultDate = new Date(formData.availableFrom);
+                        console.log("Default date:", defaultDate, "From string:", formData.availableFrom);
+                        return defaultDate;
+                      })()
+                    : undefined
+                }
+                placeholder="Select available from date (mm/dd/yyyy)"
+                label=""
+              />
+
+
+            {errors.availableFrom && (
+              <p className="text-red-500 text-sm mt-1">{errors.availableFrom}</p>
+            )}
+          </div>
 
               <div>
                 <Label htmlFor="monthlyRent">Monthly Rent *</Label>

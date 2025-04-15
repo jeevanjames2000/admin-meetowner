@@ -108,6 +108,11 @@ const ResidentialBuyEdit: React.FC = () => {
     None: false,
   };
 
+  const transformToUIValue = (value: string | number | undefined): "0" | "1" | "2" | "3" | "4+" => {
+    const numValue = Number(value);
+    if (isNaN(numValue)) return "0"; // Handle undefined or invalid values
+    return numValue >= 5 ? "4+" : String(value) as "0" | "1" | "2" | "3" | "4+";
+  };
   const [originalData, setOriginalData] = useState<any>(property || {});
   const transformParkingValue = (value: string | number | undefined): "0" | "1" | "2" | "3" | "4+" => {
     const stringValue = String(value); // Convert to string for consistent comparison
@@ -140,8 +145,8 @@ const ResidentialBuyEdit: React.FC = () => {
         constructionStatus: property.occupancy === "Under Construction" ? "Under Construction" : "Ready to move",
         possessionEnd: possessionEndDate,
         bhk: property.bedrooms ? `${property.bedrooms}BHK` : "1BHK",
-        bedroom: property.bathroom ? String(property.bathroom) as "1" | "2" | "3" | "4" | "4+" : "1",
-        balcony: property.balconies ? String(property.balconies) as "1" | "2" | "3" | "4" | "4+" : "1",
+        bedroom: transformToUIValue(property.bathroom),
+        balcony:  transformToUIValue(property.balconies),
         furnishType: property.furnished_status || "Fully",
         ageOfProperty: property.property_age ? String(property.property_age) as "5" | "10" | "11" : "5",
         areaUnits: property.area_units || "Sq.yd",
@@ -479,7 +484,14 @@ const ResidentialBuyEdit: React.FC = () => {
   };
 
   const handleDateChange = (selectedDates: Date[]) => {
-    const date = selectedDates[0] ? selectedDates[0].toISOString().split("T")[0] : "";
+    const dateObj = selectedDates[0] ;
+    let date = "";
+    if (dateObj){
+      const year = dateObj.getFullYear();
+      const month = String (dateObj.getMonth()+1).padStart(2,"0");
+      const day = String(dateObj.getDate()).padStart(2,"0");
+      date = `${year}-${month}-${day}`;
+    }
     setFormData((prev) => ({ ...prev, possessionEnd: date }));
     setErrors((prev) => ({ ...prev, possessionEnd: !date ? "Possession end date is required" : "" }));
   };
@@ -509,12 +521,12 @@ const ResidentialBuyEdit: React.FC = () => {
       },
       bedroom: {
         apiField: "bathroom",
-        transform: (value: string) => parseInt(value),
+        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)),
         applicableTo: ["Apartment"],
       },
       balcony: {
         apiField: "balconies",
-        transform: (value: string) => parseInt(value),
+        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)),
         applicableTo: ["Apartment"],
       },
       furnishType: { apiField: "furnished_status", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
@@ -893,7 +905,15 @@ const ResidentialBuyEdit: React.FC = () => {
                         id="possessionEnd"
                         mode="single"
                         onChange={handleDateChange}
-                        defaultDate={formData.possessionEnd}
+                        defaultDate={
+                          formData.possessionEnd
+                            ? (() => {
+                                const defaultDate = new Date(formData.possessionEnd);
+                                console.log("Default date:", defaultDate, "From string:", formData.possessionEnd);
+                                return defaultDate;
+                              })()
+                            : undefined
+                        }
                         placeholder="Select possession end date"
                         label=""
                       />

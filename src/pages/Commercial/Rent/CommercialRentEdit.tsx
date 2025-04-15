@@ -500,7 +500,15 @@ const CommercialRentEdit: React.FC = () => {
   };
 
   const handleDateChange = (selectedDates: Date[]) => {
-    const date = selectedDates[0] ? selectedDates[0].toISOString().split("T")[0] : "";
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj){
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth()+1).padStart(2,"0");
+      const day = String(dateObj.getDate()).padStart(2,"0");
+      date = `${year}-${month}-${day}`;
+    }
+
     setFormData((prev) => ({ ...prev, availableFrom: date }));
     setErrors((prev) => ({ ...prev, availableFrom: !date ? "Available from date is required" : "" }));
   };
@@ -934,7 +942,12 @@ const CommercialRentEdit: React.FC = () => {
                   id="availableFrom"
                   placeholder="Select available date"
                   onChange={handleDateChange}
-                  defaultDate={formData.availableFrom ? new Date(formData.availableFrom) : undefined}
+                  defaultDate={formData.availableFrom ?  (()=>{
+                    const defaultDate = new Date(formData.availableFrom);
+                    return defaultDate;
+                  })():undefined
+                }
+                    // new Date(formData.availableFrom) : undefined}
                 />
                 {errors.availableFrom && <p className="text-red-500 text-sm mt-1">{errors.availableFrom}</p>}
               </div>
