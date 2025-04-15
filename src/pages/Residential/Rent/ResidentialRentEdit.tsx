@@ -981,29 +981,7 @@ const ResidentialRentEdit: React.FC = () => {
                 </div>
               )}
 
-        {/* {formData.propertySubType === "Apartment" && (
-                <div>
-                  <Label htmlFor="bedroom">Bathroom *</Label>
-                  <div className="flex space-x-4">
-                    {bedroomOptions.map((option) => (
-                      <button
-                        key={option.value}
-                        type="button"
-                        onClick={() => handleSelectChange("bedroom")(option.value)}
-                        className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
-                          formData.bedroom === option.value
-                            ? "bg-[#1D3A76] text-white border-blue-600"
-                            : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
-                        }`}
-                      >
-                        {option.label}
-                      </button>
-                    ))}
-                  </div>
-                  {errors.bedroom && <p className="text-red-500 text-sm mt-1">{errors.bedroom}</p>}
-                </div>
-              )} */}
-
+      
               {formData.propertySubType === "Apartment" && (
                 <div>
                   <Label htmlFor="balcony">Balcony *</Label>
@@ -1551,7 +1529,7 @@ const ResidentialRentEdit: React.FC = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="uploadedFromSellerPanel">Uploaded From Seller Panel</Label>
+                  <Label className="mt-4" htmlFor="uploadedFromSellerPanel">Uploaded From Seller Panel</Label>
                   <div className="flex space-x-4">
                     {["Yes", "No"].map((option) => (
                       <button
@@ -1571,7 +1549,7 @@ const ResidentialRentEdit: React.FC = () => {
                 </div>
 
                 <div>
-                  <Label htmlFor="featuredProperty">Featured Property</Label>
+                  <Label className="mt-4" htmlFor="featuredProperty">Featured Property</Label>
                   <div className="flex space-x-4">
                     {["Yes", "No"].map((option) => (
                       <button
