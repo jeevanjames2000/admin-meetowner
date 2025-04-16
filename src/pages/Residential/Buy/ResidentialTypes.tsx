@@ -23,6 +23,7 @@ interface LeadPullFormData {
   mobile: string;
   email: string;
   name: string;
+  sourceType:string;
 }
 
 const statusMap: { [key: number]: string } = {
@@ -66,6 +67,7 @@ const ResidentialTypes: React.FC = () => {
     mobile: "",
     email: "",
     name: "",
+    sourceType:""
   });
   const [formErrors, setFormErrors] = useState<Partial<LeadPullFormData>>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -284,14 +286,14 @@ const ResidentialTypes: React.FC = () => {
       // Add your API call here to submit the lead pull data
       alert("Lead pull submitted successfully!");
       setIsModalOpen(false);
-      setLeadPullFormData({ mobile: "", email: "", name: "" });
+      setLeadPullFormData({ mobile: "", email: "", name: "" ,sourceType:""});
       setFormErrors({});
     }
   };
 
   const handleModalClose = () => {
     setIsModalOpen(false);
-    setLeadPullFormData({ mobile: "", email: "", name: "" });
+    setLeadPullFormData({ mobile: "", email: "", name: "" ,sourceType:""});
     setFormErrors({});
   };
 
@@ -534,6 +536,21 @@ const ResidentialTypes: React.FC = () => {
                   <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.email}</p>
                 )}
               </div>
+              <div>
+                    <Label htmlFor="email">Lead Source</Label>
+                    <Input
+                      type="sourceType"
+                      id="sourceType"
+                      name="sourceType"
+                      value={leadPullFormData.sourceType}
+                      onChange={handleInputChange}
+                      className="dark:bg-dark-900"
+                      placeholder="Enter Lead source"
+                    />
+                    {formErrors.sourceType && (
+                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.sourceType}</p>
+                    )}
+                  </div>
 
               {/* Buttons */}
               <div className="flex justify-end space-x-3">

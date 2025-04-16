@@ -15,6 +15,7 @@ import { MoreVertical } from "lucide-react";
 import ComponentCard from "../../common/ComponentCard";
 import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
 import { clearMessages, deleteEmployee } from "../../../store/slices/employee";
+import toast from "react-hot-toast";
 
 // User type mapping
 const userTypeMap: { [key: number]: string } = {
@@ -142,7 +143,14 @@ export default function BasicTableOne() {
   };
 
   const handleUserClick = (userId: number) => {
-    navigate(`/user-activities?userId=${userId}`);
+    const user = users.find((u)=> u.id === userId);
+    if (user && user.userActivity && user.userActivity.length > 0){
+      navigate(`/user-activities?userId=${userId}`);
+    }
+    else {
+      toast.error('No user Activities');
+    }
+    
   };
 
  
