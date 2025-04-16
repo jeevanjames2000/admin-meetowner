@@ -134,13 +134,7 @@ export const getAllApprovedListing = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.get<ListingsResponse>(
-        "/listings/getAllListings",
-        {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
-        }
-      );
+        "/listings/getAllListings");
 
       toast.promise(promise, {
         loading: "Fetching approved listings...",

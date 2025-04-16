@@ -61,9 +61,7 @@ export const fetchLeads = createAsyncThunk(
           params: {
             property_for,
           },
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
+          
         }
       );
 

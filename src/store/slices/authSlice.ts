@@ -110,11 +110,7 @@ export const getAllUsersCount = createAsyncThunk(
     try {
       const promise = axiosIstance.get<UserCount[]>(
         "/user/getAllUsersCount",
-        {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
-        }
+
       );
 
       toast.promise(promise, {

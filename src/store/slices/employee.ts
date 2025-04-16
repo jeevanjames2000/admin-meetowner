@@ -171,11 +171,7 @@ export const fetchAllEmployees = createAsyncThunk(
     try {
       const response = await axiosInstance.get<GetAllEmployeesResponse>(
         `/user/getAllEmp/${userId}`,
-        {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
-        }
+       
       );
       return response.data;
     } catch (error) {

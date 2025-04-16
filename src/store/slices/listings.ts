@@ -174,9 +174,7 @@ export const fetchListings = createAsyncThunk(
             page,
             search
           },
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
+          
         }
       );
 
@@ -206,12 +204,7 @@ export const updatePropertyStatus = createAsyncThunk(
       const promise = axiosInstance.post<UpdateStatusResponse>(
         "/listings/updateStatus",
         payload,
-        {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-            "Content-Type": "application/json",
-          },
-        }
+       
       );
 
       toast.promise(promise, {
@@ -242,9 +235,7 @@ export const deleteListing = createAsyncThunk(
         "/listings/deleteListing",
         {
           params: { unique_property_id },
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
+         
         }
       );
 
@@ -285,12 +276,7 @@ export const updateListing = createAsyncThunk(
       const promise = axiosInstance.post<UpdateListingResponse>(
         `/listings/updateListing?unique_property_id=${unique_property_id}`,
         updates,
-        {
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-            "Content-Type": "application/json",
-          },
-        }
+        
       );
 
       toast.promise(promise, {

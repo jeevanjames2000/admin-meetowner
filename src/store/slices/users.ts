@@ -85,9 +85,7 @@ export const fetchUsersByType = createAsyncThunk(
           params: {
             user_type,
           },
-          headers: {
-            "ngrok-skip-browser-warning": "true",
-          },
+         
         }
       );
 
