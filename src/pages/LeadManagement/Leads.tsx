@@ -175,7 +175,7 @@ const PropertyLeadsBuy: React.FC = () => {
         />
         <ComponentCard title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {error ? `Error: ${error}` : "No Data Available"}
+            {error ? `${error}` : "No Data Available"}
           </h2>
         </ComponentCard>
       </div>

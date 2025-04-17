@@ -323,7 +323,7 @@ const ResidentialTypes: React.FC = () => {
         </div>
       ) : !listings || listings.length === 0 ? (
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">No Users Found</h2>
+          <h2 className="text-2xl font-bold text-gray-800 dark:text-white">No Listings Found</h2>
         </div>
       ) : (
         <>
