@@ -3,6 +3,7 @@ import { RootState, AppDispatch } from "../../store/store";
 import { useState, ChangeEvent } from "react";
 import { uploadUserImage } from "../../store/slices/uploadSlice";
 import { toast } from "react-hot-toast";
+import { getProfile } from "../../store/slices/authSlice";
 
 interface Option {
   value: number;
@@ -25,6 +26,7 @@ const designationOptions: Option[] = [
 
 export default function UserMetaCard() {
   const { user } = useSelector((state: RootState) => state.auth);
+ 
   const { uploadLoading, uploadError, uploadSuccess } = useSelector(
     (state: RootState) => state.upload
   );
@@ -44,7 +46,7 @@ export default function UserMetaCard() {
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
+  
     // Basic validation
     const validTypes = ["image/jpeg", "image/jpg", "image/png"];
     if (!validTypes.includes(file.type)) {
@@ -55,29 +57,34 @@ export default function UserMetaCard() {
       toast.error("File size must be less than 10MB.");
       return;
     }
-
+  
     if (!user?.user_id) {
       toast.error("User ID is not available.");
       return;
     }
-
+  
     try {
       const result = await dispatch(
         uploadUserImage({ user_id: user.user_id, image: file })
       ).unwrap();
-
-      if (result.url) {
-        localStorage.setItem("photo", result.url);
-        window.location.reload(); // Refresh to sync with localStorage
+  
+      console.log("uploadUserImage result:", result);
+  
+      if (result.photo) {
+        toast.success("Image uploaded successfully!");
+        await dispatch(getProfile(user.user_id)); // Dispatch getProfile
+      } else {
+        toast.error("No photo URL returned from upload.");
       }
     } catch (error) {
       console.error("Image upload failed:", error);
-      // Error is already handled by toast in the thunk
+      toast.error("Failed to upload image.");
     }
-
+  
     // Reset file input
     setFileInputKey(Date.now());
   };
+
 
   // Helper to determine if photo is valid
   const hasValidPhoto = (): boolean => {
@@ -90,9 +97,10 @@ export default function UserMetaCard() {
         <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
           <div className="relative w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800 flex items-center justify-center bg-gray-200 dark:bg-gray-700 group">
           <img
-              src={hasValidPhoto() ? user!.photo! : getPlaceholderImage()}
+              src={hasValidPhoto() ? `https://api.meetowner.in/${user?.photo}` : getPlaceholderImage()}
               alt="User profile"
               className="w-full h-full object-cover"
+              crossOrigin="anonymous"
               onError={(e) => {
                 e.currentTarget.src = getPlaceholderImage(); // Fallback to placeholder
               }}

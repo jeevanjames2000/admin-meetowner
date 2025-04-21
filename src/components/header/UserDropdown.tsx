@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { DropdownItem } from "../ui/dropdown/DropdownItem";
 import { Dropdown } from "../ui/dropdown/Dropdown";
 import {  useNavigate } from "react-router";
@@ -11,6 +11,8 @@ import { RootState } from "../../store/store";
 export default function UserDropdown() {
   const [isOpen, setIsOpen] = useState(false);
   const {  user } = useSelector((state: RootState) => state.auth);
+
+ 
   
 
 
@@ -51,13 +53,14 @@ export default function UserDropdown() {
       >
           <span className="mr-3 overflow-hidden rounded-full h-11 w-11 flex items-center justify-center bg-gray-200 dark:bg-gray-700">
           <img
-              src={hasValidPhoto() ? user!.photo! : getPlaceholderImage()}
-              alt="User profile"
-              className="w-full h-full object-cover"
-              onError={(e) => {
-                e.currentTarget.src = getPlaceholderImage(); // Fallback to placeholder
-              }}
-            />
+        src={hasValidPhoto() ? `https://api.meetowner.in/${user?.photo}` : getPlaceholderImage()}
+        alt="User profile"
+        className="w-full h-full object-cover"
+        crossOrigin="anonymous"
+        onError={(e) => {
+          e.currentTarget.src = getPlaceholderImage();
+        }}
+/>
         </span>
         <span className="block mr-1 font-medium text-theme-sm">{user?.name}</span>
         <svg

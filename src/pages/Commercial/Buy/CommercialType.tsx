@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, ChangeEvent, FormEvent } from "react";
+import { useState, useRef, useEffect, ChangeEvent, FormEvent, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams, useLocation } from "react-router";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
@@ -15,8 +15,10 @@ import Button from "../../../components/ui/button/Button";
 import { fetchListings, ListingState, updatePropertyStatus } from "../../../store/slices/listings";
 import { AppDispatch, RootState } from "../../../store/store";
 import { TableLoader } from "../../../components/Loaders/LoadingLisings";
-import Label from "../../../components/form/Label";
-import Input from "../../../components/form/input/InputField";
+
+import LeadPullModal from "../../../components/common/LeadPullModal";
+import ConfirmDeleteModal from "../../../components/common/ConfirmDeleteModal";
+import useFormatDateTime from "../../../hooks/useFormatDateTime";
 
 const statusMap: { [key: number]: string } = {
   0: "Review",
@@ -62,7 +64,10 @@ const CommercialTypes: React.FC = () => {
   const [localPage, setLocalPage] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [initialSearch, setInitialSearch] = useState<string>("");
-  const [isModalOpen, setIsModalOpen] = useState<boolean>(false); // State for modal visibility
+ 
+  const [isLeadModalOpen, setIsLeadModalOpen] = useState<boolean>(false);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [selectedProperty, setSelectedProperty] = useState<{ id: string; name: string } | null>(null);
   const [leadPullFormData, setLeadPullFormData] = useState<LeadPullFormData>({
     mobile: "",
     email: "",
@@ -80,6 +85,7 @@ const CommercialTypes: React.FC = () => {
   const { listings, loading, error, totalCount, currentPage, currentCount, totalPages } = useSelector(
     (state: RootState) => state.listings as ListingState
   );
+  const { formatDateTime } = useFormatDateTime();
 
   const excludedUserTypes = [9, 10, 11];
 
@@ -107,21 +113,7 @@ const CommercialTypes: React.FC = () => {
     return `${baseTitle} ${statusMap[parseInt(status || "0", 10)] || "Unknown"}`;
   };
 
-  const formatDateTime = (date: string | undefined, time: string | undefined): string => {
-    if (!date || !time) return "N/A";
-    const dateTime = new Date(`${date.split("T")[0]}T${time}Z`);
-    const timeZoneOffset = dateTime.getTimezoneOffset();
-    dateTime.setMinutes(dateTime.getMinutes() - timeZoneOffset);
-    const day = String(dateTime.getUTCDate()).padStart(2, "0");
-    const month = String(dateTime.getUTCMonth() + 1).padStart(2, "0");
-    const year = dateTime.getUTCFullYear();
-    let hours = dateTime.getUTCHours();
-    const minutes = String(dateTime.getUTCMinutes()).padStart(2, "0");
-    const ampm = hours >= 12 ? "PM" : "AM";
-    hours = hours % 12 || 12;
-    const hoursStr = String(hours).padStart(2, "0");
-    return `${day}-${month}-${year} ${hoursStr}:${minutes} ${ampm}`;
-  };
+ 
 
   useEffect(() => {
     const filters = {
@@ -168,14 +160,23 @@ const CommercialTypes: React.FC = () => {
     setDropdownOpen(null);
   };
 
-  const handleDelete = (unique_property_id: string) => {
-    const property_status = 3;
-    dispatch(updatePropertyStatus({ property_status, unique_property_id }))
-      .unwrap()
-      .then(() => setRefreshTrigger((prev) => prev + 1))
-      .catch((err) => console.error("Status update failed:", err));
+  const handleDelete = useCallback((unique_property_id: string, property_name: string) => {
+    setSelectedProperty({ id: unique_property_id, name: property_name });
+    setIsDeleteModalOpen(true);
     setDropdownOpen(null);
-  };
+  }, []);
+
+  const confirmDelete = useCallback(() => {
+    if (selectedProperty) {
+      const property_status = 3;
+      // dispatch(updatePropertyStatus({ property_status, unique_property_id: selectedProperty.id }))
+      //   .unwrap()
+      //   .then(() => setRefreshTrigger((prev) => prev + 1))
+      //   .catch((err) => console.error("Status update failed:", err));
+      setIsDeleteModalOpen(false);
+      setSelectedProperty(null);
+    }
+  }, [dispatch, selectedProperty]);
 
   const handleApprove = (unique_property_id: string) => {
     const property_status = parseInt(status || "0", 10) === 0 ? 1 : 2;
@@ -186,10 +187,7 @@ const CommercialTypes: React.FC = () => {
     setDropdownOpen(null);
   };
 
-  const handleLead = (item: any) => {
-    setIsModalOpen(true); // Open the modal
-    setDropdownOpen(null);
-  };
+
 
   const handleSearch = (value: string) => {
     let searchValue = value.trim();
@@ -240,49 +238,47 @@ const CommercialTypes: React.FC = () => {
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
 
-  const validateLeadPullForm = (): boolean => {
+  
+  const handleLead = useCallback(() => {
+    setIsLeadModalOpen(true);
+    setDropdownOpen(null);
+  }, []);
+
+  const validateLeadPullForm = useCallback((): boolean => {
     const newErrors: Partial<LeadPullFormData> = {};
 
-    // Mobile validation (must be 10 digits)
     if (!leadPullFormData.mobile) {
       newErrors.mobile = "Mobile number is required";
     } else if (!/^\d{10}$/.test(leadPullFormData.mobile)) {
       newErrors.mobile = "Mobile number must be exactly 10 digits";
     }
 
-    // Email validation
     if (!leadPullFormData.email) {
       newErrors.email = "Email is required";
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadPullFormData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
 
-    // Name validation
     if (!leadPullFormData.name) {
       newErrors.name = "Name is required";
     }
 
     setFormErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  };
+  }, [leadPullFormData]);
 
-  const handleLeadPullSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
+
+  const handleLeadPullSubmit = useCallback((data: LeadPullFormData) => {
     if (validateLeadPullForm()) {
-      console.log("Lead Pull Form Data:", leadPullFormData);
+      console.log("Lead Pull Form Data:", data);
       // Add your API call here to submit the lead pull data
       alert("Lead pull submitted successfully!");
-      setIsModalOpen(false);
-      setLeadPullFormData({ mobile: "", email: "", name: "",sourceType:"" });
+      setIsLeadModalOpen(false);
+      setLeadPullFormData({ mobile: "", email: "", name: "", sourceType: "" });
       setFormErrors({});
     }
-  };
-
-  const handleModalClose = () => {
-    setIsModalOpen(false);
-    setLeadPullFormData({ mobile: "", email: "", name: "",sourceType:"" });
-    setFormErrors({});
-  };
+  }, [validateLeadPullForm]);
+  
 
   return (
     <div className="relative min-h-screen">
@@ -386,12 +382,14 @@ const CommercialTypes: React.FC = () => {
                               {dropdownOpen === item.id.toString() && (
                                 <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
                                   <button onClick={() => handleEdit(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</button>
-                                  <button onClick={() => handleDelete(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button>
+                                  {/* <button onClick={() => handleDelete(item.unique_property_id, item.property_name || "this property")} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button> */}
                                   <button onClick={() => handleApprove(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
+
                                     {parseInt(status || "0", 10) === 0 ? "Approve" : "Reject"}
                                   </button>
+                                 
                                   {parseInt(status || "0", 10) === 1 && (
-                                    <button onClick={() => handleLead(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Lead Pull</button>
+                                    <button onClick={() => handleLead()} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Lead Pull</button>
                                   )}
                                 </div>
                               )}
@@ -448,113 +446,32 @@ const CommercialTypes: React.FC = () => {
               )}
             </ComponentCard>
           </div>
-          {/* Lead Pull Modal */}
-          {isModalOpen && (
-            <div className="fixed inset-0 bg-white/30 backdrop-blur-none flex items-center justify-center z-10">
-              <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md relative">
-                {/* Modal Header */}
-                <div className="flex justify-between items-center mb-4">
-                  <h2 className="text-xl font-semibold text-gray-800 dark:text-white">Enter Lead Pull Details</h2>
-                  <button
-                    onClick={handleModalClose}
-                    className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
-                    </svg>
-                  </button>
-                </div>
-
-                {/* Modal Form */}
-                <form onSubmit={handleLeadPullSubmit} className="space-y-4">
-                  {/* Name */}
-                  <div>
-                    <Label htmlFor="name">Name</Label>
-                    <Input
-                      type="text"
-                      id="name"
-                      name="name"
-                      value={leadPullFormData.name}
-                      onChange={handleInputChange}
-                      className="dark:bg-dark-900"
-                      placeholder="Enter user name"
-                    />
-                    {formErrors.name && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.name}</p>
-                    )}
-                  </div>
-
-                  {/* Mobile */}
-                  <div>
-                    <Label htmlFor="mobile">Mobile Number</Label>
-                    <Input
-                      type="text"
-                      id="mobile"
-                      name="mobile"
-                      value={leadPullFormData.mobile}
-                      onChange={handleInputChange}
-                      className="dark:bg-dark-900"
-                      placeholder="Enter 10-digit mobile number"
-                    />
-                    {formErrors.mobile && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.mobile}</p>
-                    )}
-                  </div>
-
-                  {/* Email */}
-                  <div>
-                    <Label htmlFor="email">Email Address</Label>
-                    <Input
-                      type="email"
-                      id="email"
-                      name="email"
-                      value={leadPullFormData.email}
-                      onChange={handleInputChange}
-                      className="dark:bg-dark-900"
-                      placeholder="Enter email address"
-                    />
-                    {formErrors.email && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.email}</p>
-                    )}
-                  </div>
-                  <div>
-                    <Label htmlFor="email">Lead Source</Label>
-                    <Input
-                      type="sourceType"
-                      id="sourceType"
-                      name="sourceType"
-                      value={leadPullFormData.sourceType}
-                      onChange={handleInputChange}
-                      className="dark:bg-dark-900"
-                      placeholder="Enter Lead source"
-                    />
-                    {formErrors.sourceType && (
-                      <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.sourceType}</p>
-                    )}
-                  </div>
-
-                  {/* Buttons */}
-                  <div className="flex justify-end space-x-3">
-                    <button
-                      type="button"
-                      onClick={handleModalClose}
-                      className="px-4 py-2 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 dark:bg-gray-700 dark:text-gray-200 dark:hover:bg-gray-600 transition-colors duration-200"
-                    >
-                      Cancel
-                    </button>
-                    <button
-                      type="submit"
-                      className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-                    >
-                      Submit
-                    </button>
-                  </div>
-                </form>
-              </div>
-            </div>
-          )}
+         
+         
         </>
       )}
+
+    <LeadPullModal
+        isOpen={isLeadModalOpen}
+        onClose={() => {
+          setIsLeadModalOpen(false);
+          setLeadPullFormData({ mobile: "", email: "", name: "", sourceType: "" });
+          setFormErrors({});
+        }}
+        onSubmit={handleLeadPullSubmit}
+        formData={leadPullFormData}
+        formErrors={formErrors}
+        onInputChange={handleInputChange}
+      />
+     <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        propertyName={selectedProperty?.name || ""}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setSelectedProperty(null);
+        }}
+      />
     </div>
   );
 };

@@ -6,7 +6,8 @@ import axiosInstance from "../../utils/axiosInstance";
 
 interface UploadResponse {
   message: string;
-  url: string;
+  photo:string;
+  user_id: number;
 }
 
 interface ErrorResponse {
@@ -37,10 +38,10 @@ export const uploadUserImage = createAsyncThunk(
     try {
       const formData = new FormData();
       formData.append("user_id", user_id.toString());
-      formData.append("image", image);
+      formData.append("photo", image);
 
       const promise = axiosInstance.post<UploadResponse>(
-        "/awsS3/uploadUserImage",
+        "/user/v1/uploadUserImage",
         formData,
         {
           headers: {
@@ -104,7 +105,7 @@ const uploadSlice = createSlice({
       .addCase(uploadUserImage.fulfilled, (state, action) => {
         state.uploadLoading = false;
         state.uploadSuccess = action.payload.message;
-        state.uploadedImageUrl = action.payload.url;
+        state.uploadedImageUrl = action.payload.photo;
       })
       .addCase(uploadUserImage.rejected, (state, action) => {
         state.uploadLoading = false;
