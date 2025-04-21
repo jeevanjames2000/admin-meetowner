@@ -324,7 +324,7 @@ const ResidentialTypes: React.FC = () => {
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property Type</TableCell>
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Type</TableCell>
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                        {parseInt(status || "0", 10) === 0 ? "Listing Time & Date" : "Updated Time & Date"}
+                        {parseInt(status || "0", 10) === 0 ? "Listing Date & Time" : "Updated Date & Time"}
                           </TableCell>
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Location</TableCell>
                         {shouldShowActions(pageUserType) && (
@@ -364,9 +364,8 @@ const ResidentialTypes: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {parseInt(status || "0", 10) === 0
-                              ? formatDateTime(item.created_date!, item.created_time!)
-                              : formatDateTime(item.updated_date!, item.updated_time!)}
+                      
+                              {`${item.updated_date! ? item.updated_date! : "N/A"} - ${item.updated_time! ? item.updated_time! : "N/A"}`}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                             {item.location_id}
