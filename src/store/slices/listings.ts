@@ -165,7 +165,7 @@ export const fetchListings = createAsyncThunk(
     try {
       const { property_status,property_for, property_in, page,search } = filters;
       const promise = axiosInstance.get<ListingsResponse>(
-        "/listings/getAllPropertiesByType",
+        "/listings/v1/getAllPropertiesByType",
         {
           params: {
             property_status,
@@ -202,7 +202,7 @@ export const updatePropertyStatus = createAsyncThunk(
   async (payload: UpdateStatusPayload, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.post<UpdateStatusResponse>(
-        "/listings/updateStatus",
+        "/listings/v1/updateStatus",
         payload,
        
       );
@@ -232,7 +232,7 @@ export const deleteListing = createAsyncThunk(
     try {
       const { unique_property_id } = payload;
       const promise = axiosInstance.delete<DeleteListingResponse>(
-        "/listings/deleteListing",
+        "/listings/v1/deleteListing",
         {
           params: { unique_property_id },
          

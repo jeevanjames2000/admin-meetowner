@@ -11,6 +11,11 @@ interface Option {
 
 const designationOptions: Option[] = [
   { value: 1, text: "Admin" },
+  { value: 2, text: "User" },
+  { value: 3, text: "Builder" },
+  { value: 4, text: "Agent" },
+  { value: 5, text: "Owner" },
+  { value: 6, text: "Channel Partner" },
   { value: 7, text: "Manager" },
   { value: 8, text: "TeleCaller" },
   { value: 9, text: "Marketing Executive" },
@@ -31,11 +36,9 @@ export default function UserMetaCard() {
     return designation ? designation.text : "Unknown Designation";
   };
 
-  const getInitial = () => {
-    if (user?.name) {
-      return user.name.charAt(0).toUpperCase();
-    }
-    return "?"; // Fallback if no name is available
+  const getPlaceholderImage = (): string => {
+    const name = user?.name || "User";
+    return `https://placehold.co/100x100?text=${encodeURIComponent(name[0]?.toUpperCase() || "U")}`;
   };
 
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -77,8 +80,8 @@ export default function UserMetaCard() {
   };
 
   // Helper to determine if photo is valid
-  const hasValidPhoto = () => {
-    return user?.photo && user.photo !== "null" && user.photo !== null;
+  const hasValidPhoto = (): boolean => {
+    return !!user?.photo && user.photo !== "null" && user.photo !== "";
   };
 
   return (
@@ -86,20 +89,14 @@ export default function UserMetaCard() {
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
           <div className="relative w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800 flex items-center justify-center bg-gray-200 dark:bg-gray-700 group">
-            {hasValidPhoto() ? (
-              <img
-                src={user?.photo}
-                alt="User"
-                className="w-full h-full object-cover"
-                onError={(e) => {
-                  e.currentTarget.style.display = "none"; // Hide image
-                }}
-              />
-            ) : (
-              <span className="w-full h-full flex items-center justify-center text-2xl font-medium text-gray-600 dark:text-gray-300">
-                {getInitial()}
-              </span>
-            )}
+          <img
+              src={hasValidPhoto() ? user!.photo! : getPlaceholderImage()}
+              alt="User profile"
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                e.currentTarget.src = getPlaceholderImage(); // Fallback to placeholder
+              }}
+            />
             {/* Edit Button - Always Available */}
             <label
               htmlFor="photo-upload"
@@ -123,7 +120,7 @@ export default function UserMetaCard() {
               <input
                 type="file"
                 id="photo-upload"
-                key={fileInputKey} // Reset input after upload
+                key={fileInputKey}
                 accept=".jpg,.jpeg,.png"
                 onChange={handleImageUpload}
                 className="hidden"
@@ -133,7 +130,7 @@ export default function UserMetaCard() {
           </div>
           <div className="order-3 xl:order-2">
             <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
-              {user?.name}
+              {user?.name || "Unknown User"}
             </h4>
             <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
               <p className="text-sm text-gray-500 dark:text-gray-400">
@@ -141,7 +138,7 @@ export default function UserMetaCard() {
               </p>
               <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
               <p className="text-sm text-gray-500 dark:text-gray-400">
-                {localStorage.getItem("city")}
+                {localStorage.getItem("city") || "Unknown City"}
               </p>
             </div>
           </div>

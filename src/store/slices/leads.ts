@@ -56,7 +56,7 @@ export const fetchLeads = createAsyncThunk(
     try {
       const { property_for } = filters;
       const promise = axiosIstance.get<LeadsResponse>(
-        "/listings/getAllLeads",
+        "/listings/v1/getAllLeads",
         {
           params: {
             property_for,

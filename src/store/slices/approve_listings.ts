@@ -134,7 +134,7 @@ export const getAllApprovedListing = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.get<ListingsResponse>(
-        "/listings/getAllListings");
+        "/listings/v1/getAllListings");
 
       toast.promise(promise, {
         loading: "Fetching approved listings...",

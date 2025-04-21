@@ -74,7 +74,7 @@ const ServerStatusCheck: React.FC<{ children: React.ReactNode }> = ({ children }
   useEffect(() => {
     const checkServerStatus = async () => {
       try {
-        await axiosInstance.get("/user/getAllUsersCount"); 
+        await axiosInstance.get("/user/v1/getAllUsersCount"); 
         setServerDown(false);
       } catch (error) {
         setServerDown(true);

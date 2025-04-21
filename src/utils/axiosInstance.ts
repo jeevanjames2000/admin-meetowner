@@ -4,7 +4,7 @@ import axios from "axios";
 
 
 const axiosIstance = axios.create({
-    baseURL:"https://testapi.meetowner.in/"
+    baseURL:"https://api.meetowner.in/"
 })
 
 export default axiosIstance;

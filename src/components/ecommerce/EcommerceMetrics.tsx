@@ -2,7 +2,6 @@ import { useEffect } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { getAllUsersCount } from "../../store/slices/authSlice";
 import { RootState, AppDispatch } from "../../store/store";
-
 import { GroupIcon } from "../../icons";
 import { BoxIconLine } from "../../icons";
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
@@ -28,34 +27,34 @@ const userTypeMap: { [key: string]: string } = {
 // Define allowed user types for each user_type
 const allowedUserTypes: { [key: string]: string[] } = {
   "1": Object.keys(userTypeMap), // Admin sees all
-  "7": ["2", "3", "4", "5", "6", "8", "9", "10", "11"], // Channel Partners, Agents, Users, Marketing Executives, Telecallers, Customer Support, Customer Service //manager
-  "9": ["3", "4", "6"], // Channel Partners, Agents, Builders
+  "7": ["2", "3", "4", "5", "6", "8", "9", "10", "11"], // Manager
+  "9": ["3", "4", "6"], // Marketing Executive
+  "3": ["3", "4", "6"], // Marketing Executive
+  "4": ["3", "4", "6"], // Marketing Executive
+  "5": ["3", "4", "6"], // Marketing Executive
 };
 
-// Define a type for the user count item
 interface UserCountItem {
   user_type: string;
   count: number;
-  trend?: "up" | "down";
-  percentage?: number;
 }
 
 export default function Home() {
   const dispatch = useDispatch<AppDispatch>();
   const { userCounts, loading, error, user } = useSelector((state: RootState) => state.auth);
-  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
+  const userType = user?.user_type?.toString();
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!userCounts) {
+    if (!userCounts && !loading && !error) {
       dispatch(getAllUsersCount());
     }
-  }, [dispatch, userCounts]);
+  }, [dispatch, userCounts, loading, error]);
 
-  // Handle card click (only for non-"Total" user types)
   const handleCardClick = (item: UserCountItem) => {
-    console.log(`Clicked on ${userTypeMap[item.user_type]} with count ${item.count}`);
-    navigate(`/basic-tables-one?userType=${item.user_type}`);
+    if (item.user_type !== "Total") {
+      navigate(`/basic-tables-one?userType=${item.user_type}`);
+    }
   };
 
   // Filter user counts based on the logged-in user's user_type
@@ -72,24 +71,25 @@ export default function Home() {
     (item) => !ownerEmployeesUserTypes.includes(item.user_type)
   );
 
-  if (loading) return <div>Loading...</div>;
-  if (error) return <div>Error: {error}</div>;
+  if (loading) return <div className="p-6">Loading...</div>;
+  if (error) return <div className="p-6 text-red-500">Error: {error}</div>;
 
   return (
     <div className="p-6">
       <h1 className="mb-4 text-2xl font-semibold text-[#1D3A76] dark:text-white">
-        Welcome {user?.name}!
+        Welcome {user?.name || "User"}!
       </h1>
       <h1 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white">
         Dashboard
       </h1>
+
       {/* Row for Other User Types */}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {otherUserCounts && otherUserCounts.length > 0 ? (
           otherUserCounts.map((item, index) => (
             <div
               key={item.user_type}
-              onClick={item.user_type !== "Total" ? () => handleCardClick(item) : undefined}
+              onClick={() => handleCardClick(item)}
               className={`rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 ${
                 item.user_type !== "Total" ? "cursor-pointer hover:shadow-lg" : "cursor-default"
               } transition-shadow duration-200`}
@@ -110,6 +110,7 @@ export default function Home() {
                     {item.count.toLocaleString()}
                   </h4>
                 </div>
+                {/* Mock trend and percentage since not provided by API */}
                 <Badge color={index % 2 === 0 ? "success" : "error"}>
                   {index % 2 === 0 ? <ArrowUpIcon /> : <ArrowDownIcon />}
                   {index % 2 === 0 ? "5" : "3"}%
@@ -118,8 +119,8 @@ export default function Home() {
             </div>
           ))
         ) : (
-          <p className="text-gray-500 dark:text-gray-400">
-            No user count data available.
+          <p className="text-gray-500 dark:text-gray-400 col-span-full">
+            No user count data available for your role.
           </p>
         )}
       </div>
@@ -128,15 +129,13 @@ export default function Home() {
       {ownerEmployeesCounts && ownerEmployeesCounts.length > 0 && (
         <div className="mt-6">
           <h2 className="m-4 text-2xl font-semibold text-gray-800 dark:text-white underline decoration-[#1D3A76] dark:decoration-white">
-        Meet Owner Employees
-      </h2>
-
-
+            Meet Owner Employees
+          </h2>
           <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
             {ownerEmployeesCounts.map((item, index) => (
               <div
                 key={item.user_type}
-                onClick={item.user_type !== "Total" ? () => handleCardClick(item) : undefined}
+                onClick={() => handleCardClick(item)}
                 className={`rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] md:p-6 ${
                   item.user_type !== "Total" ? "cursor-pointer hover:shadow-lg" : "cursor-default"
                 } transition-shadow duration-200`}
@@ -167,8 +166,6 @@ export default function Home() {
           </div>
         </div>
       )}
-
-      
     </div>
   );
 }

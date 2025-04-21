@@ -1,47 +1,58 @@
-import { AuthState } from "../store/slices/authSlice";
+import { AuthState, isTokenExpired } from "../store/slices/authSlice";
 
 export const initializeAuthState = (): AuthState => {
-  const token = localStorage.getItem('token');
-  const name = localStorage.getItem('name');
-  const userType = localStorage.getItem('userType');
-  const email = localStorage.getItem('email');
-  const mobile = localStorage.getItem('mobile');
-  const city = localStorage.getItem('city');
-  const state = localStorage.getItem('state');
-  const userId = localStorage.getItem('userId');
-  const photo = localStorage.getItem('photo')!;
+  const token = localStorage.getItem("token");
+  const name = localStorage.getItem("name");
+  const userType = localStorage.getItem("userType");
+  const email = localStorage.getItem("email");
+  const mobile = localStorage.getItem("mobile");
+  const city = localStorage.getItem("city");
+  const state = localStorage.getItem("state");
+  const userId = localStorage.getItem("userId");
+  const photo = localStorage.getItem("photo");
 
-  if (token && name && userType && email && mobile && city && state && userId) {
+  // Required fields: token, name, userType, userId
+  if (token && name && userType && userId && !isTokenExpired(token)) {
     return {
       isAuthenticated: true,
       user: {
         user_id: parseInt(userId),
         name,
         user_type: parseInt(userType),
-        email,
-        mobile,
-        state,
-        city,
-        pincode: '', // Add default value or get from localStorage if needed
-        status: 0,   // Default value
-        created_userID: 0, // Default value
-        created_by: '' ,
-        photo,   // Default empty string
+        email: email || "",
+        mobile: mobile || "",
+        state: state || "",
+        city: city || "",
+        pincode: "",
+        status: 0,
+        created_userID: 0,
+        created_by: "",
+        photo: photo || "",
       },
       token,
       loading: false,
       error: null,
-      userCounts: null
+      userCounts: null,
     };
   }
 
-  // If no token exists or any required field is missing
+  // Clear authentication-related localStorage items only if token is invalid or missing
+  localStorage.removeItem("token");
+  localStorage.removeItem("name");
+  localStorage.removeItem("userType");
+  localStorage.removeItem("email");
+  localStorage.removeItem("mobile");
+  localStorage.removeItem("city");
+  localStorage.removeItem("state");
+  localStorage.removeItem("userId");
+  localStorage.removeItem("photo");
+
   return {
     isAuthenticated: false,
     user: null,
     token: null,
     loading: false,
     error: null,
-    userCounts: null
+    userCounts: null,
   };
 };

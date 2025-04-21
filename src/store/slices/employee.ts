@@ -86,7 +86,7 @@ export const createEmployee = createAsyncThunk(
   async (employeeData: Employee, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.post<EmployeeResponse>(
-        "/user/createUser",
+        "/user/v1/createUser",
         employeeData
       );
 
@@ -128,7 +128,7 @@ export const updateEmployee = createAsyncThunk(
   async (employeeData: Employee, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.post<EmployeeResponse>(
-        "/user/updateUser",
+        "/user/v1/updateUser",
         employeeData
       );
 
@@ -170,7 +170,7 @@ export const fetchAllEmployees = createAsyncThunk(
   async (userId: number, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.get<GetAllEmployeesResponse>(
-        `/user/getAllEmp/${userId}`,
+        `/user/v1/getAllEmp/${userId}`,
        
       );
       return response.data;
@@ -202,7 +202,7 @@ export const deleteEmployee = createAsyncThunk(
   "employee/deleteEmployee",
   async (employeeId: number, { rejectWithValue }) => {
     try {
-      const promise = axiosInstance.delete<EmployeeResponse>("/user/deleteUser", {
+      const promise = axiosInstance.delete<EmployeeResponse>("/user/v1/deleteUser", {
         data: { id: employeeId }, // Pass the id in the request body
       });
 

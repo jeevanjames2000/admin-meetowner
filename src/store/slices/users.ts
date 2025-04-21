@@ -80,7 +80,7 @@ export const fetchUsersByType = createAsyncThunk(
     try {
       const { user_type } = filter;
       const promise = axiosIstance.get<UsersResponse>(
-        "/user/getAllUsersByType",
+        "/user/v1/getAllUsersByType",
         {
           params: {
             user_type,

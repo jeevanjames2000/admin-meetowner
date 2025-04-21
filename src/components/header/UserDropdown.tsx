@@ -33,15 +33,14 @@ export default function UserDropdown() {
     navigate('/signin');
   }
 
-  const getInitial = () => {
-    if (user?.name) {
-      return user.name.charAt(0).toUpperCase();
-    }
-    return "?"; // Fallback if no name is available
-  };
+
 
   const hasValidPhoto = () => {
     return user?.photo && user.photo !== "null" && user.photo !== null;
+  };
+  const getPlaceholderImage = (): string => {
+    const name = user?.name || "User";
+    return `https://placehold.co/100x100?text=${encodeURIComponent(name[0]?.toUpperCase() || "U")}`;
   };
 
   return (
@@ -51,24 +50,14 @@ export default function UserDropdown() {
         className="flex items-center text-gray-700 dropdown-toggle dark:text-gray-400"
       >
           <span className="mr-3 overflow-hidden rounded-full h-11 w-11 flex items-center justify-center bg-gray-200 dark:bg-gray-700">
-          {hasValidPhoto() ? (
-            <img
-              src={user?.photo}
-              alt="User"
+          <img
+              src={hasValidPhoto() ? user!.photo! : getPlaceholderImage()}
+              alt="User profile"
               className="w-full h-full object-cover"
               onError={(e) => {
-                e.currentTarget.style.display = "none"; // Hide image
-               
+                e.currentTarget.src = getPlaceholderImage(); // Fallback to placeholder
               }}
             />
-          ) : null}
-          <span
-            className={`text-xl font-medium text-gray-600 dark:text-gray-300 ${
-              hasValidPhoto() ? "hidden" : "flex items-center justify-center"
-            }`}
-          >
-            {getInitial()}
-          </span>
         </span>
         <span className="block mr-1 font-medium text-theme-sm">{user?.name}</span>
         <svg
