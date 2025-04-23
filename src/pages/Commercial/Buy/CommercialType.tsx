@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect, ChangeEvent, FormEvent, useCallback } from "react";
+import { useState, useRef, useEffect, ChangeEvent, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams, useLocation } from "react-router";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
@@ -15,10 +15,9 @@ import Button from "../../../components/ui/button/Button";
 import { fetchListings, ListingState, updatePropertyStatus } from "../../../store/slices/listings";
 import { AppDispatch, RootState } from "../../../store/store";
 import { TableLoader } from "../../../components/Loaders/LoadingLisings";
-
 import LeadPullModal from "../../../components/common/LeadPullModal";
 import ConfirmDeleteModal from "../../../components/common/ConfirmDeleteModal";
-import useFormatDateTime from "../../../hooks/useFormatDateTime";
+import ConfirmStatusModal from "../../../components/common/ConfirmStatusModal"; // Add this import
 
 const statusMap: { [key: number]: string } = {
   0: "Review",
@@ -54,7 +53,7 @@ interface LeadPullFormData {
   mobile: string;
   email: string;
   name: string;
-  sourceType:string;
+  sourceType: string;
 }
 
 const CommercialTypes: React.FC = () => {
@@ -64,15 +63,16 @@ const CommercialTypes: React.FC = () => {
   const [localPage, setLocalPage] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [initialSearch, setInitialSearch] = useState<string>("");
- 
   const [isLeadModalOpen, setIsLeadModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false); // New state for status modal
+  const [statusAction, setStatusAction] = useState<"approve" | "reject" | null>(null); // New state for action type
   const [selectedProperty, setSelectedProperty] = useState<{ id: string; name: string } | null>(null);
   const [leadPullFormData, setLeadPullFormData] = useState<LeadPullFormData>({
     mobile: "",
     email: "",
     name: "",
-    sourceType:""
+    sourceType: "",
   });
   const [formErrors, setFormErrors] = useState<Partial<LeadPullFormData>>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -85,7 +85,6 @@ const CommercialTypes: React.FC = () => {
   const { listings, loading, error, totalCount, currentPage, currentCount, totalPages } = useSelector(
     (state: RootState) => state.listings as ListingState
   );
-  const { formatDateTime } = useFormatDateTime();
 
   const excludedUserTypes = [9, 10, 11];
 
@@ -112,8 +111,6 @@ const CommercialTypes: React.FC = () => {
     const baseTitle = `Commercial ${property_for === "buy" ? "Sell" : "Rent"}`;
     return `${baseTitle} ${statusMap[parseInt(status || "0", 10)] || "Unknown"}`;
   };
-
- 
 
   useEffect(() => {
     const filters = {
@@ -178,16 +175,64 @@ const CommercialTypes: React.FC = () => {
     }
   }, [dispatch, selectedProperty]);
 
-  const handleApprove = (unique_property_id: string) => {
-    const property_status = parseInt(status || "0", 10) === 0 ? 1 : 2;
-    dispatch(updatePropertyStatus({ property_status, unique_property_id }))
-      .unwrap()
-      .then(() => setRefreshTrigger((prev) => prev + 1))
-      .catch((err) => console.error("Status update failed:", err));
+  const handleApprove = useCallback((unique_property_id: string, property_name: string) => {
+    setSelectedProperty({ id: unique_property_id, name: property_name });
+    setStatusAction(parseInt(status || "0", 10) === 0 ? "approve" : "reject");
+    setIsStatusModalOpen(true);
     setDropdownOpen(null);
-  };
+  }, [status]);
 
+  const confirmStatusChange = useCallback(() => {
+    if (selectedProperty && statusAction) {
+      const property_status = statusAction === "approve" ? 1 : 2;
+      dispatch(updatePropertyStatus({ property_status, unique_property_id: selectedProperty.id }))
+        .unwrap()
+        .then(() => setRefreshTrigger((prev) => prev + 1))
+        .catch((err) => console.error("Status update failed:", err));
+      setIsStatusModalOpen(false);
+      setSelectedProperty(null);
+      setStatusAction(null);
+    }
+  }, [dispatch, selectedProperty, statusAction]);
 
+  const handleLead = useCallback(() => {
+    setIsLeadModalOpen(true);
+    setDropdownOpen(null);
+  }, []);
+
+  const validateLeadPullForm = useCallback((): boolean => {
+    const newErrors: Partial<LeadPullFormData> = {};
+
+    if (!leadPullFormData.mobile) {
+      newErrors.mobile = "Mobile number is required";
+    } else if (!/^\d{10}$/.test(leadPullFormData.mobile)) {
+      newErrors.mobile = "Mobile number must be exactly 10 digits";
+    }
+
+    if (!leadPullFormData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadPullFormData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+
+    if (!leadPullFormData.name) {
+      newErrors.name = "Name is required";
+    }
+
+    setFormErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  }, [leadPullFormData]);
+
+  const handleLeadPullSubmit = useCallback((data: LeadPullFormData) => {
+    if (validateLeadPullForm()) {
+      console.log("Lead Pull Form Data:", data);
+      // Add your API call here to submit the lead pull data
+      alert("Lead pull submitted successfully!");
+      setIsLeadModalOpen(false);
+      setLeadPullFormData({ mobile: "", email: "", name: "", sourceType: "" });
+      setFormErrors({});
+    }
+  }, [validateLeadPullForm]);
 
   const handleSearch = (value: string) => {
     let searchValue = value.trim();
@@ -237,48 +282,6 @@ const CommercialTypes: React.FC = () => {
     setLeadPullFormData((prev) => ({ ...prev, [name]: value }));
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
-
-  
-  const handleLead = useCallback(() => {
-    setIsLeadModalOpen(true);
-    setDropdownOpen(null);
-  }, []);
-
-  const validateLeadPullForm = useCallback((): boolean => {
-    const newErrors: Partial<LeadPullFormData> = {};
-
-    if (!leadPullFormData.mobile) {
-      newErrors.mobile = "Mobile number is required";
-    } else if (!/^\d{10}$/.test(leadPullFormData.mobile)) {
-      newErrors.mobile = "Mobile number must be exactly 10 digits";
-    }
-
-    if (!leadPullFormData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(leadPullFormData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-
-    if (!leadPullFormData.name) {
-      newErrors.name = "Name is required";
-    }
-
-    setFormErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  }, [leadPullFormData]);
-
-
-  const handleLeadPullSubmit = useCallback((data: LeadPullFormData) => {
-    if (validateLeadPullForm()) {
-      console.log("Lead Pull Form Data:", data);
-      // Add your API call here to submit the lead pull data
-      alert("Lead pull submitted successfully!");
-      setIsLeadModalOpen(false);
-      setLeadPullFormData({ mobile: "", email: "", name: "", sourceType: "" });
-      setFormErrors({});
-    }
-  }, [validateLeadPullForm]);
-  
 
   return (
     <div className="relative min-h-screen">
@@ -363,8 +366,7 @@ const CommercialTypes: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                           
-                          {`${item.updated_date! ? item.updated_date! : "N/A"} - ${item.updated_time! ? item.updated_time! : "N/A"}`}
+                            {`${item.updated_date ? item.updated_date : "N/A"} - ${item.updated_time ? item.updated_time : "N/A"}`}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                             {item.location_id}
@@ -384,11 +386,12 @@ const CommercialTypes: React.FC = () => {
                                 <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
                                   <button onClick={() => handleEdit(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</button>
                                   {/* <button onClick={() => handleDelete(item.unique_property_id, item.property_name || "this property")} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button> */}
-                                  <button onClick={() => handleApprove(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-
+                                  <button
+                                    onClick={() => handleApprove(item.unique_property_id, item.property_name || "this property")}
+                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  >
                                     {parseInt(status || "0", 10) === 0 ? "Approve" : "Reject"}
                                   </button>
-                                 
                                   {parseInt(status || "0", 10) === 1 && (
                                     <button onClick={() => handleLead()} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Lead Pull</button>
                                   )}
@@ -447,12 +450,10 @@ const CommercialTypes: React.FC = () => {
               )}
             </ComponentCard>
           </div>
-         
-         
         </>
       )}
 
-    <LeadPullModal
+      <LeadPullModal
         isOpen={isLeadModalOpen}
         onClose={() => {
           setIsLeadModalOpen(false);
@@ -464,13 +465,24 @@ const CommercialTypes: React.FC = () => {
         formErrors={formErrors}
         onInputChange={handleInputChange}
       />
-     <ConfirmDeleteModal
+      <ConfirmDeleteModal
         isOpen={isDeleteModalOpen}
         propertyName={selectedProperty?.name || ""}
         onConfirm={confirmDelete}
         onCancel={() => {
           setIsDeleteModalOpen(false);
           setSelectedProperty(null);
+        }}
+      />
+      <ConfirmStatusModal
+        isOpen={isStatusModalOpen}
+        propertyName={selectedProperty?.name || ""}
+        action={statusAction || "approve"} // Fallback to "approve" if null
+        onConfirm={confirmStatusChange}
+        onCancel={() => {
+          setIsStatusModalOpen(false);
+          setSelectedProperty(null);
+          setStatusAction(null);
         }}
       />
     </div>

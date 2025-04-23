@@ -18,7 +18,8 @@ import { TableLoader } from "../../../components/Loaders/LoadingLisings";
 
 import LeadPullModal from "../../../components/common/LeadPullModal";
 import ConfirmDeleteModal from "../../../components/common/ConfirmDeleteModal";
-import useFormatDateTime from "../../../hooks/useFormatDateTime";
+import ConfirmStatusModal from "../../../components/common/ConfirmStatusModal";
+
 
 // Define the type for the lead pull form data
 interface LeadPullFormData {
@@ -66,6 +67,9 @@ const ResidentialTypes: React.FC = () => {
   const [initialSearch, setInitialSearch] = useState<string>("");
   const [isLeadModalOpen, setIsLeadModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+ 
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
+  const [statusAction, setStatusAction] = useState<"approve" | "reject" | null>(null);
   const [selectedProperty, setSelectedProperty] = useState<{ id: string; name: string } | null>(null);
 
   const [leadPullFormData, setLeadPullFormData] = useState<LeadPullFormData>({
@@ -85,7 +89,7 @@ const ResidentialTypes: React.FC = () => {
   const { listings, loading, error, totalCount, currentPage, currentCount, totalPages } = useSelector(
     (state: RootState) => state.listings as ListingState
   );
-  const { formatDateTime } = useFormatDateTime();
+
 
   const excludedUserTypes = [9, 10, 11];
 
@@ -178,14 +182,25 @@ const ResidentialTypes: React.FC = () => {
     }
   }, [dispatch, selectedProperty]);
 
-  const handleApprove = (unique_property_id: string) => {
-    const property_status = parseInt(status || "0", 10) === 0 ? 1 : 2;
-    dispatch(updatePropertyStatus({ property_status, unique_property_id }))
-      .unwrap()
-      .then(() => setRefreshTrigger((prev) => prev + 1))
-      .catch((err) => console.error("Status update failed:", err));
+  const handleApprove = useCallback((unique_property_id: string, property_name: string) => {
+    setSelectedProperty({ id: unique_property_id, name: property_name });
+    setStatusAction(parseInt(status || "0", 10) === 0 ? "approve" : "reject");
+    setIsStatusModalOpen(true);
     setDropdownOpen(null);
-  };
+  }, [status]);
+
+  const confirmStatusChange = useCallback(() => {
+    if (selectedProperty && statusAction) {
+      const property_status = statusAction === "approve" ? 1 : 2;
+      dispatch(updatePropertyStatus({ property_status, unique_property_id: selectedProperty.id }))
+        .unwrap()
+        .then(() => setRefreshTrigger((prev) => prev + 1))
+        .catch((err) => console.error("Status update failed:", err));
+      setIsStatusModalOpen(false);
+      setSelectedProperty(null);
+      setStatusAction(null);
+    }
+  }, [dispatch, selectedProperty, statusAction]);
 
   const handleLead = useCallback(() => {
     setIsLeadModalOpen(true);
@@ -385,9 +400,12 @@ const ResidentialTypes: React.FC = () => {
                                 <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
                                   <button onClick={() => handleEdit(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</button>
                                   {/* <button onClick={() => handleDelete(item.unique_property_id, item.property_name || "this property")} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button> */}
-                                  <button onClick={() => handleApprove(item.unique_property_id)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">
-                                    {parseInt(status || "0", 10) === 0 ? "Approve" : "Reject"}
-                                  </button>
+                                  <button
+                                  onClick={() => handleApprove(item.unique_property_id, item.property_name || "this property")}
+                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                  {parseInt(status || "0", 10) === 0 ? "Approve" : "Reject"}
+                                </button>
                                   {parseInt(status || "0", 10) === 1 && (
                                     <button onClick={() => handleLead()} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Lead Pull</button>
                                   )}
@@ -468,6 +486,17 @@ const ResidentialTypes: React.FC = () => {
         onCancel={() => {
           setIsDeleteModalOpen(false);
           setSelectedProperty(null);
+        }}
+      />
+      <ConfirmStatusModal
+        isOpen={isStatusModalOpen}
+        propertyName={selectedProperty?.name || ""}
+        action={statusAction || "approve"} // Fallback to "approve" if null
+        onConfirm={confirmStatusChange}
+        onCancel={() => {
+          setIsStatusModalOpen(false);
+          setSelectedProperty(null);
+          setStatusAction(null);
         }}
       />
 
