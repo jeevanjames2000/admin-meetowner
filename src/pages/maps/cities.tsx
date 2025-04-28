@@ -80,7 +80,19 @@ const CitiesManager: React.FC = () => {
         {/* Form Section */}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* City */}
+       
+             <div>
+              <Label htmlFor="state">State</Label>
+              <Input
+                type="text"
+                id="state"
+                name="state"
+                value={formData.state}
+                onChange={handleInputChange}
+                className="dark:bg-dark-900"
+                placeholder="Enter state"
+              />
+            </div>
             <div>
               <Label htmlFor="city">City</Label>
               <Input
@@ -95,18 +107,7 @@ const CitiesManager: React.FC = () => {
             </div>
 
             {/* State */}
-            <div>
-              <Label htmlFor="state">State</Label>
-              <Input
-                type="text"
-                id="state"
-                name="state"
-                value={formData.state}
-                onChange={handleInputChange}
-                className="dark:bg-dark-900"
-                placeholder="Enter state"
-              />
-            </div>
+           
 
             {/* Status */}
             <div className="min-h-[80px]">
