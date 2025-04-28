@@ -1,69 +1,106 @@
-import React, { useState, useEffect, useRef } from "react";
-import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
+import React, { useState, useEffect, useRef, useCallback } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { AppDispatch, RootState } from "../../store"; // Adjust path to your store
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
+import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
-import { MoreVertical } from "lucide-react";
+import { MoreVertical, X } from "lucide-react";
 import Button from "../../components/ui/button/Button";
+import { fetchAds, clearAds, AdsState } from "../../store/slices/adSlice"; // Adjust path to adSlice
+import { toast } from "react-hot-toast";
 
-// Define the type for the ads data
+// Define the Ad interface (trimmed for brevity, use the full interface from adSlice)
 interface Ad {
-  slNo: number;
-  propertyId: string;
-  propertyName: string;
-  adsType: string;
-  city: string;
-  status: "Active" | "Suspended";
+  id: number;
+  unique_property_id: string;
+  property_name: string;
+  property_type: string | null;
+  google_address: string;
+  address: string | null;
+  property_cost: string;
+  monthly_rent: string | null;
+  admin_approved_status: string | null;
+  city_id: string;
 }
 
-// Place options (moved here for use in generateSampleAds)
-const placeOptions = [
-  { value: "best_deal", text: "Best Deal" },
-  { value: "best_meetowner", text: "Best MeetOwner" },
-  { value: "best_demanded", text: "Best Demanded Projects" },
-  { value: "meetowner_exclusive", text: "MeetOwner Exclusive" },
-  { value: "listing_side", text: "Listing Side Ad" },
-  { value: "property_view", text: "Property View" },
-  { value: "main_slider", text: "Main Slider" },
-];
+// Simplified edit action (replace with actual API call in your app)
+const editAd = (payload: {
+  id: number;
+  property_name: string;
+  property_type: string;
+  google_address: string;
+}) => {
+  return async (dispatch: AppDispatch) => {
+    try {
+      // Simulate API call (replace with actual axiosInstance.put call)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success("Ad updated successfully!");
+      return { success: true };
+    } catch (error) {
+      toast.error("Failed to update ad");
+      throw error;
+    }
+  };
+};
 
-// Generate 30 sample ads using placeOptions
-const generateSampleAds = (): Ad[] => {
-  const adsTypes = placeOptions.map((option) => option.text); // Use text from placeOptions
-  const cities = ["Hyderabad", "Bangalore", "Mumbai", "Delhi", "Chennai"];
-  const propertyNames = [
-    "Sunrise Villa", "Green Meadows", "Ocean Breeze", "Skyline Towers", "Golden Nest",
-    "Palm Grove", "Riverfront Residency", "Hilltop Haven", "Urban Oasis", "Lakeview Apartments",
-    "Starlight Residency", "Moonlit Gardens", "Crystal Palace", "Emerald Heights", "Serenity Homes",
-    "Majestic Manor", "Twilight Towers", "Harmony Homes", "Blissful Bungalows", "Paradise Plaza",
-    "Silver Springs", "Golden Horizon", "Tranquil Terrace", "Elite Estates", "Royal Residency",
-    "Vibrant Villas", "Lush Landscapes", "Pinnacle Properties", "Zenith Zones", "Dream Dwellings",
-  ];
-
-  const data: Ad[] = [];
-  for (let i = 1; i <= 30; i++) {
-    data.push({
-      slNo: i,
-      propertyId: `PROP${String(i).padStart(4, "0")}`,
-      propertyName: propertyNames[i - 1],
-      adsType: adsTypes[Math.floor(Math.random() * adsTypes.length)],
-      city: cities[Math.floor(Math.random() * cities.length)],
-      status: Math.random() > 0.5 ? "Active" : "Suspended",
-    });
-  }
-  return data;
+// Simplified delete action (replace with actual API call in your app)
+const deleteAd = (id: number) => {
+  return async (dispatch: AppDispatch) => {
+    try {
+      // Simulate API call (replace with actual axiosInstance.delete call)
+      await new Promise((resolve) => setTimeout(resolve, 1000));
+      toast.success("Ad deleted successfully!");
+      return { success: true };
+    } catch (error) {
+      toast.error("Failed to delete ad");
+      throw error;
+    }
+  };
 };
 
 const AllAdsPage: React.FC = () => {
-  const [adsList, setAdsList] = useState<Ad[]>(generateSampleAds());
-  const [filteredAds, setFilteredAds] = useState<Ad[]>(adsList);
-  const [searchQuery, setSearchQuery] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [activeMenu, setActiveMenu] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const adsPerPage = 10;
+  const dispatch = useDispatch<AppDispatch>();
+  const { ads, loading, error } = useSelector((state: RootState) => state.ads) as AdsState;
 
-  // Handle clicking outside the dropdown to close it
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [adsPerPage] = useState(10);
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
+  const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const [editModalOpen, setEditModalOpen] = useState<boolean>(false);
+  const [selectedAd, setSelectedAd] = useState<Ad | null>(null);
+  const [newPropertyName, setNewPropertyName] = useState<string>("");
+  const [newPropertyType, setNewPropertyType] = useState<string>("");
+  const [newGoogleAddress, setNewGoogleAddress] = useState<string>("");
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
+  // Debounce search input
+  const debounce = <F extends (...args: any[]) => void>(func: F, wait: number) => {
+    let timeout: NodeJS.Timeout | null = null;
+    return (...args: Parameters<F>) => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => func(...args), wait);
+    };
+  };
+
+  const handleDebouncedSearch = useCallback(
+    debounce((query: string) => setDebouncedSearchQuery(query), 1000),
+    []
+  );
+
+  const handleSearch = (query: string) => {
+    setSearchQuery(query);
+    handleDebouncedSearch(query);
+  };
+
+  // Fetch ads with search and pagination
+  useEffect(() => {
+    dispatch(fetchAds()); // Modify fetchAds to accept search/page params if needed
+  }, [dispatch, currentPage, debouncedSearchQuery]);
+
+  // Handle click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -71,269 +108,361 @@ const AllAdsPage: React.FC = () => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
-    };
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Handle search (moved to PageBreadcrumbList via onFilter)
-  const handleSearch = (query: string) => {
-    setSearchQuery(query);
-    const lowerQuery = query.toLowerCase();
-    const filtered = adsList.filter(
-      (ad) =>
-        ad.propertyId.toLowerCase().includes(lowerQuery) ||
-        ad.propertyName.toLowerCase().includes(lowerQuery) ||
-        ad.city.toLowerCase().includes(lowerQuery) ||
-        ad.adsType.toLowerCase().includes(lowerQuery)
-    );
-    setFilteredAds(filtered);
-    setCurrentPage(1); // Reset to first page on search
-  };
+  // Handle error
+  useEffect(() => {
+    if (error) toast.error(error);
+  }, [error]);
 
-  // Pagination logic
+  // Clean up on unmount
+  useEffect(() => {
+    return () => {
+      dispatch(clearAds());
+    };
+  }, [dispatch]);
+
+  // Filter ads based on search query
+  const filteredAds = ads.filter(
+    (ad) =>
+      ad.property_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      ad.google_address.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
+      ad.property_type?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
+  );
+
+  // Pagination calculations
   const totalPages = Math.ceil(filteredAds.length / adsPerPage);
   const indexOfLastAd = currentPage * adsPerPage;
   const indexOfFirstAd = indexOfLastAd - adsPerPage;
   const currentAds = filteredAds.slice(indexOfFirstAd, indexOfLastAd);
 
+  // Handle page change
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
-      setActiveMenu(null); // Close any open menus
+      setActiveMenu(null);
     }
   };
 
-  const toggleMenu = (propertyId: string) => {
-    setActiveMenu(activeMenu === propertyId ? null : propertyId);
+  // Dynamic pagination items
+  const getPaginationItems = () => {
+    const pages: (number | string)[] = [];
+    const totalVisiblePages = 5;
+    let startPage = Math.max(1, currentPage - Math.floor(totalVisiblePages / 2));
+    const endPage = Math.min(totalPages, startPage + totalVisiblePages - 1);
+    if (endPage - startPage + 1 < totalVisiblePages) {
+      startPage = Math.max(1, endPage - totalVisiblePages + 1);
+    }
+    if (startPage > 1) pages.push(1);
+    if (startPage > 2) pages.push("...");
+    for (let i = startPage; i <= endPage; i++) pages.push(i);
+    if (endPage < totalPages - 1) pages.push("...");
+    if (endPage < totalPages) pages.push(totalPages);
+    return pages;
   };
 
-  const handleEdit = (propertyId: string) => {
-    console.log(`Edit ad with Property ID: ${propertyId}`);
+  // Toggle dropdown menu
+  const toggleMenu = (id: number) => {
+    setActiveMenu(activeMenu === id ? null : id);
+  };
+
+  // Handle edit
+  const handleEdit = (id: number) => {
+    const ad = ads.find((a) => a.id === id);
+    if (ad) {
+      setSelectedAd(ad);
+      setNewPropertyName(ad.property_name);
+      setNewPropertyType(ad.property_type || "");
+      setNewGoogleAddress(ad.google_address);
+      setEditModalOpen(true);
+    }
     setActiveMenu(null);
   };
 
-  const handleDelete = (propertyId: string) => {
-    setAdsList(adsList.filter((ad) => ad.propertyId !== propertyId));
-    setActiveMenu(null);
+  // Handle edit submit
+  const handleEditSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selectedAd) return;
+    const payload = {
+      id: selectedAd.id,
+      property_name: newPropertyName,
+      property_type: newPropertyType,
+      google_address: newGoogleAddress,
+    };
+    try {
+      await dispatch(editAd(payload)).unwrap();
+      setEditModalOpen(false);
+      dispatch(fetchAds()); // Refresh ads
+    } catch (err) {
+      toast.error("Failed to update ad");
+    }
   };
 
-  const handleStatusChange = (ad: Ad) => {
-    setAdsList(
-      adsList.map((item) =>
-        item.propertyId === ad.propertyId
-          ? { ...item, status: item.status === "Active" ? "Suspended" : "Active" }
-          : item
-      )
+  // Handle delete
+  const handleDelete = async (id: number) => {
+    const ad = ads.find((a) => a.id === id);
+    if (!ad) return;
+    const confirmDelete = window.confirm(
+      `Are you sure you want to delete ${ad.property_name}?`
     );
+    if (!confirmDelete) return;
+    try {
+      await dispatch(deleteAd(id)).unwrap();
+      dispatch(fetchAds()); // Refresh ads
+    } catch (err) {
+      toast.error("Failed to delete ad");
+    }
     setActiveMenu(null);
   };
 
-  if (!filteredAds || filteredAds.length === 0) {
+  if (error && !loading && ads.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-          No Ads Available
+        <h2 className="text-2xl font-bold text-red-600 dark:text-red-400">
+          No ads found
         </h2>
       </div>
     );
   }
-
+ const formatToIndianCurrency = (value) => {
+      if (!value || isNaN(value)) return "N/A";
+      const numValue = parseFloat(value);
+      if (numValue >= 10000000) return (numValue / 10000000).toFixed(2) + " Cr";
+      if (numValue >= 100000) return (numValue / 100000).toFixed(2) + " L";
+      if (numValue >= 1000) return (numValue / 1000).toFixed(2) + " K";
+      return numValue.toString();
+    };
   return (
     <div className="relative min-h-screen">
       <div>
         <PageMeta title="Meet owner All Ads" />
-        <PageBreadcrumbList
+        <PageBreadcrumb
           pageTitle="All Ads"
-          pagePlacHolder="Search by Property ID, Name, City, or Ads Type"
-          onFilter={handleSearch} // Pass search handler
+          pagePlacHolder="Search by Property Name, Type, Address"
+          onFilter={handleSearch}
+          persistSearch={true}
         />
         <div className="space-y-6">
-          {/* Removed Search Bar from here */}
           <ComponentCard title="All Ads">
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
               <div className="max-w-full overflow-x-auto">
                 <Table>
                   <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                     <TableRow>
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        Sl. No
-                      </TableCell>
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        Property ID
-                      </TableCell>
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        Property Name
-                      </TableCell>
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        Ads Type
-                      </TableCell>
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        City
-                      </TableCell>
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        Status
-                      </TableCell>
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        Actions
-                      </TableCell>
+                      {["ID", "Property Name", "Type", "Location", "Price", "Status", "Actions"].map((header) => (
+                        <TableCell
+                          key={header}
+                          isHeader
+                          className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                        >
+                          {header}
+                        </TableCell>
+                      ))}
                     </TableRow>
                   </TableHeader>
                   <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                    {currentAds.map((ad) => (
-                      <TableRow key={ad.propertyId}>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {ad.slNo}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {ad.propertyId}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {ad.propertyName}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          <span
-                            className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                              ad.adsType === "Best Deal"
-                                ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                                : ad.adsType === "Best MeetOwner"
-                                ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                                : ad.adsType === "Best Demanded Projects"
-                                ? "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                                : ad.adsType === "MeetOwner Exclusive"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                : ad.adsType === "Listing Side Ad"
-                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                                : ad.adsType === "Property View"
-                                ? "bg-pink-100 text-pink-800 dark:bg-pink-900 dark:text-pink-200"
-                                : "bg-teal-100 text-teal-800 dark:bg-teal-900 dark:text-teal-200"
-                            }`}
-                          >
-                            {ad.adsType}
-                          </span>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {ad.city}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          <span
-                            className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                              ad.status === "Active"
-                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                            }`}
-                          >
-                            {ad.status}
-                          </span>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                          <Button
-                            variant="outline"
-                            size="sm"
-                            onClick={() => toggleMenu(ad.propertyId)}
-                          >
-                            <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
-                          </Button>
-                          {activeMenu === ad.propertyId && (
-                            <div
-                              ref={dropdownRef}
-                              className="absolute right-2 top-10 z-10 w-32 rounded-lg shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
-                            >
-                              <div className="py-2">
-                                <button
-                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  onClick={() => handleEdit(ad.propertyId)}
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  onClick={() => handleDelete(ad.propertyId)}
-                                >
-                                  Delete
-                                </button>
-                                <button
-                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  onClick={() => handleStatusChange(ad)}
-                                >
-                                  {ad.status === "Active" ? "Suspend" : "Activate"}
-                                </button>
-                              </div>
-                            </div>
-                          )}
+                    {loading ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="px-5 py-8 text-center text-gray-500 text-theme-sm dark:text-gray-400"
+                        >
+                          Loading...
                         </TableCell>
                       </TableRow>
-                    ))}
+                    ) : currentAds.length === 0 ? (
+                      <TableRow>
+                        <TableCell
+                          colSpan={7}
+                          className="px-5 py-8 text-center text-gray-500 text-theme-sm dark:text-gray-400"
+                        >
+                          No Ads Found!
+                        </TableCell>
+                      </TableRow>
+                    ) : (
+                      currentAds.map((ad,id) => (
+                        <TableRow key={ad.id}>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {id}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {ad.property_name}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {ad.other_info || "N/A"}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {ad.google_address || ad.address || "N/A"}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {formatToIndianCurrency(ad.property_cost) || formatToIndianCurrency(ad.monthly_rent) || "N/A"}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {ad.admin_approved_status || "Pending"}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => toggleMenu(ad.id)}
+                            >
+                              <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
+                            </Button>
+                            {activeMenu === ad.id && (
+                              <div
+                                ref={dropdownRef}
+                                className="absolute right-2 top-10 z-50 w-32 rounded-lg shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                              >
+                                <div className="py-2">
+                                  <button
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    onClick={() => handleEdit(ad.id)}
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                    onClick={() => handleDelete(ad.id)}
+                                  >
+                                    Delete
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </TableCell>
+                        </TableRow>
+                      ))
+                    )}
                   </TableBody>
                 </Table>
               </div>
             </div>
-
-            {/* Pagination */}
-            <div className="flex justify-between items-center mt-4">
-              <div className="text-sm text-gray-500 dark:text-gray-400">
-                Showing {indexOfFirstAd + 1} to{" "}
-                {Math.min(indexOfLastAd, filteredAds.length)} of {filteredAds.length}{" "}
-                ads
-              </div>
-              <div className="flex space-x-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage - 1)}
-                  disabled={currentPage === 1}
-                >
-                  Previous
-                </Button>
-                {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+            {filteredAds.length > adsPerPage && (
+              <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
+                <div className="text-sm text-gray-500 dark:text-gray-400">
+                  Showing {indexOfFirstAd + 1} to{" "}
+                  {Math.min(indexOfLastAd, filteredAds.length)} of {filteredAds.length} ads
+                </div>
+                <div className="flex gap-2 flex-wrap justify-center">
                   <Button
-                    key={page}
-                    variant={currentPage === page ? "primary" : "outline"}
+                    variant={currentPage === 1 ? "outline" : "primary"}
                     size="sm"
-                    onClick={() => handlePageChange(page)}
-                    className={
-                      currentPage === page
-                        ? "bg-[#1D3A76] text-white"
-                        : "text-gray-500"
-                    }
+                    onClick={() => handlePageChange(currentPage - 1)}
+                    disabled={currentPage === 1}
                   >
-                    {page}
+                    Previous
                   </Button>
-                ))}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => handlePageChange(currentPage + 1)}
-                  disabled={currentPage === totalPages}
-                >
-                  Next
-                </Button>
+                  {getPaginationItems().map((page, index) =>
+                    page === "..." ? (
+                      <span
+                        key={index}
+                        className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                      >
+                        ...
+                      </span>
+                    ) : (
+                      <Button
+                        key={page}
+                        variant={page === currentPage ? "primary" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(page)}
+                        className={
+                          page === currentPage
+                            ? "bg-[#1D3A76] text-white"
+                            : "text-gray-500"
+                        }
+                      >
+                        {page}
+                      </Button>
+                    )
+                  )}
+                  <Button
+                    variant={currentPage === totalPages ? "outline" : "primary"}
+                    size="sm"
+                    onClick={() => handlePageChange(currentPage + 1)}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                  </Button>
+                </div>
               </div>
-            </div>
+            )}
           </ComponentCard>
         </div>
       </div>
+      {editModalOpen && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                Edit Ad
+              </h2>
+              <button
+                onClick={() => setEditModalOpen(false)}
+                className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              >
+                <X className="size-6" />
+              </button>
+            </div>
+            <form onSubmit={handleEditSubmit}>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Property Name
+                </label>
+                <input
+                  type="text"
+                  value={newPropertyName}
+                  onChange={(e) => setNewPropertyName(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Property Type
+                </label>
+                <input
+                  type="text"
+                  value={newPropertyType}
+                  onChange={(e) => setNewPropertyType(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                />
+              </div>
+              <div className="mb-4">
+                <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+                  Address
+                </label>
+                <input
+                  type="text"
+                  value={newGoogleAddress}
+                  onChange={(e) => setNewGoogleAddress(e.target.value)}
+                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  required
+                />
+              </div>
+              <div className="flex justify-end space-x-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => setEditModalOpen(false)}
+                >
+                  Cancel
+                </Button>
+                <Button
+          type="submit"
+          variant="primary"
+          size="sm"
+          disabled={loading}
+          className={loading ? "opacity-50 cursor-not-allowed" : ""}
+        >
+          {loading ? "Saving..." : "Save"}
+        </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

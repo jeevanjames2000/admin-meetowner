@@ -7,14 +7,14 @@ import Input from "../../components/form/input/InputField";
 import MultiSelect from "../../components/form/MultiSelect";
 import { AppDispatch, RootState } from "../../store/store";
 import { getCities } from "../../store/slices/propertyDetails";
-
 import Switch from "../../components/form/switch/Switch";
 import PageMeta from "../../components/common/PageMeta";
 import { getAllApprovedListing } from "../../store/slices/approve_listings";
+import { createAd, AdsState } from "../../store/slices/adSlice";
+import { toast } from "react-hot-toast";
 
-// Define interfaces for form data and errors
 interface FormData {
-  name: string; // Keep as string for single selection (stores unique_property_id)
+  name: string; // Stores unique_property_id
   places: string[];
   media: File | null;
   order: string;
@@ -46,7 +46,8 @@ interface Option {
 export default function CreateAds() {
   const dispatch = useDispatch<AppDispatch>();
   const { cities } = useSelector((state: RootState) => state.property);
-  const { listings } = useSelector((state: RootState) => state.approved); // Access listings from Redux
+  const { listings } = useSelector((state: RootState) => state.approved);
+  const { createLoading, createError } = useSelector((state: RootState) => state.ads) as AdsState;
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -67,16 +68,22 @@ export default function CreateAds() {
   // Fetch cities and listings on mount
   useEffect(() => {
     dispatch(getCities());
-   
     dispatch(getAllApprovedListing());
   }, [dispatch]);
 
+  // Handle create error
+  useEffect(() => {
+    if (createError) {
+      toast.error(createError);
+    }
+  }, [createError]);
+
   // Options for places
   const placeOptions: Option[] = [
-    { value: "best_deal", text: "Best Deal" },
-    { value: "best_meetowner", text: "Best MeetOwner" },
+    { value: "best deal", text: "Best Deal" },
+    { value: "best meetowner", text: "Best MeetOwner" },
     { value: "best_demanded", text: "Best Demanded Projects" },
-    { value: "meetowner_exclusive", text: "MeetOwner Exclusive" },
+    { value: "meetowner exclusive", text: "MeetOwner Exclusive" },
     { value: "listing_side", text: "Listing Side Ad" },
     { value: "property_view", text: "Property View" },
     { value: "main_slider", text: "Main Slider" },
@@ -89,10 +96,10 @@ export default function CreateAds() {
       text: city.label,
     })) || [];
 
-  // Options for property names from API, showing both ID and name
+  // Options for property names
   const propertyOptions: Option[] = listings.map((property) => ({
     value: property.unique_property_id,
-    text: `${property.unique_property_id} - ${property.property_name || "Unnamed Property"}`, // Concatenate ID and name
+    text: `${property.property_name || "Unnamed Property"}`,
   }));
 
   const handleSingleChange =
@@ -113,9 +120,8 @@ export default function CreateAds() {
       }
     };
 
-  // Handle single selection for name
   const handleNameChange = (values: string[]) => {
-    const selectedValue = values.length > 0 ? values[0] : ""; // Take only the first value
+    const selectedValue = values.length > 0 ? values[0] : "";
     setFormData({ ...formData, name: selectedValue });
     if (errors.name) {
       setErrors({ ...errors, name: undefined });
@@ -165,9 +171,8 @@ export default function CreateAds() {
   const validateForm = () => {
     let newErrors: Errors = {};
 
-    if (!formData.name.trim()) newErrors.name = "Name is required";
+    if (!formData.name.trim()) newErrors.name = "Property is required";
     if (formData.places.length === 0) newErrors.places = "At least one place is required";
-    if (!formData.media) newErrors.media = "A photo or video is required";
     if (!formData.order.trim()) {
       newErrors.order = "Order is required";
     } else if (!/^\d+$/.test(formData.order)) {
@@ -176,13 +181,6 @@ export default function CreateAds() {
     if (formData.visibilityCities.length === 0)
       newErrors.visibilityCities = "At least one city is required";
     if (!formData.title.trim()) newErrors.title = "Title is required";
-    if (!formData.description.trim()) newErrors.description = "Description is required";
-    if (!formData.adsButton.trim()) newErrors.adsButton = "Ads button text is required";
-    if (!formData.adsButtonLink.trim()) {
-      newErrors.adsButtonLink = "Ads button link is required";
-    } else if (!/^(https?:\/\/)?([\w-]+?\.)+[\w-]+(\/[\w-./?%&=]*)?$/.test(formData.adsButtonLink)) {
-      newErrors.adsButtonLink = "Invalid URL";
-    }
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -192,34 +190,64 @@ export default function CreateAds() {
     e.preventDefault();
     if (validateForm()) {
       try {
-        const selectedCityIds = formData.visibilityCities;
-        const cityNames = selectedCityIds.map(
-          (id) => cityOptions.find((option) => option.value === id)?.text || id
+        // Find the selected listing based on unique_property_id
+        const selectedListing = listings.find(
+          (listing) => listing.unique_property_id === formData.name
         );
 
-        const selectedPlaceIds = formData.places;
-        const placeNames = selectedPlaceIds.map(
-          (id) => placeOptions.find((option) => option.value === id)?.text || id
-        );
-
-        const selectedProperty = propertyOptions.find(
-          (option) => option.value === formData.name
-        );
+        console.log("selectedListing: ", selectedListing);
+        if (!selectedListing) {
+          toast.error("Selected property not found");
+          return;
+        }
 
         const adData = {
-          unique_property_id: formData.name, // Submit unique_property_id
-          property_name: selectedProperty ? selectedProperty.text.split(" - ")[1] : "", // Extract property_name
-          places: placeNames,
-          media: formData.media,
-          order: parseInt(formData.order),
-          visibilityCities: cityNames,
-          title: formData.title,
-          description: formData.description,
-          adsButton: formData.adsButton,
-          adsButtonLink: formData.adsButtonLink,
-          status: formData.status,
+          unique_property_id: selectedListing.unique_property_id || null,
+          property_name: selectedListing.property_name || null,
+          ads_page: formData.places.join(",") || null,
+          ads_order: formData.order ? parseInt(formData.order) : null,
+          start_date: null, // Not in form
+          end_date: null, // Not in form
+          city: formData.visibilityCities[0] || null,
+          image: null, // Will be handled separately
+          display_cities: formData.visibilityCities.join(",") || null,
+          ads_title: formData.title || null,
+          ads_button_text: formData.adsButton || null,
+          ads_button_link: formData.adsButtonLink || null,
+          ads_description: formData.description || null,
+          user_id: selectedListing.user_id || null,
+          property_type: selectedListing.property_type || null,
+          sub_type: selectedListing.sub_type || null,
+          property_for: selectedListing.property_for || null,
+          property_cost: selectedListing.property_cost || null,
+          property_in: selectedListing.property_in || null,
+          google_address: selectedListing.google_address || null,
         };
-        console.log(adData);
+
+        console.log("adData keys count:", Object.keys(adData).length);
+
+        const promise = dispatch(
+          createAd({ adData, image: formData.media })
+        );
+        toast.promise(promise, {
+          loading: "Creating ad...",
+          success: "Ad created successfully!",
+          error: "Failed to create ad",
+        });
+
+        await promise.unwrap();
+        setFormData({
+          name: "",
+          places: [],
+          media: null,
+          order: "",
+          visibilityCities: [],
+          title: "",
+          description: "",
+          adsButton: "",
+          adsButtonLink: "",
+          status: false,
+        });
       } catch (error) {
         console.error("Failed to create ad:", error);
       }
@@ -228,184 +256,175 @@ export default function CreateAds() {
 
   return (
     <div className="relative min-h-screen">
-    <PageMeta title="Meet Owner Create Ads" />
-    <ComponentCard title="Create Ad">
-      <form onSubmit={handleSubmit} className="space-y-6">
-        <div className="relative mb-10 min-h-[80px]">
-          <MultiSelect
-            label="Name"
-            options={propertyOptions}
-            defaultSelected={formData.name ? [formData.name] : []} // Pass as array for MultiSelect
-            onChange={handleNameChange}
-            singleSelect={true}
-          />
-          {errors.name && (
-            <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-          )}
-        </div>
-
-        <div className="relative mb-10 min-h-[80px]">
-          <MultiSelect
-            label="Places"
-            options={placeOptions}
-            defaultSelected={formData.places}
-            onChange={handleMultiSelectChange("places")}
-          />
-          {errors.places && (
-            <p className="text-red-500 text-sm mt-1">{errors.places}</p>
-          )}
-        </div>
-
-        <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center">
-          <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-            Add Photo or Video
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-gray-400">
-            Upload one file (Photo: max 10MB, JPG, JPEG, PNG; Video: max 30MB, MP4)
-          </p>
-          <input
-            type="file"
-            accept=".jpg,.jpeg,.png,.mp4"
-            onChange={handleMediaUpload}
-            className="hidden"
-            id="media-upload"
-          />
-          <label
-            htmlFor="media-upload"
-            className="mt-4 inline-block px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
-          >
-            Upload Photo or Video
-          </label>
-          {(errors.media || localMediaError) && (
-            <p className="mt-2 text-red-500 text-sm">{errors.media || localMediaError}</p>
-          )}
-          {formData.media && (
-            <div className="mt-4 relative max-w-[50%] mx-auto">
-              {formData.media.type.startsWith("image/") ? (
-                <img
-                  src={URL.createObjectURL(formData.media)}
-                  alt="Uploaded Media"
-                  className="w-full h-40 object-cover rounded-lg"
-                />
-              ) : (
-                <video
-                  src={URL.createObjectURL(formData.media)}
-                  controls
-                  className="w-full h-50 object-cover rounded-lg"
-                />
-              )}
-              <button
-                onClick={handleDeleteMedia}
-                className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"
-              >
-                <FaTrash />
-              </button>
-            </div>
-          )}
-        </div>
-
-        <div className="min-h-[80px]">
-          <Label htmlFor="order">Order</Label>
-          <Input
-            type="text"
-            id="order"
-            value={formData.order}
-            onChange={(e) => handleSingleChange("order")(e.target.value)}
-            placeholder="Enter order (e.g., 1, 2, 3)"
-          />
-          {errors.order && (
-            <p className="text-red-500 text-sm mt-1">{errors.order}</p>
-          )}
-        </div>
-
-        <div className="relative mb-10 min-h-[80px]">
-          <MultiSelect
-            label="Visibility Cities"
-            options={cityOptions}
-            defaultSelected={formData.visibilityCities}
-            onChange={handleMultiSelectChange("visibilityCities")}
-          />
-          {errors.visibilityCities && (
-            <p className="text-red-500 text-sm mt-1">{errors.visibilityCities}</p>
-          )}
-        </div>
-
-        <div className="min-h-[80px]">
-          <Label htmlFor="title">Title</Label>
-          <Input
-            type="text"
-            id="title"
-            value={formData.title}
-            onChange={(e) => handleSingleChange("title")(e.target.value)}
-            placeholder="Enter ad title"
-          />
-          {errors.title && (
-            <p className="text-red-500 text-sm mt-1">{errors.title}</p>
-          )}
-        </div>
-
-        <div className="min-h-[80px]">
-          <Label htmlFor="description">Description</Label>
-          <textarea
-            id="description"
-            value={formData.description}
-            onChange={(e) => handleSingleChange("description")(e.target.value)}
-            className="w-full p-2 m-1 border rounded-lg dark:bg-dark-900 dark:text-gray-300 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
-            rows={4}
-            placeholder="Enter ad description"
-          />
-          {errors.description && (
-            <p className="text-red-500 text-sm mt-1">{errors.description}</p>
-          )}
-        </div>
-
-        <div className="min-h-[80px]">
-          <Label htmlFor="adsButton">Ads Button Text</Label>
-          <Input
-            type="text"
-            id="adsButton"
-            value={formData.adsButton}
-            onChange={(e) => handleSingleChange("adsButton")(e.target.value)}
-            placeholder="Enter button text"
-          />
-          {errors.adsButton && (
-            <p className="text-red-500 text-sm mt-1">{errors.adsButton}</p>
-          )}
-        </div>
-
-        <div className="min-h-[80px]">
-          <Label htmlFor="adsButtonLink">Ads Button Link</Label>
-          <Input
-            type="text"
-            id="adsButtonLink"
-            value={formData.adsButtonLink}
-            onChange={(e) => handleSingleChange("adsButtonLink")(e.target.value)}
-            placeholder="Enter button link (e.g., https://example.com)"
-          />
-          {errors.adsButtonLink && (
-            <p className="text-red-500 text-sm mt-1">{errors.adsButtonLink}</p>
-          )}
-        </div>
-
-        <div className="min-h-[80px]">
-          <Label>Status</Label>
-          <Switch
-            label={formData.status ? "Active" : "Inactive"}
-            defaultChecked={formData.status}
-            onChange={handleStatusChange}
-          />
-        </div>
-
-        <div className="flex justify-center">
-          <button
-            type="submit"
-            className="w-[60%] px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
-          >
-            Submit
-          </button>
-        </div>
-      </form>
-    </ComponentCard>
+      <PageMeta title="Meet Owner Create Ads" />
+      <ComponentCard title="Create Ad">
+        <form onSubmit={handleSubmit} className="space-y-6">
+          <div className="relative mb-10 min-h-[80px]">
+            <MultiSelect
+              label="Property"
+              options={propertyOptions}
+              defaultSelected={formData.name ? [formData.name] : []}
+              onChange={handleNameChange}
+              singleSelect={true}
+            />
+            {errors.name && (
+              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
+            )}
+          </div>
+          <div className="relative mb-10 min-h-[80px]">
+            <MultiSelect
+              label="Places"
+              options={placeOptions}
+              defaultSelected={formData.places}
+              onChange={handleMultiSelectChange("places")}
+            />
+            {errors.places && (
+              <p className="text-red-500 text-sm mt-1">{errors.places}</p>
+            )}
+          </div>
+          <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center">
+            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
+              Add Photo or Video
+            </h3>
+            <p className="text-sm text-gray-500 dark:text-gray-400">
+              Upload one file (Photo: max 10MB, JPG, JPEG, PNG; Video: max 30MB, MP4)
+            </p>
+            <input
+              type="file"
+              accept=".jpg,.jpeg,.png,.mp4"
+              onChange={handleMediaUpload}
+              className="hidden"
+              id="media-upload"
+            />
+            <label
+              htmlFor="media-upload"
+              className="mt-4 inline-block px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
+            >
+              Upload Photo or Video
+            </label>
+            {(errors.media || localMediaError) && (
+              <p className="mt-2 text-red-500 text-sm">{errors.media || localMediaError}</p>
+            )}
+            {formData.media && (
+              <div className="mt-4 relative max-w-[50%] mx-auto">
+                {formData.media.type.startsWith("image/") ? (
+                  <img
+                    src={URL.createObjectURL(formData.media)}
+                    alt="Uploaded Media"
+                    className="w-full h-40 object-cover rounded-lg"
+                  />
+                ) : (
+                  <video
+                    src={URL.createObjectURL(formData.media)}
+                    controls
+                    className="w-full h-50 object-cover rounded-lg"
+                  />
+                )}
+                <button
+                  onClick={handleDeleteMedia}
+                  className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"
+                >
+                  <FaTrash />
+                </button>
+              </div>
+            )}
+          </div>
+          <div className="min-h-[80px]">
+            <Label htmlFor="order">Order</Label>
+            <Input
+              type="text"
+              id="order"
+              value={formData.order}
+              onChange={(e) => handleSingleChange("order")(e.target.value)}
+              placeholder="Enter order (e.g., 1, 2, 3)"
+            />
+            {errors.order && (
+              <p className="text-red-500 text-sm mt-1">{errors.order}</p>
+            )}
+          </div>
+          <div className="relative mb-10 min-h-[80px]">
+            <MultiSelect
+              label="Visibility Cities"
+              options={cityOptions}
+              defaultSelected={formData.visibilityCities}
+              onChange={handleMultiSelectChange("visibilityCities")}
+            />
+            {errors.visibilityCities && (
+              <p className="text-red-500 text-sm mt-1">{errors.visibilityCities}</p>
+            )}
+          </div>
+          <div className="min-h-[80px]">
+            <Label htmlFor="title">Title</Label>
+            <Input
+              type="text"
+              id="title"
+              value={formData.title}
+              onChange={(e) => handleSingleChange("title")(e.target.value)}
+              placeholder="Enter ad title"
+            />
+            {errors.title && (
+              <p className="text-red-500 text-sm mt-1">{errors.title}</p>
+            )}
+          </div>
+          <div className="min-h-[80px]">
+            <Label htmlFor="description">Description</Label>
+            <textarea
+              id="description"
+              value={formData.description}
+              onChange={(e) => handleSingleChange("description")(e.target.value)}
+              className="w-full p-2 m-1 border rounded-lg dark:bg-dark-900 dark:text-gray-300 dark:border-gray-700 focus:ring-blue-500 focus:border-blue-500"
+              rows={4}
+              placeholder="Enter ad description"
+            />
+            {errors.description && (
+              <p className="text-red-500 text-sm mt-1">{errors.description}</p>
+            )}
+          </div>
+          <div className="min-h-[80px]">
+            <Label htmlFor="adsButton">Ads Button Text</Label>
+            <Input
+              type="text"
+              id="adsButton"
+              value={formData.adsButton}
+              onChange={(e) => handleSingleChange("adsButton")(e.target.value)}
+              placeholder="Enter button text"
+            />
+            {errors.adsButton && (
+              <p className="text-red-500 text-sm mt-1">{errors.adsButton}</p>
+            )}
+          </div>
+          <div className="min-h-[80px]">
+            <Label htmlFor="adsButtonLink">Ads Button Link</Label>
+            <Input
+              type="text"
+              id="adsButtonLink"
+              value={formData.adsButtonLink}
+              onChange={(e) => handleSingleChange("adsButtonLink")(e.target.value)}
+              placeholder="Enter button link (e.g., https://example.com)"
+            />
+            {errors.adsButtonLink && (
+              <p className="text-red-500 text-sm mt-1">{errors.adsButtonLink}</p>
+            )}
+          </div>
+          <div className="min-h-[80px]">
+            <Label>Status</Label>
+            <Switch
+              label={formData.status ? "Active" : "Inactive"}
+              defaultChecked={formData.status}
+              onChange={handleStatusChange}
+            />
+          </div>
+          <div className="flex justify-center">
+            <button
+              type="submit"
+              className="w-[60%] px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+              disabled={createLoading}
+            >
+              {createLoading ? "Submitting..." : "Submit"}
+            </button>
+          </div>
+        </form>
+      </ComponentCard>
     </div>
   );
 }
