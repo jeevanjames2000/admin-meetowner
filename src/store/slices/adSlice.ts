@@ -56,20 +56,25 @@ export const createAd = createAsyncThunk(
   async ({ adData, image }: { adData: any; image: File | null }, { rejectWithValue }) => {
     try {
       const formData = new FormData();
-      // Append all adData fields
       Object.entries(adData).forEach(([key, value]) => {
         formData.append(key, value === null ? "" : String(value));
       });
-      // Append image file if present
       if (image) {
         formData.append("image", image);
+      }
+
+      // Log FormData entries for debugging
+      for (const [key, value] of formData.entries()) {
+        console.log(`${key}: ${value}`);
       }
 
       const response = await axiosInstance.post<CreateAdResponse>(
         "/adAssets/v1/postAdDetails",
         formData,
         {
-          headers: { "Content-Type": "multipart/form-data" },
+          headers: {
+            "Content-Type": "multipart/form-data", // Ensure correct content type
+          },
         }
       );
       return response.data;
