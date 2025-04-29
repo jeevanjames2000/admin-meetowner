@@ -186,80 +186,70 @@ export default function CreateAds() {
     return Object.keys(newErrors).length === 0;
   };
 
- const handleSubmit = async (e: React.FormEvent) => {
-  e.preventDefault();
-  if (validateForm()) {
-    try {
-      const selectedListing = listings.find(
-        (listing) => listing.unique_property_id === formData.name
-      );
+   const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (validateForm()) {
+      try {
+        const selectedListing = listings.find(
+          (listing) => listing.unique_property_id === formData.name
+        );
 
-      if (!selectedListing) {
-        toast.error("Selected property not found");
-        return;
+        if (!selectedListing) {
+          toast.error("Selected property not found");
+          return;
+        }
+
+        const selectedCityId = formData.visibilityCities[0];
+        const selectedCity = cityOptions.find((city) => city.value === selectedCityId);
+        const cityName = selectedCity ? selectedCity.text : null;
+  
+
+        const adData = {
+          unique_property_id: selectedListing.unique_property_id || null,
+          property_name: selectedListing.property_name || null,
+          ads_page: formData.places[0] || null, // API expects a single value
+          ads_order: formData.order ? parseInt(formData.order) : null,
+          city: cityName, // API expects a single city ID
+          display_cities: cityName,
+          ads_title: formData.title || null,
+          ads_button_text: formData.adsButton || null,
+          ads_button_link: formData.adsButtonLink || null,
+          ads_description: formData.description || null,
+          user_id: selectedListing.user_id || null,
+          property_type: selectedListing.property_type || null,
+          sub_type: selectedListing.sub_type || null,
+          property_for: selectedListing.property_for || null,
+          property_cost: selectedListing.property_cost || null,
+          property_in: selectedListing.property_in || null,
+          google_address: selectedListing.google_address || null,
+        };
+
+        const promise = dispatch(createAd(adData)); 
+        toast.promise(promise, {
+          loading: "Creating ad...",
+          success: "Ad created successfully!",
+          error: "Failed to create ad",
+        });
+
+        await promise.unwrap();
+        setFormData({
+          name: "",
+          places: [],
+          media: null,
+          order: "",
+          visibilityCities: [],
+          title: "",
+          description: "",
+          adsButton: "",
+          adsButtonLink: "",
+          status: false,
+        });
+      } catch (error) {
+        console.error("Failed to create ad:", error);
       }
-
-      const adData = {
-        unique_property_id: selectedListing.unique_property_id || null,
-        property_name: selectedListing.property_name || null,
-        ads_page: formData.places.join(",") || null,
-        ads_order: formData.order ? parseInt(formData.order) : null,
-        start_date: null,
-        end_date: null,
-        city: formData.visibilityCities[0] || null,
-        image: null,
-        display_cities: formData.visibilityCities.join(",") || null,
-        ads_title: formData.title || null,
-        ads_button_text: formData.adsButton || null,
-        ads_button_link: formData.adsButtonLink || null,
-        ads_description: formData.description || null,
-        user_id: selectedListing.user_id || null,
-        property_type: selectedListing.property_type || null,
-        sub_type: selectedListing.sub_type || null,
-        property_for: selectedListing.property_for || null,
-        property_cost: selectedListing.property_cost || null,
-        property_in: selectedListing.property_in || null,
-        google_address: selectedListing.google_address || null,
-      };
-
-      // Validate adData
-      console.log("adData:", adData);
-      if (!adData.unique_property_id || !adData.property_name) {
-        toast.error("Required fields are missing in adData");
-        return;
-      }
-
-      // Validate image
-      if (formData.media && !(formData.media instanceof File)) {
-        toast.error("Invalid image file");
-        return;
-      }
-
-      const promise = dispatch(createAd({ adData, image: formData.media }));
-      toast.promise(promise, {
-        loading: "Creating ad...",
-        success: "Ad created successfully!",
-        error: "Failed to create ad",
-      });
-
-      await promise.unwrap();
-      setFormData({
-        name: "",
-        places: [],
-        media: null,
-        order: "",
-        visibilityCities: [],
-        title: "",
-        description: "",
-        adsButton: "",
-        adsButtonLink: "",
-        status: false,
-      });
-    } catch (error) {
-      console.error("Failed to create ad:", error);
     }
-  }
-};
+  };
+
 
   return (
     <div className="relative min-h-screen">

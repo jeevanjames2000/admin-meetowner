@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { AppDispatch, RootState } from "../../store"; // Adjust path to your store
+import { AppDispatch ,RootState} from "../../store/store";
+
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
@@ -33,7 +34,7 @@ const editAd = (payload: {
 }) => {
   return async (dispatch: AppDispatch) => {
     try {
-      // Simulate API call (replace with actual axiosInstance.put call)
+      
       await new Promise((resolve) => setTimeout(resolve, 1000));
       toast.success("Ad updated successfully!");
       return { success: true };
@@ -124,12 +125,14 @@ const AllAdsPage: React.FC = () => {
   }, [dispatch]);
 
   // Filter ads based on search query
-  const filteredAds = ads.filter(
-    (ad) =>
-      ad.property_name.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-      ad.google_address.toLowerCase().includes(debouncedSearchQuery.toLowerCase()) ||
-      ad.property_type?.toLowerCase().includes(debouncedSearchQuery.toLowerCase())
-  );
+  const filteredAds = ads.filter((ad) => {
+    const searchQuery = debouncedSearchQuery.toLowerCase();
+    return (
+      (ad.property_name && ad.property_name.toLowerCase().includes(searchQuery)) ||
+      (ad.google_address && ad.google_address.toLowerCase().includes(searchQuery)) ||
+      (ad.property_type && ad.property_type.toLowerCase().includes(searchQuery))
+    );
+  });
 
   // Pagination calculations
   const totalPages = Math.ceil(filteredAds.length / adsPerPage);
@@ -172,9 +175,9 @@ const AllAdsPage: React.FC = () => {
     const ad = ads.find((a) => a.id === id);
     if (ad) {
       setSelectedAd(ad);
-      setNewPropertyName(ad.property_name);
+      setNewPropertyName(ad.property_name!);
       setNewPropertyType(ad.property_type || "");
-      setNewGoogleAddress(ad.google_address);
+      setNewGoogleAddress(ad.google_address!);
       setEditModalOpen(true);
     }
     setActiveMenu(null);
@@ -191,7 +194,7 @@ const AllAdsPage: React.FC = () => {
       google_address: newGoogleAddress,
     };
     try {
-      await dispatch(editAd(payload)).unwrap();
+      await dispatch(editAd(payload));
       setEditModalOpen(false);
       dispatch(fetchAds()); // Refresh ads
     } catch (err) {
@@ -208,7 +211,7 @@ const AllAdsPage: React.FC = () => {
     );
     if (!confirmDelete) return;
     try {
-      await dispatch(deleteAd(id)).unwrap();
+      await dispatch(deleteAd(id));
       dispatch(fetchAds()); // Refresh ads
     } catch (err) {
       toast.error("Failed to delete ad");
@@ -265,7 +268,7 @@ const AllAdsPage: React.FC = () => {
                     {loading ? (
                       <TableRow>
                         <TableCell
-                          colSpan={7}
+
                           className="px-5 py-8 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                         >
                           Loading...
@@ -274,7 +277,7 @@ const AllAdsPage: React.FC = () => {
                     ) : currentAds.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          colSpan={7}
+                          
                           className="px-5 py-8 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                         >
                           No Ads Found!
@@ -290,16 +293,16 @@ const AllAdsPage: React.FC = () => {
                             {ad.property_name}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {ad.other_info || "N/A"}
+                            {ad.ads_button_text! || "N/A"}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {ad.google_address || ad.address || "N/A"}
+                            {ad.google_address || "N/A"}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {formatToIndianCurrency(ad.property_cost) || formatToIndianCurrency(ad.monthly_rent) || "N/A"}
+                            {formatToIndianCurrency(ad.property_cost) || "N/A"}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {ad.admin_approved_status || "Pending"}
+                            {ad.status === 1 ? 'Approved' : "Pending"}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                             <Button

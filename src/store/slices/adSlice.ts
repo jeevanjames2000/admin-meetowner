@@ -5,13 +5,33 @@ import axiosInstance from "../../utils/axiosInstance";
 
 interface Ad {
   id: number;
-  unique_property_id: string;
-  property_name: string;
-  // ... other fields
+  ads_page: string;
+  ads_order: number;
+  start_date: string | null;
+  end_date: string | null;
+  created_date: string | null;
+  created_time: string | null;
+  status: number;
+  city: string;
+  image: string | null;
+  display_cities: string;
+  ads_title: string;
+  ads_button_text: string;
+  ads_button_link: string;
+  ads_description: string;
+  unique_property_id: string | null;
+  property_name: string | null;
+  user_id: number | null;
+  property_type: string | null;
+  sub_type: string | null;
+  property_for: string | null;
+  property_cost: string | null;
+  property_in: string | null;
+  google_address: string | null;
 }
 
 interface AdResponse {
-  results: Ad[];
+  ads: Ad[];
 }
 
 interface CreateAdResponse {
@@ -35,7 +55,7 @@ export const fetchAds = createAsyncThunk(
   "ads/fetchAllAds",
   async (_, { rejectWithValue }) => {
     try {
-      const promise = axiosInstance.get<AdResponse>("/adAssets/v1/getAllAds");
+      const promise = axiosInstance.get<AdResponse>("/adAssets/v1/getAdDetails");
       toast.promise(promise, {
         loading: "Fetching ads...",
         success: "Ads fetched successfully!",
@@ -53,27 +73,14 @@ export const fetchAds = createAsyncThunk(
 
 export const createAd = createAsyncThunk(
   "ads/createAd",
-  async ({ adData, image }: { adData: any; image: File | null }, { rejectWithValue }) => {
+  async (adData: any, { rejectWithValue }) => {
     try {
-      const formData = new FormData();
-      Object.entries(adData).forEach(([key, value]) => {
-        formData.append(key, value === null ? "" : String(value));
-      });
-      if (image) {
-        formData.append("image", image);
-      }
-
-      // Log FormData entries for debugging
-      for (const [key, value] of formData.entries()) {
-        console.log(`${key}: ${value}`);
-      }
-
       const response = await axiosInstance.post<CreateAdResponse>(
         "/adAssets/v1/postAdDetails",
-        formData,
+        adData,
         {
           headers: {
-            "Content-Type": "multipart/form-data", // Ensure correct content type
+            "Content-Type": "application/json",
           },
         }
       );
@@ -110,7 +117,7 @@ const adSlice = createSlice({
       })
       .addCase(fetchAds.fulfilled, (state, action) => {
         state.loading = false;
-        state.ads = action.payload.results;
+        state.ads = action.payload.ads; // Changed from action.payload.results to action.payload.ads
       })
       .addCase(fetchAds.rejected, (state, action) => {
         state.loading = false;

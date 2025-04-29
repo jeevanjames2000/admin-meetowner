@@ -4,7 +4,7 @@ import axios from "axios";
 
 
 const axiosIstance = axios.create({
-    baseURL:" http://localhost:5000/"
+    baseURL:"https://api.meetowner.in/"
 })
 
 export default axiosIstance;

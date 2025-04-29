@@ -38,6 +38,7 @@ const AllPlaces: React.FC = () => {
   const [newCity, setNewCity] = useState<string>("");
   const [newLocality, setNewLocality] = useState<string>("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  
   const debounce = <F extends (...args: any[]) => void>(func: F, wait: number) => {
     let timeout: NodeJS.Timeout | null = null;
     return (...args: Parameters<F>) => {
@@ -222,7 +223,7 @@ const handleEditSubmit = async (e: React.FormEvent) => {
                             {activeMenu === place.id && (
                               <div
                                 ref={dropdownRef}
-                                className="absolute right-2 top-10 z-50 w-32 rounded-lg shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                                className="absolute right-0 top-2 z-50  rounded-lg shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
                               >
                                 <div className="py-2">
                                   <button
@@ -309,8 +310,8 @@ const handleEditSubmit = async (e: React.FormEvent) => {
         </div>
       </div>
       {editModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-white/90 backdrop-blur-60 flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white">
                 Edit Place
