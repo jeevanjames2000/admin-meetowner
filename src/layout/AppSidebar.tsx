@@ -10,7 +10,7 @@ import {
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import { FaAd, FaFileInvoice, FaSearchLocation } from "react-icons/fa";
+import { FaAd, FaBell, FaFileInvoice, FaSearchLocation } from "react-icons/fa";
 import { useSelector } from "react-redux";
 
 import { RootState } from "../store/store";
@@ -190,6 +190,14 @@ const navItems: NavItem[] = [
       { name: "Channel Partners", path: "/packages/channelpartners", pro: false },
       { name: "Users", path: "/packages/users", pro: false },
      
+    ],
+  },
+   {
+    name: "Push Notifications",
+    icon: <FaBell />,
+    subItems: [
+      { name: "Send Notifications", path: "/notify", pro: false },
+   
     ],
   },
 ];

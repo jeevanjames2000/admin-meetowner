@@ -47,6 +47,7 @@ import StatesManager from "./pages/maps/state";
 import UserActivities from "./components/tables/userActivities";
 import CreateProperty from "./pages/Project/AddProject";
 import AllPlaces from "./pages/maps/allPlaces";
+import Notify from "./pages/Notify/notify";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -472,6 +473,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <CreateAds />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+                  <Route
+                path="/notify"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <Notify />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
