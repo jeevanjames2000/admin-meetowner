@@ -1,52 +1,43 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
+import { useDispatch, useSelector } from 'react-redux';
 import toast from 'react-hot-toast';
 import Label from '../../components/form/Label';
+import { fetchAllTokens, notifyAllUsers, notifySingleUser } from '../../store/slices/notifySlice';
+import { AppDispatch, RootState } from '../../store/store';
 
-interface User {
-  user_id: number;
-  name: string;
-}
 
-const Notify = () => {
+
+const Notify :React.FC= () => {
   const [mode, setMode] = useState<'single' | 'multiple'>('multiple');
-  const [users, setUsers] = useState<User[]>([]);
   const [selectedUser, setSelectedUser] = useState<number | null>(null);
   const [title, setTitle] = useState('');
   const [message, setMessage] = useState('');
   const [loading, setLoading] = useState(false);
-  const [usersLoading, setUsersLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+
+  const dispatch = useDispatch<AppDispatch>();
+  const { users, loading: usersLoading, error: usersError } = useSelector((state: RootState) => state.notify);
 
   useEffect(() => {
     if (mode === 'single') {
-      setUsersLoading(true);
-      setError(null);
-      axios
-        .get('https://api.meetowner.in/user/v1/getAllTokens')
-        .then((res) => {
-          // Adjust based on API response structure
-          const userData = Array.isArray(res.data) ? res.data : res.data?.data || [];
-          if (userData.length === 0) {
-            setError('No users found.');
-          } else {
-            setUsers(userData);
-          }
-        })
-        .catch((err) => {
-          console.error('Error fetching users:', err);
-          setError('Failed to load users. Please try again.');
-        })
-        .finally(() => {
-          setUsersLoading(false);
-        });
+      console.log('Dispatching fetchAllTokens'); // Debug log
+      dispatch(fetchAllTokens());
     } else {
-      // Clear users when switching to 'multiple'
-      setUsers([]);
       setSelectedUser(null);
       setError(null);
     }
-  }, [mode]);
+  }, [dispatch, mode]);
+
+  useEffect(() => {
+  
+    if (usersError) {
+      setError(usersError);
+    } else if (users.length === 0 && !usersLoading && mode === 'single') {
+      setError('No users found.');
+    } else {
+      setError(null);
+    }
+  }, [users, usersLoading, usersError, mode]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -55,24 +46,20 @@ const Notify = () => {
 
     try {
       if (mode === 'multiple') {
-        await axios.post('https://api.meetowner.in/user/v1/notify-all', { title, message });
+        await dispatch(notifyAllUsers({ title, message })).unwrap();
       } else if (mode === 'single' && selectedUser) {
-        await axios.post('https://api.meetowner.in/user/v1/notify-user', {
-          user_id: selectedUser,
-          title,
-          message,
-        });
+     
+        await dispatch(notifySingleUser({ user_id: selectedUser, title, message })).unwrap();
       } else {
         throw new Error('Please select a user.');
       }
-      alert('Notification sent!');
-       toast.success("Notification sent!");
+
       setTitle('');
       setMessage('');
       setSelectedUser(null);
     } catch (err: any) {
-      console.error('Error sending notification:', err);
-      alert(err.message || 'Failed to send notification.');
+    
+      toast.error(err.message || 'Error sending notification.');
     } finally {
       setLoading(false);
     }
@@ -83,7 +70,6 @@ const Notify = () => {
       onSubmit={handleSubmit}
       className="max-w-full mx-auto bg-white p-6 rounded-xl shadow-lg space-y-4"
     >
-
       <p className="text-xl font-semibold">Send Push Notification</p>
 
       {error && (
@@ -93,10 +79,9 @@ const Notify = () => {
       )}
 
       <div>
-         <Label htmlFor='send to'>Send To</Label>
-      
+        <Label htmlFor="send to">Send To</Label>
         <select
-        id="send to"
+          id="send to"
           value={mode}
           onChange={(e) => setMode(e.target.value as 'single' | 'multiple')}
           className="w-full border rounded-md px-3 py-2"
@@ -108,12 +93,12 @@ const Notify = () => {
 
       {mode === 'single' && (
         <div>
-          <Label htmlFor='order'>Select User</Label>
+          <Label htmlFor="order">Select User</Label>
           {usersLoading ? (
             <div className="text-gray-500">Loading users...</div>
           ) : (
             <select
-            id="order"
+              id="order"
               value={selectedUser ?? ''}
               onChange={(e) => setSelectedUser(e.target.value ? Number(e.target.value) : null)}
               className="w-full border rounded-md px-3 py-2"
@@ -133,9 +118,9 @@ const Notify = () => {
       )}
 
       <div>
-         <Label htmlFor='title'>Title</Label>
+        <Label htmlFor="title">Title</Label>
         <input
-        id="title"
+          id="title"
           type="text"
           value={title}
           onChange={(e) => setTitle(e.target.value)}
@@ -146,11 +131,9 @@ const Notify = () => {
       </div>
 
       <div>
-         <Label htmlFor='message'>Message</Label>
-
-     
+        <Label htmlFor="message">Message</Label>
         <textarea
-        id="message"
+          id="message"
           value={message}
           onChange={(e) => setMessage(e.target.value)}
           required

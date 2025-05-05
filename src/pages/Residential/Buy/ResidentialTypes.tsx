@@ -182,12 +182,13 @@ const ResidentialTypes: React.FC = () => {
     }
   }, [dispatch, selectedProperty]);
 
-  const handleApprove = useCallback((unique_property_id: string, property_name: string) => {
+  const handleApprove = useCallback((unique_property_id: string, property_name: string, action: 'approve' | 'reject') => {
     setSelectedProperty({ id: unique_property_id, name: property_name });
-    setStatusAction(parseInt(status || "0", 10) === 0 ? "approve" : "reject");
+    setStatusAction(action);
     setIsStatusModalOpen(true);
     setDropdownOpen(null);
-  }, [status]);
+  }, []);
+  
 
   const confirmStatusChange = useCallback(() => {
     if (selectedProperty && statusAction) {
@@ -397,20 +398,38 @@ const ResidentialTypes: React.FC = () => {
                                 </svg>
                               </Button>
                               {dropdownOpen === item.id.toString() && (
-                                <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
-                                  <button onClick={() => handleEdit(item)} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Edit</button>
-                                  {/* <button onClick={() => handleDelete(item.unique_property_id, item.property_name || "this property")} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button> */}
-                                  <button
-                                  onClick={() => handleApprove(item.unique_property_id, item.property_name || "this property")}
+                              <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                                <button
+                                  onClick={() => handleEdit(item)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 >
-                                  {parseInt(status || "0", 10) === 0 ? "Approve" : "Reject"}
+                                  Edit
                                 </button>
-                                  {parseInt(status || "0", 10) === 1 && (
-                                    <button onClick={() => handleLead()} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Lead Pull</button>
-                                  )}
-                                </div>
-                              )}
+                                {/* <button onClick={() => handleDelete(item.unique_property_id, item.property_name || "this property")} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button> */}
+                                {parseInt(status || "0", 10) === 0 && (
+                                <button
+                                  onClick={() => handleApprove(item.unique_property_id, item.property_name || "this property", 'approve')}
+                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                  Approve
+                                </button>
+                                )}
+                                <button
+                                  onClick={() => handleApprove(item.unique_property_id, item.property_name || "this property", 'reject')}
+                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                  Reject
+                                </button>
+                                {parseInt(status || "0", 10) === 1 && (
+                                  <button
+                                    onClick={() => handleLead()}
+                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  >
+                                    Lead Pull
+                                  </button>
+                                )}
+                              </div>
+                            )}
                             </TableCell>
                           )}
                         </TableRow>
@@ -467,38 +486,38 @@ const ResidentialTypes: React.FC = () => {
         </>
       )}
 
-    <LeadPullModal
-        isOpen={isLeadModalOpen}
-        onClose={() => {
-          setIsLeadModalOpen(false);
-          setLeadPullFormData({ mobile: "", email: "", name: "", sourceType: "" });
-          setFormErrors({});
-        }}
-        onSubmit={handleLeadPullSubmit}
-        formData={leadPullFormData}
-        formErrors={formErrors}
-        onInputChange={handleInputChange}
-      />
-     <ConfirmDeleteModal
-        isOpen={isDeleteModalOpen}
-        propertyName={selectedProperty?.name || ""}
-        onConfirm={confirmDelete}
-        onCancel={() => {
-          setIsDeleteModalOpen(false);
-          setSelectedProperty(null);
-        }}
-      />
-      <ConfirmStatusModal
-        isOpen={isStatusModalOpen}
-        propertyName={selectedProperty?.name || ""}
-        action={statusAction || "approve"} // Fallback to "approve" if null
-        onConfirm={confirmStatusChange}
-        onCancel={() => {
-          setIsStatusModalOpen(false);
-          setSelectedProperty(null);
-          setStatusAction(null);
-        }}
-      />
+        <LeadPullModal
+            isOpen={isLeadModalOpen}
+            onClose={() => {
+              setIsLeadModalOpen(false);
+              setLeadPullFormData({ mobile: "", email: "", name: "", sourceType: "" });
+              setFormErrors({});
+            }}
+            onSubmit={handleLeadPullSubmit}
+            formData={leadPullFormData}
+            formErrors={formErrors}
+            onInputChange={handleInputChange}
+          />
+        <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            propertyName={selectedProperty?.name || ""}
+            onConfirm={confirmDelete}
+            onCancel={() => {
+              setIsDeleteModalOpen(false);
+              setSelectedProperty(null);
+            }}
+          />
+          <ConfirmStatusModal
+            isOpen={isStatusModalOpen}
+            propertyName={selectedProperty?.name || ""}
+            action={statusAction || "approve"} // Fallback to "approve" if null
+            onConfirm={confirmStatusChange}
+            onCancel={() => {
+              setIsStatusModalOpen(false);
+              setSelectedProperty(null);
+              setStatusAction(null);
+            }}
+          />
 
      
     </div>

@@ -29,7 +29,7 @@ import { AppDispatch, RootState } from "./store/store";
 import { isTokenExpired, logout } from "./store/slices/authSlice";
 import BasicTableOne from "./components/tables/BasicTables/BasicTableOne";
 import LocationManager from "./pages/maps/locality";
-import { Toaster } from "react-hot-toast";
+
 import { lazy, Suspense, useState, useEffect } from "react";
 import { TableLoader } from "./components/Loaders/LoadingLisings";
 import ErrorBoundary from "./hooks/ErrorBoundary";
@@ -478,14 +478,14 @@ export default function App() {
                 }
               />
                   <Route
-                path="/notify"
-                element={
-                  <ErrorBoundary>
-                    <ProtectedRoute>
-                      <Notify />
-                    </ProtectedRoute>
-                  </ErrorBoundary>
-                }
+                  path="notification/notify"
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute>
+                        <Notify />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  }
               />
                <Route
                 path="/packages/builder"
@@ -507,7 +507,7 @@ export default function App() {
             <Route path="*" element={<NotFound />} />
           </Routes>
         </ServerStatusCheck>
-        <Toaster />
+       
       </Router>
     </>
   );

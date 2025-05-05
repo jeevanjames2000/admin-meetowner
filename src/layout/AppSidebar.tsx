@@ -196,7 +196,7 @@ const navItems: NavItem[] = [
     name: "Push Notifications",
     icon: <FaBell />,
     subItems: [
-      { name: "Send Notifications", path: "/notify", pro: false },
+      { name: "Send Notifications", path: "notification/notify",},
    
     ],
   },
@@ -228,11 +228,15 @@ const AppSidebar: React.FC = () => {
  
   const filteredNavItems = navItems
     .filter(item => {
+      // if (userType === 3) return !["Accounts", "Employees", "Pages", "Maps", "Ads","Packages","Push Notifications"].includes(item.name); //Builders
+      if (userType === 4) return !["Accounts", "Employees", "Pages", "Maps", "Ads","Packages","Push Notifications"].includes(item.name); //Agent
+      if (userType === 5) return !["Accounts", "Employees", "Pages", "Maps", "Ads","Packages","Push Notifications"].includes(item.name); //Owner
+      if (userType === 6) return !["Accounts", "Employees", "Pages", "Maps", "Ads","Packages","Push Notifications"].includes(item.name); //Channel Partner
       if (userType === 7) return !["Accounts", "Pages", "Maps","Ads","Packages"].includes(item.name); // Manager
-      if (userType === 8) return !["Pages", "Maps", "Commercial Rent", "Commercial Buy", "Residential Rent", "Residential Buy", "Employees", "Lead Management", "Users","Ads","Packages"].includes(item.name); // Telecaller
-      if (userType === 9) return !["Accounts", "Pages", "Maps", "Employees","Ads","Packages"].includes(item.name); // Marketing Executive
-      if (userType === 10) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads","Packages"].includes(item.name); // Customer Support
-      if (userType === 11) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads","Packages"].includes(item.name); // Customer Service
+      if (userType === 8) return !["Pages", "Maps", "Commercial Rent", "Commercial Buy", "Residential Rent", "Residential Buy", "Employees", "Lead Management", "Users","Ads","Packages","Push Notifications"].includes(item.name); // Telecaller
+      if (userType === 9) return !["Accounts", "Pages", "Maps", "Employees","Ads","Packages","Push Notifications"].includes(item.name); // Marketing Executive
+      if (userType === 10) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads","Packages","Push Notifications"].includes(item.name); // Customer Support
+      if (userType === 11) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads","Packages","Push Notifications"].includes(item.name); // Customer Service
       return true;
     })
     .map(item => {

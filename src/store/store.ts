@@ -11,6 +11,8 @@ import approvedReducer from './slices/approve_listings';
 import { initializeAuthState } from "../utils/authutils";
 import placesReducer from "./slices/places"
 import adSlice from './slices/adSlice'
+import notifySlice from './slices/notifySlice';
+import packageSlice from './slices/packagesSlice';
 
 const preloadedState = {
     auth : initializeAuthState()
@@ -27,7 +29,9 @@ const store =  configureStore({
         upload:uploadReducer,
         approved:approvedReducer,
         places:placesReducer,
-        ads:adSlice
+        ads:adSlice,
+        notify:notifySlice,
+        package:packageSlice
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),

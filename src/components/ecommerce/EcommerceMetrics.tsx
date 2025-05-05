@@ -27,11 +27,12 @@ const userTypeMap: { [key: string]: string } = {
 // Define allowed user types for each user_type
 const allowedUserTypes: { [key: string]: string[] } = {
   "1": Object.keys(userTypeMap), // Admin sees all
+  "3":Object.keys(userTypeMap),
   "7": ["2", "3", "4", "5", "6", "8", "9", "10", "11"], // Manager
   "9": ["3", "4", "6"], // Marketing Executive
-  "3": ["3", "4", "6"], // Marketing Executive
-  "4": ["3", "4", "6"], // Marketing Executive
-  "5": ["3", "4", "6"], // Marketing Executive
+  // "3": ["3", "4", "6"], // Builder
+  "4": ["3", "4", "6"], // Agent
+  "5": ["3", "4", "6"], // Owner
 };
 
 interface UserCountItem {
