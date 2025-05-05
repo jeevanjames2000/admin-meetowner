@@ -13,6 +13,7 @@ import placesReducer from "./slices/places"
 import adSlice from './slices/adSlice'
 import notifySlice from './slices/notifySlice';
 import packageSlice from './slices/packagesSlice';
+import paymentSlice from './slices/paymentSlice';
 
 const preloadedState = {
     auth : initializeAuthState()
@@ -31,7 +32,8 @@ const store =  configureStore({
         places:placesReducer,
         ads:adSlice,
         notify:notifySlice,
-        package:packageSlice
+        package:packageSlice,
+        payment:paymentSlice
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),

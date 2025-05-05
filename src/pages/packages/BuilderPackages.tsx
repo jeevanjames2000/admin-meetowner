@@ -3,6 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import ComponentCard from "../../components/common/ComponentCard";
 import { getCities } from "../../store/slices/propertyDetails";
 import { AppDispatch } from "../../store/store";
+import { clearPackages, fetchAllPackages } from "../../store/slices/packagesSlice";
 
 // Define the type for a rule
 interface Rule {
@@ -10,135 +11,31 @@ interface Rule {
   included: boolean;
 }
 
-// Define the type for a package
 interface Package {
   id: string;
   name: string;
-  duration: string;
+  duration_days: number;
   price: string;
   rules: Rule[];
   buttonText: string;
   isPopular?: boolean;
 }
 
-// Define the type for an option (for the dropdown)
 interface Option {
   value: string;
   text: string;
 }
 
-// Define the type for the Redux state (simplified)
 interface RootState {
   property: {
     cities: { value: string; label: string }[];
   };
+  package: {
+    packages: Package[];
+    loading: boolean;
+    error: string | null;
+  };
 }
-
-// Initial package data
-const initialPackages: Package[] = [
-  {
-    id: "1",
-    name: "Free Listing",
-    duration: "30 Days",
-    price: "Free",
-    rules: [
-      { name: "Number of Listings 5", included: true },
-      { name: "Response Rate 2X More", included: true },
-      { name: "Position On Search Low", included: true },
-      { name: "Buyers Visibility Limited", included: true },
-      { name: "Verified Tag", included: false },
-      { name: "Visibility on Best Details", included: false },
-      { name: "Visibility on Latest Details", included: false },
-      { name: "Land Page AD", included: false },
-      { name: "Land Page Banner", included: false },
-      { name: "Listings Page Small ADS", included: false },
-      { name: "Dedicated Agent Support", included: false },
-      { name: "Creatives", included: false },
-      { name: "Listing Support", included: false },
-      { name: "Meta ADS", included: false },
-      { name: "Prime Promotion", included: false },
-      { name: "CRM", included: false },
-    ],
-    buttonText: "Subscribed",
-  },
-  {
-    id: "2",
-    name: "Basic",
-    duration: "30 Days",
-    price: "6999 /-",
-    rules: [
-      { name: "Number of Listings 15", included: true },
-      { name: "Response Rate 3X More", included: true },
-      { name: "Position On Search Medium", included: true },
-      { name: "Buyers Visibility Limited", included: true },
-      { name: "Verified Tag", included: false },
-      { name: "Visibility on Best Details", included: false },
-      { name: "Visibility on Latest Details", included: false },
-      { name: "Land Page AD", included: false },
-      { name: "Land Page Banner", included: false },
-      { name: "Listings Page Small ADS", included: false },
-      { name: "Dedicated Agent Support", included: false },
-      { name: "Creatives", included: true },
-      { name: "Listing Support", included: true },
-      { name: "Meta ADS", included: false },
-      { name: "Prime Promotion", included: false },
-      { name: "CRM", included: false },
-    ],
-    buttonText: "Upgrade Now",
-  },
-  {
-    id: "3",
-    name: "Prime",
-    duration: "90 Days",
-    price: "24999 /-",
-    rules: [
-      { name: "Number of Listings 50", included: true },
-      { name: "Response Rate 5X More", included: true },
-      { name: "Position On Search High", included: true },
-      { name: "Buyers Visibility Unlimited", included: true },
-      { name: "Verified Tag", included: true },
-      { name: "Visibility on Best Details", included: true },
-      { name: "Visibility on Latest Details", included: true },
-      { name: "Land Page AD", included: true },
-      { name: "Land Page Banner", included: true },
-      { name: "Listings Page Small ADS", included: true },
-      { name: "Dedicated Agent Support", included: false },
-      { name: "Creatives", included: false },
-      { name: "Listing Support", included: false },
-      { name: "Meta ADS", included: false },
-      { name: "Prime Promotion", included: false },
-      { name: "CRM", included: true },
-    ],
-    buttonText: "Upgrade Now",
-    isPopular: true,
-  },
-  {
-    id: "4",
-    name: "Prime Plus",
-    duration: "180 Days",
-    price: "49999 /-",
-    rules: [
-      { name: "Number of Listings 60", included: true },
-      { name: "Response Rate 5X More", included: true },
-      { name: "Position On Search High", included: true },
-      { name: "Buyers Visibility Unlimited", included: true },
-      { name: "Verified Tag", included: true },
-      { name: "Visibility on Best Details", included: true },
-      { name: "Visibility on Latest Details", included: true },
-      { name: "Land Page AD", included: true },
-      { name: "Land Page Banner", included: true },
-      { name: "Listings Page Small ADS", included: true },
-      { name: "Dedicated Agent Support", included: true },
-      { name: "Creatives", included: true },
-      { name: "Listing Support", included: true },
-      { name: "Meta ADS", included: true },
-      { name: "Prime Promotion", included: true },
-      { name: "CRM", included: true },
-    ],
-    buttonText: "Upgrade Now",
-  },
-];
-
 // EditPackage Component
 interface EditPackageProps {
   pkg: Package;
@@ -212,7 +109,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
           </div>
 
           {/* Duration */}
-          <div>
+          {/* <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Duration
             </label>
@@ -223,7 +120,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               onChange={handleInputChange}
               className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
             />
-          </div>
+          </div> */}
 
           {/* Price */}
           <div>
@@ -233,7 +130,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
             <input
               type="text"
               name="price"
-              value={formData.price}
+              value={formData.price+"/-"}
               onChange={handleInputChange}
               className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
             />
@@ -335,16 +232,16 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
 // Main BuilderPackages Component
 const BuilderPackages: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const [packages, setPackages] = useState<Package[]>(initialPackages);
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
-  const [selectedCity, setSelectedCity] = useState<string>(""); // State for selected city
-  const [searchTerm, setSearchTerm] = useState<string>(""); // State for search term
-  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false); // State for dropdown visibility
+  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [searchTerm, setSearchTerm] = useState<string>("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
 
-  // Fetch cities from Redux store
+  // Get data from Redux store
   const { cities } = useSelector((state: RootState) => state.property);
+  const { packages, loading, error } = useSelector((state: RootState) => state.package);
 
-  // Transform cities into options for the dropdown
+  // Transform cities into options
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
       value: city.value,
@@ -356,20 +253,41 @@ const BuilderPackages: React.FC = () => {
     option.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  // Fetch cities and packages on mount
   useEffect(() => {
     dispatch(getCities());
+    dispatch(fetchAllPackages());
+    // Cleanup: clear packages on unmount (optional)
+    return () => {
+      dispatch(clearPackages());
+    };
   }, [dispatch]);
+
+  // Map API packages to include component-specific fields
+  const mappedPackages: Package[] = packages.map((pkg) => ({
+    ...pkg,
+    buttonText: pkg.name === "Free Listing" ? "Subscribed" : "Upgrade Now", // Example logic
+    isPopular: pkg.name === "Prime", // Example logic
+  }));
+
+
+  const formatPrice = (price: string): string => {
+    const priceNumber = parseFloat(price);
+    if (priceNumber === 0) {
+      return "Free";
+    }
+    // Extract the integer part and append " /-"
+    return `${Math.floor(priceNumber)} /-`;
+  };
 
   const handleEditPackage = (pkg: Package) => {
     setEditingPackage(pkg);
   };
 
   const handleSavePackage = (updatedPackage: Package) => {
-    setPackages((prev) =>
-      prev.map((pkg) =>
-        pkg.id === updatedPackage.id ? updatedPackage : pkg
-      )
-    );
+    // Optionally, dispatch an action to update the package via API
+    // For now, update local state (or Redux store if you have an update action)
+    console.log("Updated package:", updatedPackage);
     setEditingPackage(null);
   };
 
@@ -380,14 +298,14 @@ const BuilderPackages: React.FC = () => {
   // Handle search input change
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
-    setIsDropdownOpen(true); // Open dropdown when typing
+    setIsDropdownOpen(true);
   };
 
   // Handle city selection
   const handleCitySelect = (city: Option) => {
     setSelectedCity(city.value);
-    setSearchTerm(city.text); // Display selected city in input
-    setIsDropdownOpen(false); // Close dropdown after selection
+    setSearchTerm(city.text);
+    setIsDropdownOpen(false);
     console.log("Selected city:", city.value);
   };
 
@@ -419,7 +337,7 @@ const BuilderPackages: React.FC = () => {
           editingPackage ? "blur-sm" : ""
         }`}
       >
-        {/* Searchable City Dropdown above ComponentCard */}
+        {/* Searchable City Dropdown */}
         <div className="mb-6 max-w-xs city-dropdown">
           <label
             htmlFor="city-search"
@@ -437,7 +355,6 @@ const BuilderPackages: React.FC = () => {
               placeholder="Search for a city..."
               className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
             />
-            {/* Dropdown Arrow */}
             <button
               type="button"
               onClick={toggleDropdown}
@@ -458,7 +375,6 @@ const BuilderPackages: React.FC = () => {
                 />
               </svg>
             </button>
-            {/* Dropdown Options */}
             {isDropdownOpen && (
               <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
                 {filteredCityOptions.length > 0 ? (
@@ -482,8 +398,13 @@ const BuilderPackages: React.FC = () => {
         </div>
 
         <ComponentCard title="Builder Packages">
+          {loading && <p>Loading packages...</p>}
+          {error && <p className="text-red-500">Error: {error}</p>}
+          {!loading && !error && mappedPackages.length === 0 && (
+            <p>No packages available.</p>
+          )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {packages.map((pkg) => (
+            {mappedPackages.map((pkg) => (
               <div
                 key={pkg.id}
                 className={`relative p-6 rounded-lg shadow-lg border ${
@@ -492,14 +413,11 @@ const BuilderPackages: React.FC = () => {
                     : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 }`}
               >
-                {/* Popular Badge */}
                 {pkg.isPopular && (
                   <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#1D3A76] text-white text-xs font-semibold px-3 py-1 rounded-full">
                     Popular
                   </span>
                 )}
-
-                {/* Package Name */}
                 <div className="text-center mb-4">
                   <h3
                     className={`text-lg font-bold ${
@@ -511,8 +429,6 @@ const BuilderPackages: React.FC = () => {
                     {pkg.name}
                   </h3>
                 </div>
-
-                {/* Duration */}
                 <div className="text-center mb-2">
                   <p
                     className={`text-sm ${
@@ -521,24 +437,20 @@ const BuilderPackages: React.FC = () => {
                         : "text-gray-500 dark:text-gray-400"
                     }`}
                   >
-                    {pkg.duration}
+                    {pkg.duration_days} Days
                   </p>
                 </div>
-
-                {/* Price */}
                 <div className="text-center mb-4">
-                  <p
-                    className={`text-2xl font-semibold ${
-                      pkg.isPopular
-                        ? "text-white"
-                        : "text-gray-800 dark:text-white"
-                    }`}
-                  >
-                    {pkg.price}
-                  </p>
-                </div>
-
-                {/* Rules */}
+                <p
+                  className={`text-2xl font-semibold ${
+                    pkg.isPopular
+                      ? "text-white"
+                      : "text-gray-800 dark:text-white"
+                  }`}
+                >
+                  {formatPrice(pkg.price)}
+                </p>
+              </div>
                 <ul className="space-y-2 mb-6">
                   {pkg.rules.map((rule, index) => (
                     <li key={index} className="flex items-center space-x-2">
@@ -585,16 +497,12 @@ const BuilderPackages: React.FC = () => {
                     </li>
                   ))}
                 </ul>
-
-                {/* Edit Button */}
                 <button
                   onClick={() => handleEditPackage(pkg)}
                   className="w-full py-2 mb-2 bg-gray-200 text-gray-800 rounded-lg hover:bg-gray-300"
                 >
                   Edit Package
                 </button>
-
-                {/* Action Button */}
                 <button
                   className={`w-full py-2 rounded-lg text-center font-semibold ${
                     pkg.buttonText === "Subscribed"

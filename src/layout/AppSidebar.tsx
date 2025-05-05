@@ -113,7 +113,7 @@ const navItems: NavItem[] = [
     name: "Accounts",
     subItems: [
       { name: "Generate Payments", path: "/accounts/generate-payment-links", pro: false },
-      { name: "Users", nestedItems: [
+      { name: "Payments", nestedItems: [
         { name: "Payment Success", path: "/users/payment-success" },
         { name: "Payment Failure", path: "/users/payment-failure" },
         { name: "Expiry Soon", path: "/expiry-soon" },

@@ -39,7 +39,7 @@ export const fetchAllPackages = createAsyncThunk(
   "package/fetchAllPackages",
   async (_, { rejectWithValue }) => {
     try {
-      const promise = axiosInstance.get<Package[]>("/packages/getAllPackages");
+      const promise = axiosInstance.get<Package[]>("/packages/v1/getAllPackages");
       toast.promise(promise, {
         loading: "Fetching packages...",
         success: "Packages fetched successfully!",

@@ -10,6 +10,7 @@ import { MoreVertical, X } from "lucide-react";
 import Button from "../../components/ui/button/Button";
 import { fetchAds, clearAds, AdsState } from "../../store/slices/adSlice"; // Adjust path to adSlice
 import { toast } from "react-hot-toast";
+import Input from "../../components/form/input/InputField";
 
 // Define the Ad interface (trimmed for brevity, use the full interface from adSlice)
 interface Ad {
@@ -395,8 +396,8 @@ const AllAdsPage: React.FC = () => {
         </div>
       </div>
       {editModalOpen && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white dark:bg-gray-800 rounded-lg p-6 w-full max-w-md">
+        <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50">
+          <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-xl font-bold text-gray-800 dark:text-white">
                 Edit Ad
@@ -413,35 +414,35 @@ const AllAdsPage: React.FC = () => {
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Property Name
                 </label>
-                <input
+                <Input
                   type="text"
                   value={newPropertyName}
                   onChange={(e) => setNewPropertyName(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
+                   className="dark:bg-dark-900"
+                  
                 />
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Property Type
                 </label>
-                <input
+                <Input
                   type="text"
                   value={newPropertyType}
                   onChange={(e) => setNewPropertyType(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
+                  className="dark:bg-dark-900"
                 />
               </div>
               <div className="mb-4">
                 <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
                   Address
                 </label>
-                <input
+                <Input
                   type="text"
                   value={newGoogleAddress}
                   onChange={(e) => setNewGoogleAddress(e.target.value)}
-                  className="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 dark:bg-gray-700 dark:border-gray-600 dark:text-white"
-                  required
+                  className="dark:bg-dark-900"
+                 
                 />
               </div>
               <div className="flex justify-end space-x-2">
