@@ -11,11 +11,10 @@ import { useNavigate } from "react-router";
 // Mapping of user_type to user names
 const userTypeMap: { [key: string]: string } = {
   "1": "Admin",
-  "2": "User",
-  "3": "Builder",
-  "4": "Agent",
+  "3":"Builder",
+  "4":"Agent",
   "5": "Owner",
-  "6": "Channel Partner",
+  "6":"Channel Partner",
   "7": "Manager",
   "8": "Telecaller",
   "9": "Marketing Executive",
@@ -46,11 +45,13 @@ const designationOptions: Option[] = [
 const allowedUserTypes: { [key: string]: string[] } = {
   "1": Object.keys(userTypeMap), // Admin sees all
   "3":Object.keys(userTypeMap),
+  "4":Object.keys(userTypeMap),
+  "5":Object.keys(userTypeMap),
+  "6":Object.keys(userTypeMap),
   "7": ["2", "3", "4", "5", "6", "8", "9", "10", "11"], // Manager
   "9": ["3", "4", "6"], // Marketing Executive
   // "3": ["3", "4", "6"], // Builder
-  "4": ["3", "4", "6"], // Agent
-  "5": ["3", "4", "6"], // Owner
+
 };
 
 interface UserCountItem {
