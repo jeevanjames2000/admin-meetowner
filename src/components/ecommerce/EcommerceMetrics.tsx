@@ -23,6 +23,24 @@ const userTypeMap: { [key: string]: string } = {
   "11": "Customer Service",
   Total: "Total",
 };
+interface Option {
+  value: number;
+  text: string;
+}
+
+const designationOptions: Option[] = [
+  { value: 1, text: "Admin" },
+  { value: 2, text: "User" },
+  { value: 3, text: "Builder" },
+  { value: 4, text: "Agent" },
+  { value: 5, text: "Owner" },
+  { value: 6, text: "Channel Partner" },
+  { value: 7, text: "Manager" },
+  { value: 8, text: "TeleCaller" },
+  { value: 9, text: "Marketing Executive" },
+  { value: 10, text: "Customer Support" },
+  { value: 11, text: "Customer Service" },
+];
 
 // Define allowed user types for each user_type
 const allowedUserTypes: { [key: string]: string[] } = {
@@ -58,6 +76,11 @@ export default function Home() {
     }
   };
 
+  const getDesignationText = (userType:number | undefined):string => {
+    const designation = designationOptions.find((option) => option.value === userType);
+    return designation ? designation.text :'Unknow Designation';
+  }
+
   // Filter user counts based on the logged-in user's user_type
   const filteredUserCounts = userCounts?.filter((item) =>
     allowedUserTypes[userType ?? ""]?.includes(item.user_type)
@@ -78,7 +101,7 @@ export default function Home() {
   return (
     <div className="p-6">
       <h1 className="mb-4 text-2xl font-semibold text-[#1D3A76] dark:text-white">
-        Welcome {user?.name || "User"}!
+        Welcome {user?.name || "User"}! Your role is {getDesignationText(user?.user_type)}
       </h1>
       <h1 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white">
         Dashboard

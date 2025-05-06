@@ -20,7 +20,7 @@ import CommercialBuyEdit from "./pages/Commercial/Buy/CommercialBuyEdit";
 import CommercialRentEdit from "./pages/Commercial/Rent/CommercialRentEdit";
 import CreateEmployee from "./pages/Employee/CreateEmployee";
 import AllEmployees from "./pages/Employee/AllEmployees";
-import PaymentSuccessUsers from "./pages/Accounts/Users/paymentSuccess";
+import PaymentSuccessUsers from "./pages/Accounts/payments/paymentSuccess";
 
 import InvoiceDownload from "./pages/Employee/Invoice";
 import BasicTables from "./pages/Tables/BasicTables";
@@ -40,7 +40,7 @@ import CreateUser from "./pages/users/CreateUsers";
 import AllAdsPage from "./pages/Ads/AllAds";
 import CreateAds from "./pages/Ads/CreateAds";
 import BuilderPackages from "./pages/packages/BuilderPackages";
-import PaymentFailureUsers from "./pages/Accounts/Users/PaymentFailure";
+import PaymentFailureUsers from "./pages/Accounts/payments/PaymentFailure";
 import GeneratePayments from "./pages/Accounts/GeneratePaymentLink";
 import CitiesManager from "./pages/maps/cities";
 import StatesManager from "./pages/maps/state";

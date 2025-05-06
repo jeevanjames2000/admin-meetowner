@@ -105,12 +105,12 @@ const PaymentSuccessUsers: React.FC = () => {
     <div className="relative min-h-screen">
       <PageMeta title="Meet Owner Payments" />
       <PageBreadcrumbList
-        pageTitle="Payment Success Users"
+        pageTitle="Payment Success"
         pagePlacHolder="Filter subscriptions"
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        <ComponentCard title="Payment Success Users">
+        <ComponentCard title="Payment Success">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
               <Table>
@@ -189,11 +189,11 @@ const PaymentSuccessUsers: React.FC = () => {
                             sub.subscription_package.toLowerCase() === "basic"
                               ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                               : sub.subscription_package.toLowerCase() === "prime"
-                              ? "bg-purple-100 text-purple-800 dark:bg-purple-900 dark:text-purple-200"
-                              : "bg-gold-100 text-gold-800 dark:bg-gold-900 dark:text-gold-200"
+                              ? "bg-gold-100 text-gold-800 dark:bg-gold-900 dark:text-gold-200"
+                              : "bg-[#1D3A76] text-white dark:bg-purple-900 dark:text-purple-200"
                           }`}
                         >
-                          {formatPackageName(sub.subscription_package)}
+                          {formatPackageName(sub.subscription_package === 'prime_plus' ? 'Prime Plus' : sub.subscription_package)}
                         </span>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
