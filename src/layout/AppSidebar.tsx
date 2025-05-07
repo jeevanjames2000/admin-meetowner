@@ -10,7 +10,7 @@ import {
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import { FaAd, FaBell, FaFileInvoice, FaSearchLocation } from "react-icons/fa";
+import { FaAd, FaBell,FaBusinessTime,FaUserTie,FaHouseUser,FaRegUser ,FaMapMarkerAlt    } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 
@@ -110,7 +110,7 @@ const navItems: NavItem[] = [
     ],
   },
   {
-    icon: <CalenderIcon />,
+    icon: <FaBusinessTime />,
     name: "Accounts",
     subItems: [
       { name: "Generate Payments", path: "/accounts/generate-payment-links", pro: false },
@@ -145,7 +145,7 @@ const navItems: NavItem[] = [
   },
   {
     name: "Employees",
-    icon: <FaFileInvoice />,
+    icon: <FaUserTie />,
     subItems: [
       { name: "Create Employee", path: "/create-employee", pro: false },
       { name: "All Employees", path: "/all-employees", pro: false },
@@ -153,7 +153,7 @@ const navItems: NavItem[] = [
   },
   {
     name: "Projects",
-    icon: <FaFileInvoice />,
+    icon: <FaHouseUser />,
     subItems: [
       { name: "Add Projects", path: "/projects/add-projects", pro: false },
       { name: "All Projects", path: "/projects/all-projects", pro: false },
@@ -161,7 +161,7 @@ const navItems: NavItem[] = [
   },
   {
     name: "Users",
-    icon: <FaFileInvoice />,
+    icon: <FaRegUser  />,
     subItems: [
       { name: "Create User", path: "/create-user", pro: false },
     
@@ -169,7 +169,7 @@ const navItems: NavItem[] = [
   },
   {
     name: "Maps",
-    icon: <FaSearchLocation />,
+    icon: <FaMapMarkerAlt  />,
     subItems: [
       { name: "Places", path: "/maps/locality", pro: false },
       { name: "Places List", path: "/maps/allPlaces", pro: false },
@@ -186,7 +186,7 @@ const navItems: NavItem[] = [
   },
   {
     name: "Packages",
-    icon: <FaAd />,
+    icon: <ListIcon />,
     subItems: [
       { name: "Builder", path: "/packages/builder", pro: false },
       { name: "Agents", path: "/packages/agents", pro: false },
