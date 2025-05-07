@@ -337,7 +337,7 @@ export default function App() {
                 }
               />
               <Route
-                path="/users/payment-success"
+                path="/payments/:status"
                 element={
                   <ErrorBoundary>
                     <ProtectedRoute>
@@ -346,16 +346,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
-                path="/users/payment-failure"
-                element={
-                  <ErrorBoundary>
-                    <ProtectedRoute>
-                      <PaymentFailureUsers />
-                    </ProtectedRoute>
-                  </ErrorBoundary>
-                }
-              />
+              
               
               <Route
                 path="/create-employee"

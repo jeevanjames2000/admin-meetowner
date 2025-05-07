@@ -317,8 +317,8 @@ const CommercialTypes: React.FC = () => {
           <h2 className="p-2">Search result - {totalCount}</h2>
           <div className="space-y-6">
             <ComponentCard title={getPageTitle()}>
-              <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-                <div className="max-w-full overflow-x-auto">
+              <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+                <div className="max-w-full ">
                   <Table>
                     <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                       <TableRow>

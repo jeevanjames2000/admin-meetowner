@@ -199,8 +199,8 @@ const handleEditSubmit = async (e: React.FormEvent) => {
         />
         <div className="space-y-6">
           <ComponentCard title="All Places">
-            <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-              <div className="max-w-full overflow-x-auto">
+            <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+              <div className="max-w-full ">
                 <Table>
                   <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                     <TableRow>
@@ -242,7 +242,7 @@ const handleEditSubmit = async (e: React.FormEvent) => {
                             {activeMenu === place.id && (
                               <div
                                 ref={dropdownRef}
-                                className="absolute right-0 top-2 z-50  rounded-lg shadow-md bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+                               className="absolute mt-1 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20"
                               >
                                 <div className="py-2">
                                   <button

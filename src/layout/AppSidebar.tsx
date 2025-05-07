@@ -114,9 +114,11 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Generate Payments", path: "/accounts/generate-payment-links", pro: false },
       { name: "Payments", nestedItems: [
-        { name: "Payment Success", path: "/users/payment-success" },
-        { name: "Payment Failure", path: "/users/payment-failure" },
-        { name: "Expiry Soon", path: "/expiry-soon" },
+        { name: "Payment Success", path: "/payments/success" },
+        { name: "Payment Processing", path: "/payments/processing" },
+        { name: "Payment rejected", path: "/payments/rejected" },
+        { name: "Payment Cancelled", path: "/payments/cancelled" },
+        { name: "Expiry Soon", path: "/payments/expiry" },
       ]},
       // { name: "Agents", nestedItems: [
       //   { name: "Payment Success", path: "/agents/payment-success" },
@@ -170,7 +172,7 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Places", path: "/maps/locality", pro: false },
       { name: "Places List", path: "/maps/allPlaces", pro: false },
-      { name: "Invoice Generator", path: "/invoice", pro: false },
+      
     ],
   },
   {

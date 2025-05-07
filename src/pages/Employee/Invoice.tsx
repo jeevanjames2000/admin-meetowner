@@ -1,9 +1,11 @@
-
+import { useEffect } from "react";
+import { useLocation } from "react-router";
 import { PDFDownloadLink, Document, Page, Text, View, StyleSheet, Image } from '@react-pdf/renderer';
 import { Building2, FileText } from 'lucide-react';
 import companyLogo from '../../../public/images/logo.png';
+import { numberToWords } from "../../utils/words";
 
-// PDF styles
+// PDF styles (unchanged)
 const pdfStyles = StyleSheet.create({
   page: {
     padding: 30,
@@ -30,7 +32,7 @@ const pdfStyles = StyleSheet.create({
     fontSize: 24,
     fontWeight: 'bold',
     marginBottom: 10,
-    color: '#2563eb'
+    color: '#1D3A76'
   },
   subtitle: {
     fontSize: 10,
@@ -42,7 +44,8 @@ const pdfStyles = StyleSheet.create({
   },
   invoiceDetails: {
     fontSize: 10,
-    marginBottom: 4
+    marginBottom: 4,
+    color: '#1D3A76'
   },
   clientSection: {
     marginBottom: 20
@@ -70,12 +73,11 @@ const pdfStyles = StyleSheet.create({
     borderBottomColor: '#e5e7eb',
     padding: 8
   },
-  description: { width: '40%', fontSize: 10 },
-  hsn: { width: '15%', fontSize: 10 },
-  qty: { width: '10%', fontSize: 10, textAlign: 'right' },
-  rate: { width: '15%', fontSize: 10, textAlign: 'right' },
-  gst: { width: '10%', fontSize: 10, textAlign: 'right' },
-  amount: { width: '10%', fontSize: 10, textAlign: 'right' },
+  description: { width: '20%', fontSize: 10 },
+  status :{ width: '20%', fontSize: 10 },
+  gst: { width: '20%', fontSize: 10, },
+  amount: { width: '20%', fontSize: 10,  },
+  mode:{ width: '20%', fontSize: 10 },
   totalSection: {
     marginTop: 20,
     alignItems: 'flex-end'
@@ -89,7 +91,7 @@ const pdfStyles = StyleSheet.create({
     width: 100,
     fontSize: 10,
     textAlign: 'right',
-    marginRight: 10
+    marginRight: 3
   },
   totalAmount: {
     width: 100,
@@ -116,18 +118,18 @@ const pdfStyles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 4
   },
-  bankDetails: {
+  paymentDetails: {
     marginTop: 20,
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
     paddingTop: 10
   },
-  bankDetailsTitle: {
+  paymentDetailsTitle: {
     fontSize: 12,
     fontWeight: 'bold',
     marginBottom: 8
   },
-  bankDetailsText: {
+  paymentDetailsText: {
     fontSize: 10,
     color: '#4b5563',
     marginBottom: 4
@@ -137,94 +139,75 @@ const pdfStyles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: '#e5e7eb',
     paddingTop: 10
-  }
+  },
+  termsTitle:{
+    fontSize: 12,
+    fontWeight: 'bold',
+    marginBottom: 8
+  },
+  termsText:{
+    fontSize: 10,
+    color: '#4b5563',
+    marginBottom: 4
+  },
+
 });
 
-// Invoice data
-const invoiceData = {
-  number: 'INV-2024-001',
-  date: '2024-03-03',
-  dueDate: '2024-03-17',
-  company: {
-    name: 'MEET OWNER',
-    address: 'H.No 2-32/B, Friends Colony',
-    city: 'Hyderabad',
-    state: 'Telangana',
-    zip: '500050',
-    gstin: '36ABVFM6524D1ZZ',
-    email: 'info@meetowner.com',
-    phone: '+91 9876543210'
-  },
-  client: {
-    name: 'CMR AUTOMOTIVES PRIVATE LIMITED',
-    gstin: '37AAGCC5611G1ZU',
-    placeOfSupply: 'Andhra Pradesh (37)',
-    address: '123, Industrial Area',
-    city: 'Vijayawada',
-    state: 'Andhra Pradesh',
-    zip: '520001'
-  },
-  items: [
-    {
-      description: 'Digital Real eState Services',
-      hsn: '998314',
-      qty: 1,
-      rate: 20000,
-      gst: 18,
-      amount: 20000
-    }
-  ],
-  bankDetails: {
-    bankName: 'HDFC Bank',
-    accountName: 'Meet Owner',
-    accountNumber: 'XXXX XXXX XXXX 1234',
-    ifscCode: 'HDFC0001234',
-    branchName: 'Hyderabad Main Branch'
-  },
-  terms: [
-    'Payment is due within 14 days',
-    'Late payment may incur additional charges',
-    'All prices are in Indian Rupees (INR)',
-    'This is a computer-generated invoice, no signature required'
-  ]
-};
+// Helper function to convert number to words (unchanged)
 
-// Helper function to convert number to words
-const numberToWords = (num: number) => {
-  const ones = ['', 'One', 'Two', 'Three', 'Four', 'Five', 'Six', 'Seven', 'Eight', 'Nine'];
-  const tens = ['', '', 'Twenty', 'Thirty', 'Forty', 'Fifty', 'Sixty', 'Seventy', 'Eighty', 'Ninety'];
-  const teens = ['Ten', 'Eleven', 'Twelve', 'Thirteen', 'Fourteen', 'Fifteen', 'Sixteen', 'Seventeen', 'Eighteen', 'Nineteen'];
-
-  if (num === 0) return 'Zero';
-
-  const convertLessThanThousand = (n: number): string => {
-    if (n === 0) return '';
-    
-    if (n < 10) return ones[n];
-    
-    if (n < 20) return teens[n - 10];
-    
-    if (n < 100) {
-      return tens[Math.floor(n / 10)] + (n % 10 !== 0 ? ' ' + ones[n % 10] : '');
-    }
-    
-    return ones[Math.floor(n / 100)] + ' Hundred' + (n % 100 !== 0 ? ' ' + convertLessThanThousand(n % 100) : '');
-  };
-
-  const convertLakh = (n: number): string => {
-    if (n === 0) return '';
-    return convertLessThanThousand(Math.floor(n / 100000)) + ' Lakh ' + 
-           convertLessThanThousand(n % 100000);
-  };
-
-  return convertLakh(num).trim() + ' Rupees Only';
-};
 
 // PDF Document Component
-const InvoicePDF = () => {
-  const subtotal = invoiceData.items.reduce((acc, item) => acc + item.amount, 0);
-  const gst = subtotal * 0.18;
-  const total = subtotal + gst;
+const InvoicePDF = ({ subscription }: { subscription: Subscription }) => {
+ 
+  const total = parseFloat(subscription.payment_amount);
+
+  const invoiceData = {
+    number: subscription.invoice_number || `INV-${subscription.id}`,
+    date: subscription.created_at.split("T")[0],
+    company: {
+      name: 'MEET OWNER',
+      address: '401, 8-3-6-5/1/1/4, Astral Hasini Residency, J.P. Nagar, Yella Reddy Guda',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      zip: '500073',
+      gstin: '36ABVFM6524D1ZZ',
+      email: 'support@meetowner.in',
+      phone: '+91 9701888071'
+    },
+    client: {
+      name: subscription.name,
+      mobile: subscription.mobile,
+      gstin: subscription.gst_number || 'N/A',
+      rerain: subscription.rera_number || 'N/A'
+    },
+    items: [
+      {
+        description: subscription.subscription_package,
+        status: subscription.payment_status,
+        gst: subscription.gst_percentage,
+        mode: subscription.payment_mode,
+        amount: subscription.payment_amount,
+      }
+    ],
+    gstDetails: {
+      actualAmount: subscription.actual_amount,
+      gstAmount: subscription.gst,
+      sgstAmount: subscription.sgst,
+      TotalAmount: subscription.payment_amount,
+    },
+    bankDetails: {
+      paymentDate: subscription.transaction_time.split("T")[0],
+      paymentPlatform: subscription.payment_gateway,
+      startDate: subscription.subscription_start_date.split("T")[0],
+      endDate: subscription.subscription_expiry_date.split("T")[0],
+    },
+    terms: [
+      'Payment is due within 14 days',
+      'Late payment may incur additional charges',
+      'All prices are in Indian Rupees (INR)',
+      'This is a computer-generated invoice, no signature required'
+    ]
+  };
 
   return (
     <Document>
@@ -244,9 +227,8 @@ const InvoicePDF = () => {
             <Text style={pdfStyles.subtitle}>Phone: {invoiceData.company.phone}</Text>
           </View>
           <View style={pdfStyles.invoiceInfo}>
-            <Text style={pdfStyles.invoiceDetails}>Invoice #{invoiceData.number}</Text>
+            <Text style={pdfStyles.invoiceDetails}>Invoice: {invoiceData.number}</Text>
             <Text style={pdfStyles.invoiceDetails}>Date: {invoiceData.date}</Text>
-            <Text style={pdfStyles.invoiceDetails}>Due Date: {invoiceData.dueDate}</Text>
           </View>
         </View>
 
@@ -254,32 +236,27 @@ const InvoicePDF = () => {
         <View style={pdfStyles.clientSection}>
           <Text style={pdfStyles.sectionTitle}>Bill To:</Text>
           <Text style={pdfStyles.subtitle}>{invoiceData.client.name}</Text>
-          <Text style={pdfStyles.subtitle}>{invoiceData.client.address}</Text>
-          <Text style={pdfStyles.subtitle}>
-            {invoiceData.client.city}, {invoiceData.client.state} {invoiceData.client.zip}
-          </Text>
+          <Text style={pdfStyles.subtitle}>Mobile: {invoiceData.client.mobile}</Text>
           <Text style={pdfStyles.subtitle}>GSTIN: {invoiceData.client.gstin}</Text>
-          <Text style={pdfStyles.subtitle}>Place of Supply: {invoiceData.client.placeOfSupply}</Text>
+          <Text style={pdfStyles.subtitle}>RERA Number: {invoiceData.client.rerain}</Text>
         </View>
 
         {/* Table */}
         <View style={pdfStyles.table}>
           <View style={pdfStyles.tableHeader}>
-            <Text style={pdfStyles.description}>Description</Text>
-            <Text style={pdfStyles.hsn}>HSN/SAC</Text>
-            <Text style={pdfStyles.qty}>Qty</Text>
-            <Text style={pdfStyles.rate}>Rate</Text>
-            <Text style={pdfStyles.gst}>GST%</Text>
+            <Text style={pdfStyles.description}>Subscription</Text>
+            <Text style={pdfStyles.status}>Status</Text>
+            <Text style={pdfStyles.gst}>GST</Text>
+            <Text style={pdfStyles.mode}>Mode</Text>
             <Text style={pdfStyles.amount}>Amount</Text>
           </View>
           {invoiceData.items.map((item, index) => (
             <View key={index} style={pdfStyles.tableRow}>
               <Text style={pdfStyles.description}>{item.description}</Text>
-              <Text style={pdfStyles.hsn}>{item.hsn}</Text>
-              <Text style={pdfStyles.qty}>{item.qty}</Text>
-              <Text style={pdfStyles.rate}>₹{item.rate.toLocaleString()}</Text>
+              <Text style={pdfStyles.status}>{item.status}</Text>
               <Text style={pdfStyles.gst}>{item.gst}%</Text>
-              <Text style={pdfStyles.amount}>₹{item.amount.toLocaleString()}</Text>
+              <Text style={pdfStyles.mode}>{item.mode}</Text>
+              <Text style={pdfStyles.amount}>₹{parseFloat(item.amount).toLocaleString()}</Text>
             </View>
           ))}
         </View>
@@ -287,28 +264,38 @@ const InvoicePDF = () => {
         {/* Totals */}
         <View style={pdfStyles.totalSection}>
           <View style={pdfStyles.totalRow}>
-            <Text style={pdfStyles.totalLabel}>Subtotal:</Text>
-            <Text style={pdfStyles.totalAmount}>₹{subtotal.toLocaleString()}</Text>
+            <Text style={pdfStyles.totalLabel}>Actual Amount:</Text>
+            <Text style={pdfStyles.totalAmount}>₹{parseFloat(invoiceData.gstDetails.actualAmount).toLocaleString()}</Text>
           </View>
           <View style={pdfStyles.totalRow}>
-            <Text style={pdfStyles.totalLabel}>GST (18%):</Text>
-            <Text style={pdfStyles.totalAmount}>₹{gst.toLocaleString()}</Text>
+            <Text style={pdfStyles.totalLabel}>GST Amount:</Text>
+            <Text style={pdfStyles.totalAmount}>₹{parseFloat(invoiceData.gstDetails.gstAmount).toLocaleString()}</Text>
+          </View>
+          <View style={pdfStyles.totalRow}>
+            <Text style={pdfStyles.totalLabel}>SGST Amount:</Text>
+            <Text style={pdfStyles.totalAmount}>₹{parseFloat(invoiceData.gstDetails.sgstAmount).toLocaleString()}</Text>
           </View>
           <View style={[pdfStyles.totalRow, pdfStyles.grandTotal]}>
             <Text style={pdfStyles.totalLabel}>Total:</Text>
-            <Text style={pdfStyles.totalAmount}>₹{total.toLocaleString()}</Text>
+            <Text style={pdfStyles.totalAmount}>₹{parseFloat(invoiceData.gstDetails.TotalAmount).toLocaleString()}</Text>
           </View>
           <Text style={pdfStyles.subtitle}>Amount in words: {numberToWords(total)}</Text>
         </View>
 
-        {/* Bank Details */}
-       
+        {/* Payment Details */}
+        <View style={pdfStyles.paymentDetails}>
+          <Text style={pdfStyles.paymentDetailsTitle}>Payment Details:</Text>
+          <Text style={pdfStyles.paymentDetailsText}>Payment Date: {invoiceData.bankDetails.paymentDate}</Text>
+          <Text style={pdfStyles.paymentDetailsText}>Platform: {invoiceData.bankDetails.paymentPlatform}</Text>
+          <Text style={pdfStyles.paymentDetailsText}>Subscription Start Date: {invoiceData.bankDetails.startDate}</Text>
+          <Text style={pdfStyles.paymentDetailsText}>Subscription End Date: {invoiceData.bankDetails.endDate}</Text>
+        </View>
 
         {/* Terms and Conditions */}
         <View style={pdfStyles.termsAndConditions}>
-          <Text style={pdfStyles.bankDetailsTitle}>Terms and Conditions:</Text>
+          <Text style={pdfStyles.termsTitle}>Terms and Conditions:</Text>
           {invoiceData.terms.map((term, index) => (
-            <Text key={index} style={pdfStyles.bankDetailsText}>• {term}</Text>
+            <Text key={index} style={pdfStyles.termsText}>• {term}</Text>
           ))}
         </View>
 
@@ -322,25 +309,124 @@ const InvoicePDF = () => {
   );
 };
 
+interface Subscription {
+  id: number;
+  user_id: number;
+  name: string;
+  mobile: string;
+  email: string;
+  subscription_package: string;
+  subscription_start_date: string;
+  subscription_expiry_date: string;
+  subscription_status: string;
+  payment_status: string;
+  payment_amount: string;
+  payment_reference: string;
+  payment_mode: string;
+  payment_gateway: string;
+  transaction_time: string;
+  created_at: string;
+  updated_at: string;
+  razorpay_order_id: string;
+  razorpay_payment_id: string;
+  razorpay_signature: string;
+  actual_amount: string;
+  gst: string;
+  sgst: string;
+  gst_percentage: string;
+  gst_number: string;
+  rera_number: string;
+  invoice_number: string | null; // Nullable field
+}
+
 // Web Invoice Component
 const Invoice = () => {
-  const subtotal = invoiceData.items.reduce((acc, item) => acc + item.amount, 0);
-  const gst = subtotal * 0.18;
-  const total = subtotal + gst;
+  const location = useLocation();
+  const subscription = location.state?.subscription as Subscription | undefined;
+
+  // Log the subscription data when the component mounts
+  useEffect(() => {
+    if (subscription) {
+      console.log("Subscription data in Invoice screen:", subscription);
+    } else {
+      console.warn("No subscription data found in navigation state.");
+    }
+  }, [subscription]);
+
+  // If no subscription data is available, show a fallback message
+  if (!subscription) {
+    return (
+      <div className="max-w-4xl mx-auto py-8 px-4 text-center">
+        <h1 className="text-2xl font-bold text-red-600">Error</h1>
+        <p className="text-gray-600 mt-2">No subscription data available to generate the invoice.</p>
+      </div>
+    );
+  }
+
+  const subtotal = parseFloat(subscription.payment_amount);
+ 
+
+  const invoiceData = {
+    number: subscription.invoice_number || `INV-${subscription.id}`,
+    date: subscription.created_at.split("T")[0],
+    company: {
+      name: 'MEET OWNER',
+      address: '401, 8-3-6-5/1/1/4,Astral Hasini Residency, J.P. Nagar, Yella Reddy Guda',
+      city: 'Hyderabad',
+      state: 'Telangana',
+      zip: '500073',
+      gstin: '36ABVFM6524D1ZZ',
+      email: 'support@meetowner.in',
+      phone: '+91 9701888071'
+    },
+    client: {
+      name: subscription.name,
+      mobile:subscription.mobile,
+      gstin: subscription.gst_number || 'N/A',
+      rerain:subscription.rera_number || 'N/A'
+    },
+    items: [
+      {
+        description: subscription.subscription_package,
+        status:subscription.payment_status,
+        gst :subscription.gst_percentage,
+        mode:subscription.payment_mode,
+        amount:subscription.payment_amount,
+      }
+    ],
+    gstDetails:{
+      actualAmount : subscription.actual_amount,
+      gstAmount : subscription.gst,
+      sgstAmount : subscription.sgst,
+      TotalAmount : subscription.payment_amount,
+    },
+    bankDetails: {
+      paymentDate: subscription.transaction_time.split("T")[0],
+      paymentPlatform: subscription.payment_gateway,
+      startDate: subscription.subscription_start_date.split("T")[0],
+      endDate : subscription.subscription_expiry_date.split("T")[0],
+      
+    },
+    terms: [
+      'Payment is due within 14 days',
+      'Late payment may incur additional charges',
+      'All prices are in Indian Rupees (INR)',
+      'This is a computer-generated invoice, no signature required'
+    ]
+  };
 
   return (
     <div className="max-w-4xl mx-auto py-8 px-4">
-    
       <div className="bg-white rounded-lg shadow-lg p-8 mb-8">
         {/* Header */}
         <div className="flex justify-between items-start mb-8 pb-8 border-b">
           <div>
             <div className="flex items-center gap-2 mb-4">
-              <Building2 className="h-6 w-6 text-blue-600" />
-              <h1 className="text-2xl font-bold text-blue-600">TAX INVOICE</h1>
+              <Building2 className="h-6 w-6 text-[#1D3A76]" />
+              <h1 className="text-2xl font-bold text-[#1D3A76]">TAX INVOICE</h1>
             </div>
             <div className="text-sm text-gray-600">
-            <img 
+              <img 
                 src={companyLogo} 
                 alt="Company Logo" 
                 className="w-24 h-12 mb-2 object-contain"
@@ -354,9 +440,8 @@ const Invoice = () => {
             </div>
           </div>
           <div className="text-right">
-            <p className="font-semibold">Invoice #{invoiceData.number}</p>
+            <p className="font-semibold text-[#1D3A76]">Invoice :{invoiceData.number}</p>
             <p className="text-sm text-gray-600">Date: {invoiceData.date}</p>
-            <p className="text-sm text-gray-600">Due Date: {invoiceData.dueDate}</p>
           </div>
         </div>
 
@@ -365,10 +450,10 @@ const Invoice = () => {
           <h2 className="font-semibold mb-2">Bill To:</h2>
           <div className="text-sm text-gray-600">
             <p>{invoiceData.client.name}</p>
-            <p>{invoiceData.client.address}</p>
-            <p>{invoiceData.client.city}, {invoiceData.client.state} {invoiceData.client.zip}</p>
+            <p>Mobile :{invoiceData.client.mobile}</p>
             <p>GSTIN: {invoiceData.client.gstin}</p>
-            <p>Place of Supply: {invoiceData.client.placeOfSupply}</p>
+            <p>RERA Number : {invoiceData.client.rerain}</p>
+          
           </div>
         </div>
 
@@ -377,22 +462,21 @@ const Invoice = () => {
           <table className="w-full">
             <thead>
               <tr className="bg-gray-50">
-                <th className="px-4 py-2 text-left">Description</th>
-                <th className="px-4 py-2 text-left">HSN/SAC</th>
-                <th className="px-4 py-2 text-right">Qty</th>
-                <th className="px-4 py-2 text-right">Rate</th>
+                <th className="px-4 py-2 text-left">Subscription</th>
+                <th className="px-4 py-2 text-left">Status</th>
                 <th className="px-4 py-2 text-right">GST%</th>
+                <th className="px-4 py-2 text-right">Mode</th>
                 <th className="px-4 py-2 text-right">Amount</th>
+                
               </tr>
             </thead>
             <tbody>
               {invoiceData.items.map((item, index) => (
                 <tr key={index} className="border-b">
                   <td className="px-4 py-2">{item.description}</td>
-                  <td className="px-4 py-2">{item.hsn}</td>
-                  <td className="px-4 py-2 text-right">{item.qty}</td>
-                  <td className="px-4 py-2 text-right">₹{item.rate.toLocaleString()}</td>
+                  <td className="px-4 py-2">{item.status}</td>
                   <td className="px-4 py-2 text-right">{item.gst}%</td>
+                  <td className="px-4 py-2 text-right">{item.mode}</td>
                   <td className="px-4 py-2 text-right">₹{item.amount.toLocaleString()}</td>
                 </tr>
               ))}
@@ -402,22 +486,35 @@ const Invoice = () => {
 
         {/* Totals */}
         <div className="mt-8 text-right">
-          <p className="text-sm text-gray-600">
-            Subtotal: ₹{subtotal.toLocaleString()}
+        <p className="text-sm text-gray-600">
+            Actual Amount: ₹{invoiceData.gstDetails.actualAmount}
           </p>
           <p className="text-sm text-gray-600">
-            GST (18%): ₹{gst.toLocaleString()}
+            GST Amount: ₹{invoiceData.gstDetails.gstAmount}
+          </p>
+          <p className="text-sm text-gray-600">
+            SGST Amount: ₹{invoiceData.gstDetails.sgstAmount}
           </p>
           <p className="font-semibold text-lg border-t mt-2 pt-2">
-            Total: ₹{total.toLocaleString()}
+            Total: ₹{invoiceData.gstDetails.TotalAmount}
           </p>
           <p className="text-sm text-gray-600 mt-2">
-            Amount in words: {numberToWords(total)}
+            Amount in words: {numberToWords(subtotal)}
           </p>
         </div>
 
         {/* Bank Details */}
-       
+        <div className="mt-8 pt-8 border-t">
+          <h3 className="font-semibold mb-2">Payment Details:</h3>
+          <div className="text-sm text-gray-600">
+            <p>Payment Date: {invoiceData.bankDetails.paymentDate}</p>
+            <p>PlatForm: {invoiceData.bankDetails.paymentPlatform}</p>
+            <p>Subscription Start Date: {invoiceData.bankDetails.startDate}</p>
+            <p>Subscription End Date: {invoiceData.bankDetails.endDate}</p>
+            
+          </div>
+        </div>
+
         {/* Terms and Conditions */}
         <div className="mt-8 pt-8 border-t">
           <h3 className="font-semibold mb-2">Terms and Conditions:</h3>
@@ -438,7 +535,7 @@ const Invoice = () => {
       {/* Download Button */}
       <div className="text-center">
         <PDFDownloadLink
-          document={<InvoicePDF />}
+          document={<InvoicePDF subscription={subscription} />}
           fileName={`invoice-${invoiceData.number}.pdf`}
           className="inline-flex items-center gap-2 bg-[#1D3A76] text-white px-6 py-3 rounded-lg hover:bg-blue-700 transition-colors"
         >
