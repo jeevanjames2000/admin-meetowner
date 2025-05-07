@@ -175,7 +175,7 @@ const PaymentSuccessUsers: React.FC = () => {
   };
 
   const pageTitleStatus = status
-    ? `${status.charAt(0).toUpperCase() + status.slice(1)} Subscriptions`
+    ? `${status.charAt(0).toUpperCase() + status.slice(1)} Payments`
     : "Payments ";
 
   // Filter subscriptions based on name and mobile
@@ -264,18 +264,22 @@ const PaymentSuccessUsers: React.FC = () => {
                     >
                       Package
                     </TableCell>
+                    {(status?.toLowerCase() !== "cancelled" ) && (
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Start Date
                     </TableCell>
+                    )}
+                    {(status?.toLowerCase() !== "cancelled" ) && (
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Expiry Date
                     </TableCell>
+                     )}
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -321,7 +325,6 @@ const PaymentSuccessUsers: React.FC = () => {
                     )}
                   </TableRow>
                 </TableHeader>
-
                 {/* Table Body */}
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {filteredSubscriptions.map((sub: Subscription) => (
@@ -339,7 +342,6 @@ const PaymentSuccessUsers: React.FC = () => {
                         {sub.email}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-  
                       <span
                         className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                           sub.subscription_package.toLowerCase() === "basic"
@@ -352,12 +354,16 @@ const PaymentSuccessUsers: React.FC = () => {
                         {formatPackageName(sub.subscription_package === 'prime_plus' ? 'Prime Plus' : sub.subscription_package)}
                       </span>
                     </TableCell>
+                    {(status?.toLowerCase() !== "cancelled" ) && (
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(sub.subscription_start_date)}
                       </TableCell>
+                    )}
+                     {(status?.toLowerCase() !== "cancelled" ) && (
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(sub.subscription_expiry_date)}
                       </TableCell>
+                     )}
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {sub.subscription_status}
                       </TableCell>
