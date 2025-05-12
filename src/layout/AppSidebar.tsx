@@ -163,7 +163,8 @@ const navItems: NavItem[] = [
     name: "Users",
     icon: <FaRegUser  />,
     subItems: [
-      { name: "Create User", path: "/create-user", pro: false },
+      // { name: "Create User", path: "/create-user", pro: false },
+       { name: "All Users", path: "/all-users", pro: false },
     
     ],
   },

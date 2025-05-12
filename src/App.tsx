@@ -30,7 +30,7 @@ import { isTokenExpired, logout } from "./store/slices/authSlice";
 import BasicTableOne from "./components/tables/BasicTables/BasicTableOne";
 import LocationManager from "./pages/maps/locality";
 
-import { lazy, Suspense, useState, useEffect } from "react";
+import { lazy, Suspense, useState, useEffect, useRef } from "react";
 import { TableLoader } from "./components/Loaders/LoadingLisings";
 import ErrorBoundary from "./hooks/ErrorBoundary";
 import axiosInstance from "./utils/axiosInstance";
@@ -40,7 +40,7 @@ import CreateUser from "./pages/users/CreateUsers";
 import AllAdsPage from "./pages/Ads/AllAds";
 import CreateAds from "./pages/Ads/CreateAds";
 import BuilderPackages from "./pages/packages/BuilderPackages";
-import PaymentFailureUsers from "./pages/Accounts/payments/PaymentFailure";
+
 import GeneratePayments from "./pages/Accounts/GeneratePaymentLink";
 import CitiesManager from "./pages/maps/cities";
 import StatesManager from "./pages/maps/state";
@@ -48,6 +48,10 @@ import UserActivities from "./components/tables/userActivities";
 import CreateProperty from "./pages/Project/AddProject";
 import AllPlaces from "./pages/maps/allPlaces";
 import Notify from "./pages/Notify/notify";
+import AllProjects from "./pages/Project/AllProjects";
+import PropertyDetailsByUserId from "./components/tables/BasicTables/PropertyDetailsByuserId";
+import AllUser from "./pages/users/AllUsers";
+import AllUsers from "./pages/users/AllUsers";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -72,20 +76,30 @@ const CommercialTypes = lazy(() => import("./pages/Commercial/Buy/CommercialType
 // Simple server status check component
 const ServerStatusCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [serverDown, setServerDown] = useState(false);
+  const isMounted = useRef(false); // Track initial API call
 
   useEffect(() => {
+    console.log("ServerStatusCheck useEffect triggered"); // Debug
     const checkServerStatus = async () => {
       try {
-        await axiosInstance.get("/user/v1/getAllUsersCount"); 
+        await axiosInstance.get("/user/v1/getAllUsersCount");
         setServerDown(false);
       } catch (error) {
         setServerDown(true);
       }
     };
 
-    checkServerStatus();
-    const interval = setInterval(checkServerStatus, 30000); 
-    return () => clearInterval(interval);
+    if (!isMounted.current) {
+      isMounted.current = true;
+      console.log("ServerStatusCheck: Calling checkServerStatus"); // Debug
+      checkServerStatus();
+    }
+
+    const interval = setInterval(checkServerStatus, 100000);
+    return () => {
+      clearInterval(interval);
+      isMounted.current = false; // Reset on unmount
+    };
   }, []);
 
   if (serverDown) {
@@ -147,6 +161,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <BasicTableOne />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="/user/propertyDetails"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <PropertyDetailsByUserId />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
@@ -368,12 +392,32 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
+               <Route
+                path="/all-users"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AllUsers />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
               <Route
                 path="/projects/add-projects"
                 element={
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <CreateProperty />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+                <Route
+                path="/projects/all-projects"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AllProjects />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

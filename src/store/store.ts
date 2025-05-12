@@ -14,6 +14,7 @@ import adSlice from './slices/adSlice'
 import notifySlice from './slices/notifySlice';
 import packageSlice from './slices/packagesSlice';
 import paymentSlice from './slices/paymentSlice';
+import propertyDetailsByUserSlice from './slices/propertyDetailsbyUser';
 
 const preloadedState = {
     auth : initializeAuthState()
@@ -33,7 +34,8 @@ const store =  configureStore({
         ads:adSlice,
         notify:notifySlice,
         package:packageSlice,
-        payment:paymentSlice
+        payment:paymentSlice,
+        propertyDetailsByUser:propertyDetailsByUserSlice
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),
