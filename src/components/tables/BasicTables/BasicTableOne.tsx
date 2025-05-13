@@ -132,7 +132,7 @@ export default function BasicTableOne() {
 
 
 
-  const totalItems = filteredUsers.length;
+const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
@@ -147,7 +147,15 @@ export default function BasicTableOne() {
     setCurrentPage(1);
   };
 
-  const goToPage = (page: number) => {
+  
+
+  const handleUserClick = (userId: number, userType: number, name: string) => {
+    if ([3, 4, 5, 6].includes(userType)) {
+      navigate(`/user/propertyDetails?userId=${userId}&name=${encodeURIComponent(name)}`);
+    }
+  };
+
+     const goToPage = (page: number) => {
     setCurrentPage(page);
   };
 
@@ -159,31 +167,38 @@ export default function BasicTableOne() {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
-  const handleUserClick = (userId: number, userType: number, name: string) => {
-    if ([3, 4, 5, 6].includes(userType)) {
-      navigate(`/user/propertyDetails?userId=${userId}&name=${encodeURIComponent(name)}`);
-    }
-  };
-
   const getPaginationItems = () => {
-    const pages = [];
-    const totalVisiblePages = 7;
-    let startPage = Math.max(1, currentPage - Math.floor(totalVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + totalVisiblePages - 1);
+    const pages: (number | string)[] = [];
+    const totalVisiblePages = 5;
 
-    if (endPage - startPage + 1 < totalVisiblePages) {
-      startPage = Math.max(1, endPage - totalVisiblePages + 1);
+    if (totalPages <= totalVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let start = Math.max(2, currentPage - 2);
+      let end = Math.min(totalPages - 1, currentPage + 2);
+
+      if (currentPage <= 3) {
+        start = 2;
+        end = 5;
+      }
+
+      if (currentPage >= totalPages - 2) {
+        start = totalPages - 4;
+        end = totalPages - 1;
+      }
+
+      pages.push(1);
+      if (start > 2) pages.push("...");
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages - 1) pages.push("...");
+      if (totalPages > 1) pages.push(totalPages);
     }
-
-    if (startPage > 1) pages.push(1);
-    if (startPage > 2) pages.push("...");
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    if (endPage < totalPages - 1) pages.push("...");
-    if (endPage < totalPages) pages.push(totalPages);
 
     return pages;
   };
@@ -408,12 +423,13 @@ export default function BasicTableOne() {
             </div>
           </div>
 
-          {totalItems > itemsPerPage && (
+         {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Showing {startIndex + 1} to {endIndex} of {totalItems} entries
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
+                {/* Previous Button */}
                 <Button
                   variant={currentPage === 1 ? "outline" : "primary"}
                   size="sm"
@@ -422,9 +438,14 @@ export default function BasicTableOne() {
                 >
                   Previous
                 </Button>
+
+                {/* Page Buttons */}
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
-                    <span key={index} className="px-3 py-1 text-gray-500 dark:text-gray-400">
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                    >
                       ...
                     </span>
                   ) : (
@@ -433,11 +454,18 @@ export default function BasicTableOne() {
                       variant={page === currentPage ? "primary" : "outline"}
                       size="sm"
                       onClick={() => goToPage(page as number)}
+                      className={
+                        page === currentPage
+                          ? "bg-[#1D3A76] text-white"
+                          : "text-gray-500"
+                      }
                     >
                       {page}
                     </Button>
                   )
                 )}
+
+                {/* Next Button */}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"
@@ -449,6 +477,7 @@ export default function BasicTableOne() {
               </div>
             </div>
           )}
+
 
           <ConfirmDeleteModal
             isOpen={isDeleteModalOpen}
