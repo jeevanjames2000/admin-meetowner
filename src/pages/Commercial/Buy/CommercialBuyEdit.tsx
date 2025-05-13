@@ -496,7 +496,7 @@ const CommercialBuyEdit: React.FC = () => {
       setDistanceFromProperty("");
       setErrors((prev) => ({ ...prev, aroundProperty: "" }));
     } else {
-      setErrors((prev) => ({ ...prev, aroundProperty: "Both place and distance are required" }));
+      // setErrors((prev) => ({ ...prev, aroundProperty: "Both place and distance are required" }));
     }
   };
 
@@ -687,7 +687,7 @@ const CommercialBuyEdit: React.FC = () => {
     }
 
     if (!formData.loanFacility) newErrors.loanFacility = "Loan facility is required";
-    if (formData.aroundProperty.length === 0) newErrors.aroundProperty = "At least one place around property is required";
+    // if (formData.aroundProperty.length === 0) newErrors.aroundProperty = "At least one place around property is required";
 
     if (["Office", "Show Room", "Others"].includes(formData.propertySubType) && !formData.pantryRoom) {
       newErrors.pantryRoom = "Pantry room is required";
@@ -1447,7 +1447,7 @@ const CommercialBuyEdit: React.FC = () => {
                       Add
                     </button>
                   </div>
-                  {errors.aroundProperty && <p className="text-red-500 text-sm mt-1">{errors.aroundProperty}</p>}
+                  {/* {errors.aroundProperty && <p className="text-red-500 text-sm mt-1">{errors.aroundProperty}</p>} */}
                   {formData.aroundProperty.length > 0 && (
                     <div className="mt-4">
                       <ul className="space-y-2">
