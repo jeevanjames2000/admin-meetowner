@@ -26,7 +26,6 @@ const initialState: PackageState = {
   loading: false,
   error: null,
 };
-<<<<<<< HEAD
 interface PackageFilters {
   package_for?: string; // Optional payment_status
 }
@@ -41,13 +40,6 @@ export const fetchAllPackages = createAsyncThunk(
             package_for,
           }, 
       });
-=======
-export const fetchAllPackages = createAsyncThunk(
-  "package/fetchAllPackages",
-  async (packageFor: string, { rejectWithValue }) => {
-    try {
-      const promise = axiosInstance.get<Package[]>(`/packages/v1/getAllPackages?package_for=${packageFor}`);
->>>>>>> 4117a1b87ba6533cda6fa97bb7e96a93af7dd03f
       toast.promise(promise, {
         loading: "Fetching packages...",
         success: "Packages fetched successfully!",

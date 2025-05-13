@@ -4,12 +4,9 @@ import ComponentCard from "../../components/common/ComponentCard";
 import { getCities } from "../../store/slices/propertyDetails";
 import { AppDispatch } from "../../store/store";
 import { clearPackages, fetchAllPackages } from "../../store/slices/packagesSlice";
-<<<<<<< HEAD:src/pages/packages/PackagesScreen.tsx
 import { useParams } from "react-router";
 
 // Define the type for a rule
-=======
->>>>>>> 4117a1b87ba6533cda6fa97bb7e96a93af7dd03f:src/pages/packages/BuilderPackages.tsx
 interface Rule {
   name: string;
   included: boolean;
@@ -23,13 +20,10 @@ interface Package {
   buttonText: string;
   isPopular?: boolean;
 }
-<<<<<<< HEAD:src/pages/packages/PackagesScreen.tsx
 
 interface PackageFilters {
   package_for?: string; // Optional payment_status
 }
-=======
->>>>>>> 4117a1b87ba6533cda6fa97bb7e96a93af7dd03f:src/pages/packages/BuilderPackages.tsx
 interface Option {
   value: string;
   text: string;
@@ -221,13 +215,9 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
     </div>
   );
 };
-<<<<<<< HEAD:src/pages/packages/PackagesScreen.tsx
 
 // Main BuilderPackages Component
 const PackagesScren: React.FC = () => {
-=======
-const BuilderPackages: React.FC = () => {
->>>>>>> 4117a1b87ba6533cda6fa97bb7e96a93af7dd03f:src/pages/packages/BuilderPackages.tsx
   const dispatch = useDispatch<AppDispatch>();
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
    const {status } = useParams<{status:string}>();
@@ -236,14 +226,11 @@ const BuilderPackages: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const { cities } = useSelector((state: RootState) => state.property);
   const { packages, loading, error } = useSelector((state: RootState) => state.package);
-<<<<<<< HEAD:src/pages/packages/PackagesScreen.tsx
 
    const packagesFilters: PackageFilters = {
     package_for: status, // status is string | undefined, which matches payment_status
   };
   // Transform cities into options
-=======
->>>>>>> 4117a1b87ba6533cda6fa97bb7e96a93af7dd03f:src/pages/packages/BuilderPackages.tsx
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
       value: city.value,
@@ -252,7 +239,6 @@ const BuilderPackages: React.FC = () => {
   const filteredCityOptions = cityOptions.filter((option) =>
     option.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
-<<<<<<< HEAD:src/pages/packages/PackagesScreen.tsx
 
   useEffect(()=>{
     if(status){
@@ -266,14 +252,6 @@ const BuilderPackages: React.FC = () => {
   // Fetch cities and packages on mount
   useEffect(() => {
     dispatch(getCities());
-=======
-  useEffect(() => {
-    dispatch(getCities());
-    dispatch(fetchAllPackages("builder"));
-    return () => {
-      dispatch(clearPackages());
-    };
->>>>>>> 4117a1b87ba6533cda6fa97bb7e96a93af7dd03f:src/pages/packages/BuilderPackages.tsx
   }, [dispatch]);
   const mappedPackages: Package[] = packages.map((pkg) => ({
     ...pkg,
@@ -389,12 +367,8 @@ const BuilderPackages: React.FC = () => {
             )}
           </div>
         </div>
-<<<<<<< HEAD:src/pages/packages/PackagesScreen.tsx
 
         <ComponentCard title={`${status} Packages`}>
-=======
-        <ComponentCard title="Builder Packages">
->>>>>>> 4117a1b87ba6533cda6fa97bb7e96a93af7dd03f:src/pages/packages/BuilderPackages.tsx
           {loading && <p>Loading packages...</p>}
           {error && <p className="text-red-500">Error: {error}</p>}
           {!loading && !error && mappedPackages.length === 0 && (
@@ -526,9 +500,5 @@ const BuilderPackages: React.FC = () => {
     </div>
   );
 };
-<<<<<<< HEAD:src/pages/packages/PackagesScreen.tsx
 
 export default PackagesScren;
-=======
-export default BuilderPackages;
->>>>>>> 4117a1b87ba6533cda6fa97bb7e96a93af7dd03f:src/pages/packages/BuilderPackages.tsx
