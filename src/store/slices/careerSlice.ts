@@ -33,6 +33,9 @@ export interface CareerState {
   deleteLoading: boolean;
   deleteError: string | null;
   deleteSuccess: string | null;
+  updateLoading: boolean;
+  updateError: string | null;
+  updateSuccess: string | null;
 }
 
 const initialState: CareerState = {
@@ -46,6 +49,9 @@ const initialState: CareerState = {
   deleteLoading: false,
   deleteError: null,
   deleteSuccess: null,
+  updateLoading: false,
+  updateError: null,
+  updateSuccess: null,
 };
 
 // Fetch All Careers Thunk
@@ -62,7 +68,7 @@ export const fetchAllCareers = createAsyncThunk(
       });
 
       const response = await promise;
-      return response.data; // Directly return the array of careers
+      return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       console.error("Fetch careers error:", axiosError);
@@ -139,6 +145,64 @@ export const createCareer = createAsyncThunk(
   }
 );
 
+// Update Career Thunk
+export const updateCareer = createAsyncThunk(
+  "career/updateCareer",
+  async (
+    { id, careerData }: { id: number; careerData: Career },
+    { rejectWithValue }
+  ) => {
+    try {
+      const payload = {
+        description: careerData.description,
+        job_title: careerData.job_title,
+        upload_date: careerData.upload_date,
+        preferred_location: careerData.preferred_location,
+        salary: careerData.salary,
+        experience: careerData.experience,
+      };
+
+      const promise = axiosInstance.post<CareerResponse>(
+        `/api/v1/updateCareer?id=${id}`,
+        payload
+      );
+
+      toast.promise(promise, {
+        loading: "Updating career...",
+        success: "Career updated successfully!",
+        error: "Failed to update career",
+      });
+
+      const response = await promise;
+      return { ...response.data, id, career: careerData };
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error("Update career error:", axiosError);
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        switch (status) {
+          case 403:
+            return rejectWithValue("You don't have permission to update career");
+          case 400:
+            return rejectWithValue(
+              axiosError.response.data?.message || "Invalid career data"
+            );
+          case 404:
+            return rejectWithValue("Career not found");
+          case 500:
+            return rejectWithValue("Server error. Please try again later.");
+          default:
+            return rejectWithValue(
+              axiosError.response.data?.message || "Failed to update career"
+            );
+        }
+      }
+      return rejectWithValue("Network error. Please try again.");
+    }
+  }
+);
+
 // Delete Career Thunk
 export const deleteCareer = createAsyncThunk(
   "career/deleteCareer",
@@ -193,10 +257,13 @@ const careerSlice = createSlice({
       state.fetchSuccess = null;
       state.deleteError = null;
       state.deleteSuccess = null;
+      state.updateError = null;
+      state.updateSuccess = null;
     },
   },
   extraReducers: (builder) => {
     builder
+      // Fetch All Careers
       .addCase(fetchAllCareers.pending, (state) => {
         state.fetchLoading = true;
         state.fetchError = null;
@@ -204,13 +271,14 @@ const careerSlice = createSlice({
       })
       .addCase(fetchAllCareers.fulfilled, (state, action) => {
         state.fetchLoading = false;
-        state.careers = action.payload; // Directly assign the array
+        state.careers = action.payload;
         state.fetchSuccess = "Careers fetched successfully";
       })
       .addCase(fetchAllCareers.rejected, (state, action) => {
         state.fetchLoading = false;
         state.fetchError = action.payload as string;
       })
+      // Create Career
       .addCase(createCareer.pending, (state) => {
         state.createLoading = true;
         state.createError = null;
@@ -232,6 +300,26 @@ const careerSlice = createSlice({
         state.createLoading = false;
         state.createError = action.payload as string;
       })
+      // Update Career
+      .addCase(updateCareer.pending, (state) => {
+        state.updateLoading = true;
+        state.updateError = null;
+        state.updateSuccess = null;
+      })
+      .addCase(updateCareer.fulfilled, (state, action) => {
+        state.updateLoading = false;
+        state.updateSuccess = action.payload.message;
+        state.careers = state.careers.map((career) =>
+          career.id === action.payload.id
+            ? { ...action.payload.career, id: action.payload.id }
+            : career
+        );
+      })
+      .addCase(updateCareer.rejected, (state, action) => {
+        state.updateLoading = false;
+        state.updateError = action.payload as string;
+      })
+      // Delete Career
       .addCase(deleteCareer.pending, (state) => {
         state.deleteLoading = true;
         state.deleteError = null;

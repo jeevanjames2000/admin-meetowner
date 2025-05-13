@@ -344,6 +344,16 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
+               <Route
+               path="/careers/edit/:id"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AddCareer />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
               <Route
                 path="/terms"
                 element={

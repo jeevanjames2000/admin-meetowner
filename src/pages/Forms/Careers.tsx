@@ -14,7 +14,7 @@ import { clearMessages } from "../../store/slices/employee";
 
 const itemsPerPage = 10; // Define items per page
 
-// Utility to format date (if not already defined)
+
 const formatDate = (dateString: string) => {
   try {
     const date = new Date(dateString);
@@ -181,9 +181,9 @@ const CareersPage: React.FC = () => {
         </div>
 
         <ComponentCard title="All Careers Table">
-          {fetchError && <p className="text-red-600 dark:text-red-400">{fetchError}</p>}
+          {/* {fetchError && <p className="text-red-600 dark:text-red-400">{fetchError}</p>}
           {deleteError && <p className="text-red-600 dark:text-red-400">{deleteError}</p>}
-          {deleteSuccess && <p className="text-green-600 dark:text-green-400">{deleteSuccess}</p>}
+          {deleteSuccess && <p className="text-green-600 dark:text-green-400">{deleteSuccess}</p>} */}
 
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full ">
