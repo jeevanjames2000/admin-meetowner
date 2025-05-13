@@ -1,4 +1,4 @@
-import { StrictMode } from "react";
+
 import { createRoot } from "react-dom/client";
 import "./index.css";
 import "swiper/swiper-bundle.css";
@@ -9,10 +9,11 @@ import { ThemeProvider } from "./context/ThemeContext.tsx";
 
 import store from "./store/store.ts";
 import { Provider } from 'react-redux'
+import React from "react";
 
 createRoot(document.getElementById("root")!).render(
   
-  <StrictMode>
+  <React.StrictMode>
     <ThemeProvider>
       <AppWrapper>
         <Provider store={store}>
@@ -21,6 +22,6 @@ createRoot(document.getElementById("root")!).render(
         
       </AppWrapper>
     </ThemeProvider>
-  </StrictMode>,
+  </React.StrictMode>,
   
 );
