@@ -234,6 +234,14 @@ const CommercialTypes: React.FC = () => {
     }
   }, [validateLeadPullForm]);
 
+   const handlepropertyClick = (propertyId:string) => {
+    console.log(propertyId);
+    if (propertyId){
+      navigate(`/user-activities?property_id=${propertyId}`)
+      }
+    }
+
+
   const handleSearch = (value: string) => {
     let searchValue = value.trim();
     const userTypeKey = userTypeReverseMap[searchValue.toLowerCase()];
@@ -339,7 +347,15 @@ const CommercialTypes: React.FC = () => {
                         <TableRow key={item.id}>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.unique_property_id || item.id}</TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{(currentPage - 1) * currentCount + index + 1}</TableCell>
-                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.property_name || "N/A"}</TableCell>
+                         {parseInt(status || "0", 10) === 1 ? (
+                          <TableCell 
+                            className="px-5 py-4 sm:px-6 text-start">
+                            <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline" 
+                             onClick={()=> handlepropertyClick(item.unique_property_id)}> 
+                               {item.property_name}
+                            </span>
+                          </TableCell>
+                           ):  <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.property_name || "N/A"}</TableCell>}
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.sub_type || "N/A"}</TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                             <div

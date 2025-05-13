@@ -135,6 +135,12 @@ export default function UserActivities() {
                     >
                       Property ID
                     </TableCell>
+                     <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Property Name
+                    </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -204,6 +210,9 @@ export default function UserActivities() {
                         </TableCell>
                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {activity.unique_property_id || "N/A"}
+                        </TableCell>
+                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {activity.property_name || "N/A"}
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {activity.fullname || activity.userDetails?.name || "N/A"}

@@ -1,53 +1,38 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import  { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
-import axiosIstance from "../../utils/axiosInstance";
+import axiosInstance from "../../utils/axiosInstance"; // Fixed typo: axiosIstance -> axiosInstance
 
-// Define interfaces for the user and API response
-
-interface UserActivity {
-  id: number;
-  property_id: string;
-  user_id: number;
-  name: string;
-  mobile: string;
-  email: string;
-  searched_on_date: string;
-  searched_on_time: string;
-  interested_status: number;
-  property_user_id: number;
-  searched_filter_desc: string;
-  shedule_date: string | null;
-  shedule_time: string | null;
-  view_status: number;
-  property_name : String | null;
-  location_id : String | null;
-  google_address:string | null;
-}
 interface User {
   id: number;
   user_type: number;
   name: string;
   mobile: string;
-  alt_mobile: string;
+  alt_mobile: string | null;
   email: string;
   password: string;
   photo: string;
   status: number;
   created_date: string;
   created_time: string;
-  updated_date: string | null;
-  updated_time: string | null;
+  updated_date: string;
+  updated_time: string;
   state: string;
   city: string;
-  location: number;
+  location: string | null;
   address: string;
   pincode: string;
-  from_app: number;
-  gst_number: string;
-  rera_number: string;
+  from_app: string | null;
+  gst_number: string | null;
+  rera_number: string | null;
   uploaded_from_seller_panel: string;
-  userActivity?: UserActivity[]; 
+  designation: string;
+  subscription_package: string | null;
+  subscription_start_date: string | null;
+  subscription_expiry_date: string | null;
+  subscription_status: string | null;
+  created_by: string;
+  created_userID: number;
 }
 
 interface UsersResponse {
@@ -56,11 +41,35 @@ interface UsersResponse {
   data: User[];
 }
 
+
+
+interface CreateUserResponse {
+  status: string;
+  message: string;
+  user_details?: {
+    user_id: string;
+    user_type: number;
+    name: string;
+    mobile: string;
+    email: string;
+  };
+  accessToken?: string;
+}
+
+interface CreateUserPayload {
+  name: string;
+  userType: string;
+  mobile: string;
+  email: string;
+  city: number;
+}
+
 interface ErrorResponse {
+  status?: string;
   message?: string;
 }
 
-// Define the state interface
+
 export interface UsersState {
   users: User[];
   totalCount: number;
@@ -68,24 +77,21 @@ export interface UsersState {
   error: string | null;
 }
 
-// Define the filter parameters for the API request
 interface UserFilter {
   user_type: number;
 }
 
-// Create async thunk for fetching users
 export const fetchUsersByType = createAsyncThunk(
   "users/fetchUsersByType",
   async (filter: UserFilter, { rejectWithValue }) => {
     try {
       const { user_type } = filter;
-      const promise = axiosIstance.get<UsersResponse>(
+      const promise = axiosInstance.get<UsersResponse>(
         "/user/v1/getAllUsersByType",
         {
           params: {
             user_type,
           },
-         
         }
       );
 
@@ -96,19 +102,84 @@ export const fetchUsersByType = createAsyncThunk(
       });
 
       const response = await promise;
-      console.log(response.data);
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       console.error("Fetch users error:", axiosError);
       return rejectWithValue(
-        axiosError.response?.data || { message: "Failed to fetch users" }
+        axiosError.response?.data?.message || "Failed to fetch users"
       );
     }
   }
 );
 
-// Create the slice
+export const fetchAllUsers = createAsyncThunk(
+  "users/fetchAllUsers",
+  async (_, { rejectWithValue }) => {
+    try {
+      const promise = axiosInstance.get<UsersResponse>("/api/v1/getUsers");
+
+      toast.promise(promise, {
+        loading: "Fetching all users...",
+        success: "All users fetched successfully!",
+        error: "Failed to fetch all users",
+      });
+
+      const response = await promise;
+      console.log(response);
+      return response;
+    
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error("Fetch all users error:", axiosError);
+      return rejectWithValue(
+        axiosError.response?.data?.message || "Failed to fetch all users"
+      );
+    }
+  }
+);
+
+export const createUser = createAsyncThunk(
+  "users/createUser",
+  async (userData: CreateUserPayload, { rejectWithValue }) => {
+    try {
+      const payload = {
+        name: userData.name,
+        userType: userData.userType,
+        mobile: userData.mobile,
+        email: userData.email,
+        city: userData.city,
+      };
+
+      const promise = axiosInstance.post<CreateUserResponse>(
+        "/auth/registernew",
+        payload
+      );
+
+      toast.promise(promise, {
+        loading: "Creating user...",
+        success: "User created successfully!",
+        error: "Failed to create user",
+      });
+
+      const response = await promise;
+
+      if (response.data.status === "success") {
+        return response.data;
+      } else {
+        return rejectWithValue(response.data.message || "Failed to create user");
+      }
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error("Create user error:", axiosError);
+      return rejectWithValue(
+        axiosError.response?.data?.message ||
+          "Failed to create user"
+      );
+    }
+  }
+);
+
 const usersSlice = createSlice({
   name: "users",
   initialState: {
@@ -118,7 +189,6 @@ const usersSlice = createSlice({
     error: null,
   } as UsersState,
   reducers: {
-    // Optional: Add any synchronous reducers if needed
     clearUsers: (state) => {
       state.users = [];
       state.totalCount = 0;
@@ -137,6 +207,30 @@ const usersSlice = createSlice({
         state.totalCount = action.payload.count;
       })
       .addCase(fetchUsersByType.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+      .addCase(fetchAllUsers.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchAllUsers.fulfilled, (state, action) => {
+        state.loading = false;
+        state.users = action.payload.data;
+      })
+      .addCase(fetchAllUsers.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      })
+       .addCase(createUser.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(createUser.fulfilled, (state, action) => {
+        state.loading = false;
+        
+      })
+      .addCase(createUser.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

@@ -1,18 +1,23 @@
-import { useState, ChangeEvent, FormEvent } from "react";
-import axios from "axios";
+import { useState, ChangeEvent, useEffect, FormEvent } from "react";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
+import { AppDispatch, RootState } from "../../store/store";
+import { useDispatch, useSelector } from "react-redux";
+import { getCities } from "../../store/slices/propertyDetails";
+import Dropdown from "../../components/form/Dropdown";
+import { createUser } from "../../store/slices/users";
+import { useNavigate } from "react-router";
 
 interface FormData {
-  user_id: string;
-  amount: string;
+
   mobile: string;
   email: string;
   name: string;
   userType: string;
-  package: string;
+ 
+  city: string;
 }
 
 interface SelectOption {
@@ -20,40 +25,42 @@ interface SelectOption {
   label: string;
 }
 
-const GeneratePayments: React.FC = () => {
+interface Option {
+  value: string;
+  text: string;
+}
+
+const CreateNewUser: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
-    user_id: "",
-    amount: "",
     mobile: "",
     email: "",
     name: "",
     userType: "",
-    package: "",
+    city: "",
   });
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [apiError, setApiError] = useState<string>("");
-  const [paymentLink, setPaymentLink] = useState<string>("");
+  const dispatch = useDispatch<AppDispatch>();
+  const { cities } = useSelector((state: RootState) => state.property);
+  const navigate = useNavigate();
 
   const userTypeOptions: SelectOption[] = [
-    { value: "2", label: "User" },
-    { value: "3", label: "Builder" },
-    { value: "4", label: "Agent" },
-    { value: "5", label: "Owner" },
-    { value: "6", label: "Channel Partner" },
+    { value: "User", label: "User" },
+    { value: "Builder", label: "Builder" },
+    { value: "Agent", label: "Agent" },
+    { value: "Owner", label: "Owner" },
+    { value: "Channel Partner", label: "Channel Partner" },
   ];
 
-  const packageOptions: SelectOption[] = [
-    { value: "Basic", label: "Basic (₹6999)" },
-    { value: "Prime", label: "Prime (₹24999)" },
-    { value: "Prime Plus", label: "Prime Plus (₹49999)" },
-  ];
+  const cityOptions: Option[] =
+    cities?.map((city: any) => ({
+      value: city.value,
+      text: city.label,
+    })) || [];
 
-  // Package-to-amount mapping
-  const packageAmounts: { [key: string]: number } = {
-    Basic: 6999,
-    Prime: 24999,
-    "Prime Plus": 49999,
-  };
+  useEffect(() => {
+    dispatch(getCities());
+  }, [dispatch]);
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -63,30 +70,28 @@ const GeneratePayments: React.FC = () => {
   };
 
   const handleSelectChange = (name: keyof FormData) => (value: string) => {
-    setFormData((prev) => {
-      const newData = { ...prev, [name]: value };
-      if (name === "package") {
-        newData.amount = packageAmounts[value]?.toString() || "";
-      }
-      return newData;
-    });
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
+    setApiError("");
+  };
+
+  const handleDropdownChange = (field: keyof FormData) => (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [field]: value,
+    }));
+    setErrors((prev) => ({ ...prev, [field]: "" }));
     setApiError("");
   };
 
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
 
-    if (!formData.user_id) {
-      newErrors.user_id = "User ID is required";
-    } else if (!/^\d+$/.test(formData.user_id)) {
-      newErrors.user_id = "User ID must be a number";
-    }
-
-    if (!formData.package) {
-      newErrors.package = "Package is required";
-    } else if (!packageAmounts[formData.package]) {
-      newErrors.package = "Invalid package selected";
+    if (!formData.name) {
+      newErrors.name = "Name is required";
     }
 
     if (!formData.mobile) {
@@ -101,12 +106,12 @@ const GeneratePayments: React.FC = () => {
       newErrors.email = "Please enter a valid email address";
     }
 
-    if (!formData.name) {
-      newErrors.name = "Name is required";
-    }
-
     if (!formData.userType) {
       newErrors.userType = "User Type is required";
+    }
+
+    if (!formData.city) {
+      newErrors.city = "City is required";
     }
 
     setErrors(newErrors);
@@ -116,96 +121,43 @@ const GeneratePayments: React.FC = () => {
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setApiError("");
-    setPaymentLink("");
 
     if (!validateForm()) {
       return;
     }
 
-    const payload = {
-      amount: parseFloat(formData.amount),
-      currency: "INR",
-      user_id: parseInt(formData.user_id),
-      name: formData.name,
-      mobile: formData.mobile,
-      email: formData.email,
-      subscription_package: formData.package,
-      customer_email: formData.email,
-      customer_contact: formData.mobile,
-    };
-
     try {
-      const response = await axios.post(
-        "https://api.meetowner.in/payments/createPaymentLink",
-        payload,
-        {
-          headers: { "Content-Type": "application/json" },
-          timeout: 10000,
-        }
-      );
+      const payload = {
+        name: formData.name,
+        userType: formData.userType,
+        mobile: formData.mobile,
+        email: formData.email,
+        city: parseInt(formData.city),
+      };
 
-      if (response.data.success) {
-        setPaymentLink(response.data.payment_link);
-        alert("Payment link generated successfully!");
-        setFormData({
-          user_id: "",
-          amount: "",
-          mobile: "",
-          email: "",
-          name: "",
-          userType: "",
-          package: "",
-        });
-      } else {
-        setApiError(response.data.message || "Failed to generate payment link");
-      }
+      console.log("Form Data Submitted:", payload);
+
+      await dispatch(createUser(payload)).unwrap();
+      setFormData({
+        mobile: "",
+        email: "",
+        name: "",
+        userType: "",
+        city: "",
+      });
+      navigate(-1); // Navigate back to the previous page
     } catch (error) {
-      console.error("CreatePaymentLink API error:", error);
-      // setApiError(
-      //   error.response?.data?.message ||
-      //     error.message ||
-      //     "Failed to connect to the payment service"
-      // );
+      setApiError((error as string) || "Failed to create user");
     }
   };
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-      <ComponentCard title="Generate Payment Links">
+      <ComponentCard title="Create New User">
         <form onSubmit={handleSubmit} className="space-y-6">
           {apiError && (
             <p className="text-sm text-red-600 dark:text-red-400">{apiError}</p>
           )}
-          {paymentLink && (
-            <div className="text-sm text-green-600 dark:text-green-400">
-              Payment Link:{" "}
-              <a
-                href={paymentLink}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="underline"
-              >
-                {paymentLink}
-              </a>
-            </div>
-          )}
-          <div>
-            <Label htmlFor="user_id">User ID</Label>
-            <Input
-              type="text"
-              id="user_id"
-              name="user_id"
-              value={formData.user_id}
-              onChange={handleInputChange}
-              className="dark:bg-dark-900"
-              placeholder="Enter user ID"
-            />
-            {errors.user_id && (
-              <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                {errors.user_id}
-              </p>
-            )}
-          </div>
           <div>
             <Label htmlFor="name">Name</Label>
             <Input
@@ -273,40 +225,28 @@ const GeneratePayments: React.FC = () => {
             )}
           </div>
           <div>
-            <Label htmlFor="package">Package</Label>
-            <Select
-              options={packageOptions}
-              placeholder="Select Package"
-              onChange={handleSelectChange("package")}
-              value={formData.package}
-              className="dark:bg-dark-900"
+          
+            <Dropdown
+              id="city"
+              label="Select City"
+              options={cityOptions}
+              value={formData.city}
+              onChange={handleDropdownChange("city")}
+              placeholder="Search for a city..."
+              error={errors.city}
             />
-            {errors.package && (
+            {errors.city && (
               <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                {errors.package}
+                {errors.city}
               </p>
             )}
           </div>
-          {formData.package && (
-            <div>
-              <Label htmlFor="amount">Amount</Label>
-              <Input
-                type="text"
-                id="amount"
-                name="amount"
-                value={formData.amount}
-                
-                className="dark:bg-dark-900 bg-gray-100 cursor-not-allowed"
-                placeholder="Amount set by package"
-              />
-            </div>
-          )}
           <div className="flex justify-end">
             <button
               type="submit"
               className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
             >
-              Generate Payment Link
+              Submit
             </button>
           </div>
         </form>
@@ -315,4 +255,4 @@ const GeneratePayments: React.FC = () => {
   );
 };
 
-export default GeneratePayments;
+export default CreateNewUser;

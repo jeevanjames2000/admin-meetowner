@@ -4,6 +4,7 @@ import ComponentCard from "../../components/common/ComponentCard";
 import { getCities } from "../../store/slices/propertyDetails";
 import { AppDispatch } from "../../store/store";
 import { clearPackages, fetchAllPackages } from "../../store/slices/packagesSlice";
+import { useParams } from "react-router";
 
 // Define the type for a rule
 interface Rule {
@@ -21,6 +22,9 @@ interface Package {
   isPopular?: boolean;
 }
 
+interface PackageFilters {
+  package_for?: string; // Optional payment_status
+}
 interface Option {
   value: string;
   text: string;
@@ -230,9 +234,10 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
 };
 
 // Main BuilderPackages Component
-const BuilderPackages: React.FC = () => {
+const PackagesScren: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
+   const {status } = useParams<{status:string}>();
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
@@ -241,6 +246,9 @@ const BuilderPackages: React.FC = () => {
   const { cities } = useSelector((state: RootState) => state.property);
   const { packages, loading, error } = useSelector((state: RootState) => state.package);
 
+   const packagesFilters: PackageFilters = {
+    package_for: status, // status is string | undefined, which matches payment_status
+  };
   // Transform cities into options
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
@@ -253,14 +261,18 @@ const BuilderPackages: React.FC = () => {
     option.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  useEffect(()=>{
+    if(status){
+      dispatch(fetchAllPackages(packagesFilters))
+    }
+    return () => {
+      dispatch(clearPackages());
+    }
+  },[dispatch,status])
+
   // Fetch cities and packages on mount
   useEffect(() => {
     dispatch(getCities());
-    dispatch(fetchAllPackages());
-    // Cleanup: clear packages on unmount (optional)
-    return () => {
-      dispatch(clearPackages());
-    };
   }, [dispatch]);
 
   // Map API packages to include component-specific fields
@@ -397,7 +409,7 @@ const BuilderPackages: React.FC = () => {
           </div>
         </div>
 
-        <ComponentCard title="Builder Packages">
+        <ComponentCard title={`${status} Packages`}>
           {loading && <p>Loading packages...</p>}
           {error && <p className="text-red-500">Error: {error}</p>}
           {!loading && !error && mappedPackages.length === 0 && (
@@ -531,4 +543,4 @@ const BuilderPackages: React.FC = () => {
   );
 };
 
-export default BuilderPackages;
+export default PackagesScren;

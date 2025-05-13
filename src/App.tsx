@@ -39,9 +39,9 @@ import HomeFooter from "./pages/Forms/HomeFooter";
 import CreateUser from "./pages/users/CreateUsers";
 import AllAdsPage from "./pages/Ads/AllAds";
 import CreateAds from "./pages/Ads/CreateAds";
-import BuilderPackages from "./pages/packages/BuilderPackages";
 
-import GeneratePayments from "./pages/Accounts/GeneratePaymentLink";
+
+import GeneratePayments from "./pages/Accounts/GeneratePayments";
 import CitiesManager from "./pages/maps/cities";
 import StatesManager from "./pages/maps/state";
 import UserActivities from "./components/tables/userActivities";
@@ -50,8 +50,11 @@ import AllPlaces from "./pages/maps/allPlaces";
 import Notify from "./pages/Notify/notify";
 import AllProjects from "./pages/Project/AllProjects";
 import PropertyDetailsByUserId from "./components/tables/BasicTables/PropertyDetailsByuserId";
-import AllUser from "./pages/users/AllUsers";
+
 import AllUsers from "./pages/users/AllUsers";
+import EditUserDetails from "./components/tables/BasicTables/EditUserDetails";
+import CreateNewUser from "./pages/Accounts/CreateNewUser";
+import PackagesScren from "./pages/packages/PackagesScreen";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -161,6 +164,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <BasicTableOne />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="/edit-user-details"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <EditUserDetails />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
@@ -360,6 +373,16 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
+               <Route
+                path="/accounts/create-new-user"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <CreateNewUser />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
               <Route
                 path="/payments/:status"
                 element={
@@ -523,11 +546,11 @@ export default function App() {
                   }
               />
                <Route
-                path="/packages/builder"
+                path="/packages/:status"
                 element={
                   <ErrorBoundary>
                     <ProtectedRoute>
-                      <BuilderPackages />
+                      <PackagesScren />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

@@ -501,9 +501,7 @@ useEffect(() => {
             formData={formData}
             formErrors={formErrors}
             onInputChange={handleInputChange}
-             isLoading={updateLoading}
-             sourcePage="AllUsers"
-              userType={2}
+            isLoading={updateLoading}
           />
             <ConfirmDeleteModal
             isOpen={isDeleteModalOpen}

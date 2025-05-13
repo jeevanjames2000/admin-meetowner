@@ -11,6 +11,7 @@ interface PropertyActivity {
   mobile: string | null;
   created_date: string;
   updated_date: string;
+  property_name:string;
   userDetails: {
     id: number;
     name: string;

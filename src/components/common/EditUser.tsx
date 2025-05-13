@@ -11,8 +11,7 @@ interface EditUserFormData {
   city: string;
   state: string;
   pincode: string;
-  gst_number?: string;
-  rera_number?: string;
+ 
 }
 
 interface EditUserModalProps {
@@ -23,8 +22,8 @@ interface EditUserModalProps {
   formErrors: Partial<EditUserFormData>;
   onInputChange: (e: ChangeEvent<HTMLInputElement>) => void;
   isLoading: boolean;
-  sourcePage: string; // "AllUsers" or "BasicTableOne"
-  userType: number; // User type to determine GST/RERA visibility
+ 
+  
 }
 
 const EditUserModal: React.FC<EditUserModalProps> = ({
@@ -35,11 +34,10 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
   formErrors,
   onInputChange,
   isLoading,
-  sourcePage,
-  userType,
+ 
 }) => {
-  const specificUserTypes = [3, 4, 5, 6]; // Builder, Agent, Owner, Channel Partner
-  const showGstAndRera = sourcePage === "BasicTableOne" && specificUserTypes.includes(userType);
+
+ 
 
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -173,41 +171,7 @@ const EditUserModal: React.FC<EditUserModalProps> = ({
             )}
           </div>
 
-          {showGstAndRera && (
-            <>
-              <div>
-                <Label htmlFor="gst_number">GST Number</Label>
-                <Input
-                  type="text"
-                  id="gst_number"
-                  name="gst_number"
-                  value={formData.gst_number || ""}
-                  onChange={onInputChange}
-                  className="dark:bg-dark-900"
-                  placeholder="Enter GST number"
-                />
-                {formErrors.gst_number && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.gst_number}</p>
-                )}
-              </div>
-
-              <div>
-                <Label htmlFor="rera_number">RERA Number</Label>
-                <Input
-                  type="text"
-                  id="rera_number"
-                  name="rera_number"
-                  value={formData.rera_number || ""}
-                  onChange={onInputChange}
-                  className="dark:bg-dark-900"
-                  placeholder="Enter RERA number"
-                />
-                {formErrors.rera_number && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{formErrors.rera_number}</p>
-                )}
-              </div>
-            </>
-          )}
+         
 
           <div className="flex justify-end space-x-3">
             <Button onClick={onClose} variant="outline" size="sm" className="px-4 py-2">

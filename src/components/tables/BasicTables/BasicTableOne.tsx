@@ -1,4 +1,4 @@
-import { ChangeEvent, useEffect, useState } from "react";
+import {  useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsersByType } from "../../../store/slices/users";
@@ -14,12 +14,11 @@ import Button from "../../ui/button/Button";
 import { MoreVertical } from "lucide-react";
 import ComponentCard from "../../common/ComponentCard";
 import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
-import { clearMessages, deleteEmployee, updateEmployee, } from "../../../store/slices/employee";
+import { clearMessages, deleteEmployee, } from "../../../store/slices/employee";
 import toast from "react-hot-toast";
 import ConfirmDeleteModal from "../../common/ConfirmDeleteModal";
-import ConfirmStatusModal from "../../common/ConfirmStatusModal";
-import EditUserModal from "../../common/EditUser";
-import ActiveStatusModal from "../../common/ActiveStatusModel";
+
+
 
 // User type mapping
 const userTypeMap: { [key: number]: string } = {
@@ -36,16 +35,6 @@ const userTypeMap: { [key: number]: string } = {
   11: "Customer Service",
 };
 
-interface EditUserFormData {
-  name: string;
-  email: string;
-  address: string;
-  city: string;
-  state: string;
-  pincode: string;
-  gst_number?: string;
-  rera_number?: string;
-}
 
 // Format date function
 const formatDate = (dateString: string): string => {
@@ -58,7 +47,7 @@ export default function BasicTableOne() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { users, loading, error } = useSelector((state: RootState) => state.users);
-  const { deleteError, deleteSuccess, updateLoading, updateError, updateSuccess,  } = useSelector(
+  const { deleteError, deleteSuccess, } = useSelector(
     (state: RootState) => state.employee
   );
   const pageuserType = useSelector((state: RootState) => state.auth.user?.user_type);
@@ -67,35 +56,9 @@ export default function BasicTableOne() {
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
-  const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
-  const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
-  const [selectedUser, setSelectedUser] = useState<{
-    id: number;
-    name: string;
-    email: string;
-    mobile: string;
-    address: string;
-    city: string;
-    state: string;
-    pincode: string;
-    status: number;
-    created_by: string;
-    created_userID: number;
-    gst_number?: string;
-    rera_number?: string;
-    user_type: number;
-  } | null>(null);
-  const [formData, setFormData] = useState<EditUserFormData>({
-    name: "",
-    email: "",
-    address: "",
-    city: "",
-    state: "",
-    pincode: "",
-    gst_number: "",
-    rera_number: "",
-  });
-  const [formErrors, setFormErrors] = useState<Partial<EditUserFormData>>({});
+    const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+
+
 
   const itemsPerPage = 10;
 
@@ -130,20 +93,29 @@ export default function BasicTableOne() {
       toast.error(deleteError);
       dispatch(clearMessages());
     }
-    if (updateSuccess) {
-      toast.success(updateSuccess);
-      if (userType) {
-        dispatch(fetchUsersByType({ user_type: parseInt(userType) })).then(() => {
-          dispatch(clearMessages());
-        });
-      }
-    }
-    if (updateError) {
-      toast.error(updateError);
-      dispatch(clearMessages());
-    }
+   
     
-  }, [deleteSuccess, deleteError, updateSuccess, updateError,  dispatch, userType]);
+  }, [deleteSuccess, deleteError,  dispatch, userType]);
+
+  const handleEditUser = (user: any) => {
+    navigate("/edit-user-details", { state: { user } });
+  };
+
+  const handleDeleteClick = (user: { id: number; name: string }) => {
+    setUserToDelete({ id: user.id, name: user.name });
+    setIsDeleteModalOpen(true);
+    setActiveMenu(null);
+  };
+
+  const confirmDelete = () => {
+    if (userToDelete) {
+      dispatch(deleteEmployee(userToDelete.id));
+    }
+    setIsDeleteModalOpen(false);
+    setUserToDelete(null);
+  };
+  
+
 
   const filteredUsers = users.filter((user) => {
     const searchableFields = [
@@ -157,166 +129,14 @@ export default function BasicTableOne() {
       .some((field) => field.includes(filterValue.toLowerCase()));
   });
 
+
+
+
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
-  const handleEdit = (user: {
-    id: number;
-    name: string;
-    email: string;
-    mobile: string;
-    address: string;
-    city: string;
-    state: string;
-    pincode: string;
-    status: number;
-    created_by: string;
-    created_userID: number;
-    gst_number?: string;
-    rera_number?: string;
-    user_type: number;
-  }) => {
-    setSelectedUser(user);
-    setFormData({
-      name: user.name || "",
-      email: user.email || "",
-      address: user.address || "",
-      city: user.city || "",
-      state: user.state || "",
-      pincode: user.pincode || "",
-      gst_number: user.gst_number || "",
-      rera_number: user.rera_number || "",
-    });
-    setFormErrors({});
-    setIsEditModalOpen(true);
-    setActiveMenu(null);
-  };
-
-  const validateForm = (data: EditUserFormData): Partial<EditUserFormData> => {
-    const errors: Partial<EditUserFormData> = {};
-    if (!data.name.trim()) errors.name = "Name is required";
-    if (!data.email.trim()) {
-      errors.email = "Email is required";
-    } else if (!/\S+@\S+\.\S+/.test(data.email)) {
-      errors.email = "Invalid email address";
-    }
-    if (!data.address.trim()) errors.address = "Address is required";
-    if (!data.city.trim()) errors.city = "City is required";
-    if (!data.state.trim()) errors.state = "State is required";
-    if (!data.pincode.trim()) {
-      errors.pincode = "Pincode is required";
-    } else if (!/^\d{6}$/.test(data.pincode)) {
-      errors.pincode = "Pincode must be 6 digits";
-    }
-    if (showGstNumber && !data.gst_number?.trim()) {
-      errors.gst_number = "GST number is required";
-    }
-    if (showReraNumber && !data.rera_number?.trim()) {
-      errors.rera_number = "RERA number is required";
-    }
-    return errors;
-  };
-
-  const handleEditSubmit = (data: EditUserFormData) => {
-    const errors = validateForm(data);
-    if (Object.keys(errors).length > 0) {
-      setFormErrors(errors);
-      return;
-    }
-    if (selectedUser) {
-      const employeeToUpdate = {
-        id: selectedUser.id,
-        name: data.name,
-        email: data.email,
-        mobile: selectedUser.mobile || "",
-        address: data.address,
-        city: data.city,
-        state: data.state,
-        pincode: data.pincode,
-        designation: userTypeMap[selectedUser.user_type],
-        user_type: selectedUser.user_type,
-        status: 0,
-        created_by: selectedUser.created_by || "",
-        created_userID: selectedUser.created_userID || 0,
-        ...(showGstNumber && { gst_number: data.gst_number }),
-        ...(showReraNumber && { rera_number: data.rera_number }),
-      };
-      console.log(employeeToUpdate);
-      dispatch(updateEmployee(employeeToUpdate));
-    }
-    setIsEditModalOpen(false);
-    setSelectedUser(null);
-    setFormData({
-      name: "",
-      email: "",
-      address: "",
-      city: "",
-      state: "",
-      pincode: "",
-      gst_number: "",
-      rera_number: "",
-    });
-    setFormErrors({});
-  };
-
-  const handleDeleteClick = (user: { id: number; name: string; status: number }) => {
-    setSelectedUser({
-      ...user,
-      email: "",
-      mobile: "",
-      address: "",
-      city: "",
-      state: "",
-      pincode: "",
-      created_by: "",
-      created_userID: 0,
-      user_type: parseInt(userType || "0"),
-    });
-    setIsDeleteModalOpen(true);
-    setActiveMenu(null);
-  };
-
-  const confirmDelete = () => {
-    if (selectedUser) {
-      dispatch(deleteEmployee(selectedUser.id));
-    }
-    setIsDeleteModalOpen(false);
-    setSelectedUser(null);
-  };
-
-  const handleStatusChangeClick = (user: { id: number; name: string; status: number; user_type: number }) => {
-    setSelectedUser({
-      ...user,
-      email: "",
-      mobile: "",
-      address: "",
-      city: "",
-      state: "",
-      pincode: "",
-      created_by: "",
-      created_userID: 0,
-    });
-    setIsStatusModalOpen(true);
-    setActiveMenu(null);
-  };
-
-  const confirmStatusChange = () => {
-    if (selectedUser) {
-      const newStatus = selectedUser.status === 0 ? 2 : 0; 
-     
-    }
-    setIsStatusModalOpen(false);
-    setSelectedUser(null);
-  };
-
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-    setFormErrors((prev) => ({ ...prev, [name]: undefined }));
-  };
 
   const toggleMenu = (id: number) => {
     setActiveMenu(activeMenu === id ? null : id);
@@ -384,12 +204,6 @@ export default function BasicTableOne() {
       )}
       {deleteError && (
         <div className="p-3 bg-red-100 text-red-700 rounded-md">{deleteError}</div>
-      )}
-      {updateSuccess && (
-        <div className="p-3 bg-green-100 text-green-700 rounded-md">{updateSuccess}</div>
-      )}
-      {updateError && (
-        <div className="p-3 bg-red-100 text-red-700 rounded-md">{updateError}</div>
       )}
       
 
@@ -567,13 +381,13 @@ export default function BasicTableOne() {
                             <div className="py-2">
                               <button
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                onClick={() => handleEdit(user)}
+                                 onClick={() => handleEditUser(user)}
                               >
                                 Edit
                               </button>
                               <button
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                onClick={() => handleDeleteClick(user)}
+                                 onClick={() => handleDeleteClick(user)}
                               >
                                 Delete
                               </button>
@@ -636,52 +450,19 @@ export default function BasicTableOne() {
             </div>
           )}
 
-          <EditUserModal
-            isOpen={isEditModalOpen}
-            onClose={() => {
-              setIsEditModalOpen(false);
-              setSelectedUser(null);
-              setFormData({
-                name: "",
-                email: "",
-                address: "",
-                city: "",
-                state: "",
-                pincode: "",
-                gst_number: "",
-                rera_number: "",
-              });
-              setFormErrors({});
-            }}
-            onSubmit={handleEditSubmit}
-            formData={formData}
-            formErrors={formErrors}
-            onInputChange={handleInputChange}
-            isLoading={updateLoading}
-            sourcePage="BasicTableOne"
-            userType={parseInt(userType || "0")}
-          />
-
           <ConfirmDeleteModal
             isOpen={isDeleteModalOpen}
-            propertyName={selectedUser?.name || ""}
+            propertyName={userToDelete?.name || ""}
             onConfirm={confirmDelete}
             onCancel={() => {
               setIsDeleteModalOpen(false);
-              setSelectedUser(null);
+              setUserToDelete(null);
             }}
           />
 
-          <ActiveStatusModal
-            isOpen={isStatusModalOpen}
-            propertyName={selectedUser?.name || ""}
-            action={selectedUser?.status === 0 ? "Suspend" : "Active"}
-            onConfirm={confirmStatusChange}
-            onCancel={() => {
-              setIsStatusModalOpen(false);
-              setSelectedUser(null);
-            }}
-          />
+         
+
+         
         </ComponentCard>
       </div>
     </div>

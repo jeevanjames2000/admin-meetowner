@@ -121,26 +121,7 @@ const navItems: NavItem[] = [
         { name: "Payment Cancelled", path: "/payments/cancelled" },
         { name: "Expiry Soon", path: "/payments/expiry" },
       ]},
-      // { name: "Agents", nestedItems: [
-      //   { name: "Payment Success", path: "/agents/payment-success" },
-      //   { name: "Payment Failure", path: "/agents/payment-failure" },
-      //   { name: "Expiry Soon", path: "/agents/expiry-soon" },
-      // ]},
-      // { name: "Owner", nestedItems: [
-      //   { name: "Payment Success", path: "/users/payment-success" },
-      //   { name: "Payment Failure", path: "/payment-failure" },
-      //   { name: "Expiry Soon", path: "/expiry-soon" },
-      // ]},
-      // { name: "Channel Partner", nestedItems: [
-      //   { name: "Payment Success", path: "/agents/payment-success" },
-      //   { name: "Payment Failure", path: "/agents/payment-failure" },
-      //   { name: "Expiry Soon", path: "/agents/expiry-soon" },
-      // ]},
-      // { name: "Builder", nestedItems: [
-      //   { name: "Payment Success", path: "/agents/payment-success" },
-      //   { name: "Payment Failure", path: "/agents/payment-failure" },
-      //   { name: "Expiry Soon", path: "/agents/expiry-soon" },
-      // ]},
+      
     ],
   },
   {
@@ -190,9 +171,10 @@ const navItems: NavItem[] = [
     icon: <ListIcon />,
     subItems: [
       { name: "Builder", path: "/packages/builder", pro: false },
-      { name: "Agents", path: "/packages/agents", pro: false },
-      { name: "Channel Partners", path: "/packages/channelpartners", pro: false },
-      { name: "Users", path: "/packages/users", pro: false },
+      { name: "Agents", path: "/packages/agent", pro: false },
+      { name: "Channel Partners", path: "/packages/channel_partner", pro: false },
+      { name: "Owners", path: "/packages/owner", pro: false },
+      { name: "Users", path: "/packages/user", pro: false },
      
     ],
   },

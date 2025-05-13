@@ -276,61 +276,61 @@ const handleEditSubmit = async (e: React.FormEvent) => {
               </div>
             </div>
             {totalPlaces > perPage && (
-  <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
-    <div className="text-sm text-gray-500 dark:text-gray-400">
-      Showing {(currentPage - 1) * perPage + 1} to{" "}
-      {Math.min(currentPage * perPage, totalPlaces)} of {totalPlaces} places
-    </div>
+        <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
+          <div className="text-sm text-gray-500 dark:text-gray-400">
+            Showing {(currentPage - 1) * perPage + 1} to{" "}
+            {Math.min(currentPage * perPage, totalPlaces)} of {totalPlaces} places
+          </div>
 
-    <div className="flex gap-2 flex-wrap justify-center">
-      {/* Previous Button */}
-      <Button
-        variant={currentPage === 1 ? "outline" : "primary"}
-        size="sm"
-        onClick={() => handlePageChange(currentPage - 1)}
-        disabled={currentPage === 1}
-      >
-        Previous
-      </Button>
+          <div className="flex gap-2 flex-wrap justify-center">
+            {/* Previous Button */}
+            <Button
+              variant={currentPage === 1 ? "outline" : "primary"}
+              size="sm"
+              onClick={() => handlePageChange(currentPage - 1)}
+              disabled={currentPage === 1}
+            >
+              Previous
+            </Button>
 
-      {/* Page Buttons */}
-      {getPaginationItems().map((page, index) =>
-        page === "..." ? (
-          <span
-            key={`ellipsis-${index}`}
-            className="px-3 py-1 text-gray-500 dark:text-gray-400"
-          >
-            ...
-          </span>
-        ) : (
-          <Button
-            key={page}
-            variant={page === currentPage ? "primary" : "outline"}
-            size="sm"
-            onClick={() => handlePageChange(page)}
-            className={
-              page === currentPage
-                ? "bg-[#1D3A76] text-white"
-                : "text-gray-500"
-            }
-          >
-            {page}
-          </Button>
-        )
+            {/* Page Buttons */}
+            {getPaginationItems().map((page, index) =>
+              page === "..." ? (
+                <span
+                  key={`ellipsis-${index}`}
+                  className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                >
+                  ...
+                </span>
+              ) : (
+                <Button
+                  key={page}
+                  variant={page === currentPage ? "primary" : "outline"}
+                  size="sm"
+                  onClick={() => handlePageChange(page)}
+                  className={
+                    page === currentPage
+                      ? "bg-[#1D3A76] text-white"
+                      : "text-gray-500"
+                  }
+                >
+                  {page}
+                </Button>
+              )
+            )}
+
+            {/* Next Button */}
+            <Button
+              variant={currentPage === totalPages ? "outline" : "primary"}
+              size="sm"
+              onClick={() => handlePageChange(currentPage + 1)}
+              disabled={currentPage === totalPages}
+            >
+              Next
+            </Button>
+          </div>
+        </div>
       )}
-
-      {/* Next Button */}
-      <Button
-        variant={currentPage === totalPages ? "outline" : "primary"}
-        size="sm"
-        onClick={() => handlePageChange(currentPage + 1)}
-        disabled={currentPage === totalPages}
-      >
-        Next
-      </Button>
-    </div>
-  </div>
-)}
 
           </ComponentCard>
         </div>
