@@ -2,13 +2,10 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
-
-// Interfaces for API responses
 interface PackageRule {
   name: string;
   included: boolean;
 }
-
 interface Package {
   id: string;
   name: string;
@@ -16,23 +13,20 @@ interface Package {
   price: string;
   rules: PackageRule[];
 }
-
 interface ErrorResponse {
   message?: string;
 }
-
 export interface PackageState {
   packages: Package[];
   loading: boolean;
   error: string | null;
 }
-
-// Initial state
 const initialState: PackageState = {
   packages: [],
   loading: false,
   error: null,
 };
+<<<<<<< HEAD
 interface PackageFilters {
   package_for?: string; // Optional payment_status
 }
@@ -47,12 +41,18 @@ export const fetchAllPackages = createAsyncThunk(
             package_for,
           }, 
       });
+=======
+export const fetchAllPackages = createAsyncThunk(
+  "package/fetchAllPackages",
+  async (packageFor: string, { rejectWithValue }) => {
+    try {
+      const promise = axiosInstance.get<Package[]>(`/packages/v1/getAllPackages?package_for=${packageFor}`);
+>>>>>>> 4117a1b87ba6533cda6fa97bb7e96a93af7dd03f
       toast.promise(promise, {
         loading: "Fetching packages...",
         success: "Packages fetched successfully!",
         error: "Failed to fetch packages",
       });
-      
       const response = await promise;
       return response.data;
     } catch (error) {
@@ -62,8 +62,6 @@ export const fetchAllPackages = createAsyncThunk(
     }
   }
 );
-
-// Package slice
 const packageSlice = createSlice({
   name: "package",
   initialState,
@@ -74,7 +72,6 @@ const packageSlice = createSlice({
     },
   },
   extraReducers: (builder) => {
-    // Fetch all packages
     builder
       .addCase(fetchAllPackages.pending, (state) => {
         state.loading = true;
@@ -90,6 +87,5 @@ const packageSlice = createSlice({
       });
   },
 });
-
 export const { clearPackages } = packageSlice.actions;
 export default packageSlice.reducer;

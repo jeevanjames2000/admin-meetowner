@@ -276,7 +276,6 @@ export const updateListing = createAsyncThunk(
       const promise = axiosInstance.post<UpdateListingResponse>(
         `/listings/v1/updateListing?unique_property_id=${unique_property_id}`,
         updates,
-        
       );
 
       toast.promise(promise, {
