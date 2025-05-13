@@ -1,241 +1,388 @@
-import { useState, useRef, useEffect, FormEvent } from "react";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
-import Label from "../../components/form/Label";
-import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css"; // Import Quill styles
-import "./quillStyles.css"; // Import custom Quill styles
-import React from "react";
+import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
+import Button from "../../components/ui/button/Button";
+import { MoreVertical } from "lucide-react";
+import { AppDispatch, RootState } from "../../store/store";
+import { fetchAllCareers, deleteCareer } from "../../store/slices/careerSlice";
+import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal"; // Adjust path as needed
+import { toast } from "react-hot-toast";
+import { clearMessages } from "../../store/slices/employee";
 
-// Define the type for the form data
-interface FormData {
-  title: string;
-  description: string;
-}
+const itemsPerPage = 10; // Define items per page
 
-// Define the toolbar modules for ReactQuill
-const modules = {
-  toolbar: {
-    container: [
-      [{ header: [1, 2, 3, 4, 5, 6, false] }], // Headers
-      ["bold", "italic", "underline", "strike"], // Text formatting
-      [{ color: [] }, { background: [] }], // Text color and background color
-      [{ list: "ordered" }, { list: "bullet" }], // Lists
-      [{ indent: "-1" }, { indent: "+1" }], // Indentation
-      [{ align: [] }], // Text alignment
-      ["link", "image", "video"], // Links, images, and videos
-      ["blockquote", "code-block"], // Blockquote and code block
-      [{ script: "sub" }, { script: "super" }], // Subscript and superscript
-      ["clean"], // Clear formatting
-    ],
-    handlers: {
-      image: () => {}, // This will be set in the component
-    },
-  },
-};
-
-// Define the formats supported by ReactQuill
-const formats = [
-  "header",
-  "bold",
-  "italic",
-  "underline",
-  "strike",
-  "color",
-  "background",
-  "list",
-  "bullet",
-  "indent",
-  "align",
-  "link",
-  "image",
-  "video",
-  "blockquote",
-  "code-block",
-  "script",
-];
-
-// Error Boundary Component
-class ErrorBoundary extends React.Component<
-  { children: React.ReactNode },
-  { hasError: boolean }
-> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false };
+// Utility to format date (if not already defined)
+const formatDate = (dateString: string) => {
+  try {
+    const date = new Date(dateString);
+    return date.toLocaleDateString("en-US", {
+      year: "numeric",
+      month: "short",
+      day: "numeric",
+    });
+  } catch {
+    return "Invalid Date";
   }
-
-  static getDerivedStateFromError(_: Error): { hasError: boolean } {
-    return { hasError: true };
-  }
-
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
-    console.error("Error in RichTextEditor:", error, errorInfo);
-  }
-
-  render() {
-    if (this.state.hasError) {
-      return <div>Something went wrong with the editor. Please try again.</div>;
-    }
-    return this.props.children;
-  }
-}
-
-// RichTextEditor component using ReactQuill with draggable resizing
-const RichTextEditor: React.FC<{
-  value: string;
-  onChange: (value: string) => void;
-}> = ({ value, onChange }) => {
-  const quillRef = useRef<ReactQuill>(null);
-  const [height, setHeight] = useState<number>(200); // Initial height in pixels
-  const [isDragging, setIsDragging] = useState<boolean>(false);
-  const startY = useRef<number>(0);
-  const startHeight = useRef<number>(0);
-
-  // Custom handler for image uploads
-  const handleImageUpload = () => {
-    const input = document.createElement("input");
-    input.setAttribute("type", "file");
-    input.setAttribute("accept", "image/*");
-    input.click();
-
-    input.onchange = () => {
-      const file = input.files?.[0];
-      if (file) {
-        const reader = new FileReader();
-        reader.onload = () => {
-          const base64 = reader.result as string;
-          const quill = quillRef.current?.getEditor();
-          const range = quill?.getSelection(true);
-          if (range) {
-            quill?.insertEmbed(range.index, "image", base64);
-          }
-        };
-        reader.readAsDataURL(file);
-      }
-    };
-  };
-
-  // Set the image handler when the component mounts
-  useEffect(() => {
-    if (quillRef.current) {
-      const quill = quillRef.current.getEditor();
-      const toolbar = quill.getModule("toolbar");
-      toolbar.handlers.image = handleImageUpload;
-    }
-  }, []); // Empty dependency array to run only once on mount
-
-  // Handle mouse down to start dragging
-  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
-    setIsDragging(true);
-    startY.current = e.clientY;
-    startHeight.current = height;
-  };
-
-  // Handle mouse move to resize the editor
-  const handleMouseMove = (e: MouseEvent) => {
-    if (!isDragging) return;
-
-    const deltaY = e.clientY - startY.current;
-    const newHeight = startHeight.current + deltaY;
-
-    // Set a minimum and maximum height to prevent the editor from becoming too small or too large
-    if (newHeight >= 150 && newHeight <= 600) {
-      setHeight(newHeight);
-    }
-  };
-
-  // Handle mouse up to stop dragging
-  const handleMouseUp = () => {
-    setIsDragging(false);
-  };
-
-  // Add event listeners for mouse move and mouse up when dragging starts
-  useEffect(() => {
-    if (isDragging) {
-      window.addEventListener("mousemove", handleMouseMove);
-      window.addEventListener("mouseup", handleMouseUp);
-    }
-
-    // Cleanup event listeners when dragging stops or component unmounts
-    return () => {
-      window.removeEventListener("mousemove", handleMouseMove);
-      window.removeEventListener("mouseup", handleMouseUp);
-    };
-  }, [isDragging]);
-
-  return (
-    <div className="border border-gray-200 rounded-lg dark:border-gray-800 dark:bg-dark-900">
-      <div style={{ height: `${height}px`, overflow: "auto" }}>
-        <ReactQuill
-          ref={quillRef}
-          value={value}
-          onChange={onChange}
-          modules={modules}
-          formats={formats}
-          theme="snow"
-          className="dark:bg-dark-900 dark:text-white"
-          placeholder="Enter description here..."
-          style={{ height: "calc(100% - 40px)" }} // Adjust for toolbar height
-        />
-      </div>
-      <div
-        className="h-2 bg-gray-300 cursor-ns-resize hover:bg-gray-400"
-        onMouseDown={handleMouseDown}
-      />
-    </div>
-  );
 };
 
 const CareersPage: React.FC = () => {
-  const [formData, setFormData] = useState<FormData>({
-    title: "Our Services",
-    description: `1. Rentals: Find the perfect place to call home with our extensive rental listings.\n2. Sales: Explore properties for sale, whether you're looking for a new home or an investment opportunity.\n3. Plots: Discover vacant plots to build your dream home or invest in future development.\n4. Commercial: Searching for the ideal location for your business? We've got you covered with commercial property listings.`,
-  });
+  const dispatch = useDispatch<AppDispatch>();
+  const navigate = useNavigate();
+  const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const [filterValue, setFilterValue] = useState<string>("");
+  const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [careerToDelete, setCareerToDelete] = useState<{ id: number; job_title: string } | null>(null);
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+  const { careers, fetchLoading, fetchError, deleteLoading, deleteError, deleteSuccess } = useSelector(
+    (state: RootState) => state.career
+  );
+
+  useEffect(() => {
+    dispatch(fetchAllCareers());
+  }, [dispatch]);
+
+  // Handle filter input change
+  const handleFilter = (value: string) => {
+    setFilterValue(value);
+    setCurrentPage(1); // Reset to first page on filter change
   };
 
-  const handleDescriptionChange = (value: string) => {
-    setFormData((prev) => ({ ...prev, description: value }));
+  // Filter careers based on search input
+  const filteredCareers = careers?.filter((career) => {
+    const searchableFields = [
+      career.job_title,
+      career.description,
+      career.preferred_location,
+      career.experience,
+      career.salary,
+    ];
+    return searchableFields
+      .filter((field): field is string => field !== null && field !== undefined)
+      .map((field) => field.toLowerCase())
+      .some((field) => field.includes(filterValue.toLowerCase()));
+  }) || [];
+
+  // Pagination logic
+  const totalItems = filteredCareers.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const paginatedCareers = filteredCareers.slice(startIndex, endIndex);
+
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
   };
 
-  const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
-    e.preventDefault();
-    console.log("Form Data:", formData);
-    // Add your form submission logic here (e.g., API call)
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+  const getPaginationItems = () => {
+    const pages: (number | string)[] = [];
+    const totalVisiblePages = 5;
+
+    if (totalPages <= totalVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let start = Math.max(2, currentPage - 2);
+      let end = Math.min(totalPages - 1, currentPage + 2);
+
+      if (currentPage <= 3) {
+        start = 2;
+        end = 5;
+      }
+
+      if (currentPage >= totalPages - 2) {
+        start = totalPages - 4;
+        end = totalPages - 1;
+      }
+
+      pages.push(1);
+      if (start > 2) pages.push("...");
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages - 1) pages.push("...");
+      if (totalPages > 1) pages.push(totalPages);
+    }
+
+    return pages;
+  };
+
+  // Toggle actions menu
+  const toggleMenu = (id: number | undefined) => {
+    if (id === undefined) return;
+    setActiveMenu(activeMenu === id ? null : id);
+  };
+
+  // Open delete confirmation modal
+  const openDeleteModal = (career: { id: number; job_title: string }) => {
+    setCareerToDelete(career);
+    setIsDeleteModalOpen(true);
+    setActiveMenu(null);
+  };
+
+  // Confirm deletion
+  const confirmDelete = async () => {
+    if (!careerToDelete) return;
+
+    try {
+      await dispatch(deleteCareer(careerToDelete.id)).unwrap();
+      setIsDeleteModalOpen(false);
+      setCareerToDelete(null);
+      toast.success("Career deleted successfully!");
+      dispatch(clearMessages());
+    } catch (error) {
+      toast.error(error as string);
+    }
+  };
+
+  // Navigate to edit page
+  const handleEdit = (careerId: number) => {
+    navigate(`/careers/edit/${careerId}`); // Adjust route as needed
+    setActiveMenu(null);
+  };
+
+  // Navigate to create page
+  const handleCreate = () => {
+    navigate("/careers/create-career"); // Adjust route as needed
   };
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-      <ComponentCard title="Add/Update Careers">
-        <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
-        
+    <div className="relative min-h-screen">
+      <PageBreadcrumbList
+        pageTitle="All Careers"
+        pagePlacHolder="Filter careers by job title, description, location, experience, or salary"
+        onFilter={handleFilter}
+      />
 
-          {/* Description */}
-          <div>
-            <Label htmlFor="description">Description</Label>
-            <ErrorBoundary>
-              <RichTextEditor
-                value={formData.description}
-                onChange={handleDescriptionChange}
-              />
-            </ErrorBoundary>
+      <div className="space-y-6">
+        <div className="flex justify-end">
+          <Button
+            variant="primary"
+            size="md"
+            onClick={handleCreate}
+            className="bg-[#1D3A76] text-white hover:bg-blue-700"
+          >
+            Create New Career
+          </Button>
+        </div>
+
+        <ComponentCard title="All Careers Table">
+          {fetchError && <p className="text-red-600 dark:text-red-400">{fetchError}</p>}
+          {deleteError && <p className="text-red-600 dark:text-red-400">{deleteError}</p>}
+          {deleteSuccess && <p className="text-green-600 dark:text-green-400">{deleteSuccess}</p>}
+
+          <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+            <div className="max-w-full ">
+              <Table>
+                <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+                  <TableRow>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Sl.No
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Job Title
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Description
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Upload Date
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Location
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Salary
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Experience
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Actions
+                    </TableCell>
+                  </TableRow>
+                </TableHeader>
+                <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
+                  {fetchLoading ? (
+                    <TableRow>
+                      <TableCell  className="text-center py-4">
+                        Loading careers...
+                      </TableCell>
+                    </TableRow>
+                  ) : paginatedCareers.length === 0 ? (
+                    <TableRow>
+                      <TableCell className="text-center py-4">
+                        No careers found
+                      </TableCell>
+                    </TableRow>
+                  ) : (
+                    paginatedCareers.map((career, index) => (
+                      <TableRow key={career.id}>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {startIndex + index + 1}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start">
+                          <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
+                            {career.job_title}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {career.description.length > 50
+                            ? `${career.description.substring(0, 50)}...`
+                            : career.description}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {formatDate(career.upload_date)}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {career.preferred_location}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          ${parseFloat(career.salary).toLocaleString()}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {career.experience}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleMenu(career.id)}
+                            disabled={deleteLoading}
+                          >
+                            <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
+                          </Button>
+                          {activeMenu === career.id && (
+                            <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                              <div className="py-2">
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => handleEdit(career.id!)}
+                                >
+                                  Edit
+                                </button>
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() =>
+                                    openDeleteModal({
+                                      id: career.id!,
+                                      job_title: career.job_title,
+                                    })
+                                  }
+                                >
+                                  Delete
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
+                </TableBody>
+              </Table>
+            </div>
           </div>
 
-          {/* Submit Button */}
-          <div className="flex justify-end">
-            <button
-              type="submit"
-              className="w-full sm:w-auto px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
-            >
-              Submit
-            </button>
-          </div>
-        </form>
-      </ComponentCard>
+          {totalItems > itemsPerPage && (
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Showing {startIndex + 1} to {endIndex} of {totalItems} entries
+              </div>
+              <div className="flex gap-2 flex-wrap justify-center">
+                <Button
+                  variant={currentPage === 1 ? "outline" : "primary"}
+                  size="sm"
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+                {getPaginationItems().map((page, index) =>
+                  page === "..." ? (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                    >
+                      ...
+                    </span>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={page === currentPage ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => goToPage(page as number)}
+                      className={
+                        page === currentPage
+                          ? "bg-[#1D3A76] text-white"
+                          : "text-gray-500"
+                      }
+                    >
+                      {page}
+                    </Button>
+                  )
+                )}
+                <Button
+                  variant={currentPage === totalPages ? "outline" : "primary"}
+                  size="sm"
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+        </ComponentCard>
+      </div>
+
+      <ConfirmDeleteModal
+        isOpen={isDeleteModalOpen}
+        propertyName={careerToDelete?.job_title || ""}
+        onConfirm={confirmDelete}
+        onCancel={() => {
+          setIsDeleteModalOpen(false);
+          setCareerToDelete(null);
+        }}
+      />
     </div>
   );
 };

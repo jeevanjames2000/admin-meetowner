@@ -55,6 +55,7 @@ import AllUsers from "./pages/users/AllUsers";
 import EditUserDetails from "./components/tables/BasicTables/EditUserDetails";
 import CreateNewUser from "./pages/Accounts/CreateNewUser";
 import PackagesScren from "./pages/packages/PackagesScreen";
+import AddCareer from "./pages/Forms/AddCareer";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -329,6 +330,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <CareersPage />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="/careers/create-career"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AddCareer />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

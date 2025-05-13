@@ -15,6 +15,7 @@ import notifySlice from './slices/notifySlice';
 import packageSlice from './slices/packagesSlice';
 import paymentSlice from './slices/paymentSlice';
 import propertyDetailsByUserSlice from './slices/propertyDetailsbyUser';
+import carrerSlice from './slices/careerSlice';
 
 const preloadedState = {
     auth : initializeAuthState()
@@ -35,7 +36,8 @@ const store =  configureStore({
         notify:notifySlice,
         package:packageSlice,
         payment:paymentSlice,
-        propertyDetailsByUser:propertyDetailsByUserSlice
+        propertyDetailsByUser:propertyDetailsByUserSlice,
+        career:carrerSlice
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),
