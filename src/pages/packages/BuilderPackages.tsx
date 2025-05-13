@@ -4,13 +4,10 @@ import ComponentCard from "../../components/common/ComponentCard";
 import { getCities } from "../../store/slices/propertyDetails";
 import { AppDispatch } from "../../store/store";
 import { clearPackages, fetchAllPackages } from "../../store/slices/packagesSlice";
-
-// Define the type for a rule
 interface Rule {
   name: string;
   included: boolean;
 }
-
 interface Package {
   id: string;
   name: string;
@@ -20,12 +17,10 @@ interface Package {
   buttonText: string;
   isPopular?: boolean;
 }
-
 interface Option {
   value: string;
   text: string;
 }
-
 interface RootState {
   property: {
     cities: { value: string; label: string }[];
@@ -36,21 +31,17 @@ interface RootState {
     error: string | null;
   };
 }
-// EditPackage Component
 interface EditPackageProps {
   pkg: Package;
   onSave: (updatedPackage: Package) => void;
   onCancel: () => void;
 }
-
 const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
   const [formData, setFormData] = useState<Package>({ ...pkg });
-
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleRuleChange = (
     index: number,
     field: "name" | "included",
@@ -63,30 +54,25 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
       ),
     }));
   };
-
   const handleAddRule = () => {
     setFormData((prev) => ({
       ...prev,
       rules: [...prev.rules, { name: "New Rule", included: false }],
     }));
   };
-
   const handleRemoveRule = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       rules: prev.rules.filter((_, i) => i !== index),
     }));
   };
-
   const handleIsPopularChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, isPopular: e.target.checked }));
   };
-
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
   };
-
   return (
     <div className="fixed inset-0 bg-white/30 backdrop-blur-none flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg max-h-[80vh] overflow-y-auto">
@@ -94,7 +80,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
           Edit Package: {pkg.name}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Package Name */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Package Name
@@ -107,8 +93,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
             />
           </div>
-
-          {/* Duration */}
+          {}
           {/* <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Duration
@@ -121,8 +106,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
             />
           </div> */}
-
-          {/* Price */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Price
@@ -135,8 +119,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
             />
           </div>
-
-          {/* Button Text */}
+          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Button Text
@@ -149,8 +132,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
             />
           </div>
-
-          {/* Is Popular */}
+          {}
           <div className="flex items-center">
             <input
               type="checkbox"
@@ -162,8 +144,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               Mark as Popular
             </label>
           </div>
-
-          {/* Rules */}
+          {}
           <div>
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -206,8 +187,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               </div>
             ))}
           </div>
-
-          {/* Buttons */}
+          {}
           <div className="flex justify-end space-x-3">
             <button
               type="button"
@@ -228,116 +208,85 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
     </div>
   );
 };
-
-// Main BuilderPackages Component
 const BuilderPackages: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
   const [selectedCity, setSelectedCity] = useState<string>("");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
-
-  // Get data from Redux store
   const { cities } = useSelector((state: RootState) => state.property);
   const { packages, loading, error } = useSelector((state: RootState) => state.package);
-
-  // Transform cities into options
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
       value: city.value,
       text: city.label,
     })) || [];
-
-  // Filter cities based on search term
   const filteredCityOptions = cityOptions.filter((option) =>
     option.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
-
-  // Fetch cities and packages on mount
   useEffect(() => {
     dispatch(getCities());
-    dispatch(fetchAllPackages());
-    // Cleanup: clear packages on unmount (optional)
+    dispatch(fetchAllPackages("builder"));
     return () => {
       dispatch(clearPackages());
     };
   }, [dispatch]);
-
-  // Map API packages to include component-specific fields
   const mappedPackages: Package[] = packages.map((pkg) => ({
     ...pkg,
-    buttonText: pkg.name === "Free Listing" ? "Subscribed" : "Upgrade Now", // Example logic
-    isPopular: pkg.name === "Prime", // Example logic
+    buttonText: pkg.name === "Free Listing" ? "Subscribed" : "Upgrade Now",
+    isPopular: pkg.name === "Prime",
   }));
-
-
   const formatPrice = (price: string): string => {
     const priceNumber = parseFloat(price);
     if (priceNumber === 0) {
       return "Free";
     }
-    // Extract the integer part and append " /-"
     return `${Math.floor(priceNumber)} /-`;
   };
-
   const handleEditPackage = (pkg: Package) => {
     setEditingPackage(pkg);
   };
-
   const handleSavePackage = (updatedPackage: Package) => {
-    // Optionally, dispatch an action to update the package via API
-    // For now, update local state (or Redux store if you have an update action)
     console.log("Updated package:", updatedPackage);
     setEditingPackage(null);
   };
-
   const handleCancelEdit = () => {
     setEditingPackage(null);
   };
-
-  // Handle search input change
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setIsDropdownOpen(true);
   };
-
-  // Handle city selection
   const handleCitySelect = (city: Option) => {
     setSelectedCity(city.value);
     setSearchTerm(city.text);
     setIsDropdownOpen(false);
     console.log("Selected city:", city.value);
   };
-
-  // Toggle dropdown visibility
   const toggleDropdown = () => {
     setIsDropdownOpen((prev) => !prev);
   };
-
-  // Close dropdown when clicking outside
   const handleClickOutside = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
     if (!target.closest(".city-dropdown")) {
       setIsDropdownOpen(false);
     }
   };
-
   useEffect(() => {
     document.addEventListener("click", handleClickOutside);
     return () => {
       document.removeEventListener("click", handleClickOutside);
     };
   }, []);
-
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-      {/* Main content with conditional blur */}
+      {}
       <div
         className={`transition-all duration-300 ${
           editingPackage ? "blur-sm" : ""
         }`}
       >
-        {/* Searchable City Dropdown */}
+        {}
         <div className="mb-6 max-w-xs city-dropdown">
           <label
             htmlFor="city-search"
@@ -396,7 +345,6 @@ const BuilderPackages: React.FC = () => {
             )}
           </div>
         </div>
-
         <ComponentCard title="Builder Packages">
           {loading && <p>Loading packages...</p>}
           {error && <p className="text-red-500">Error: {error}</p>}
@@ -518,8 +466,7 @@ const BuilderPackages: React.FC = () => {
           </div>
         </ComponentCard>
       </div>
-
-      {/* Edit Package Modal */}
+      {}
       {editingPackage && (
         <EditPackage
           pkg={editingPackage}
@@ -530,5 +477,4 @@ const BuilderPackages: React.FC = () => {
     </div>
   );
 };
-
 export default BuilderPackages;
