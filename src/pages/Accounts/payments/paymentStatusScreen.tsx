@@ -351,7 +351,7 @@ const userFilterOptions: SelectOption[] = [
       )}
           <ComponentCard title={pageTitleStatus}>
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full ">
+            <div className="max-w-full overflow-auto">
              { (error && 
               (
                   <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
