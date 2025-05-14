@@ -114,13 +114,12 @@ const navItems: NavItem[] = [
     name: "Accounts",
     subItems: [
       { name: "Generate Payments", path: "/accounts/generate-payment-links", pro: false },
-      { name: "Payments", nestedItems: [
-        { name: "Payment Success", path: "/payments/success" },
+       { name: "Payment Success", path: "/payments/success" },
         { name: "Payment Processing", path: "/payments/processing" },
         { name: "Payment rejected", path: "/payments/rejected" },
         { name: "Payment Cancelled", path: "/payments/cancelled" },
-        { name: "Expiry Soon", path: "/payments/expiry" },
-      ]},
+        { name: "Expiry Soon", path: "/payments/expirysoon" },
+     
       
     ],
   },
@@ -140,15 +139,15 @@ const navItems: NavItem[] = [
       { name: "All Projects", path: "/projects/all-projects", pro: false },
     ],
   },
-  {
-    name: "Users",
-    icon: <FaRegUser  />,
-    subItems: [
-      // { name: "Create User", path: "/create-user", pro: false },
-       { name: "All Users", path: "/all-users", pro: false },
+  // {
+  //   name: "Users",
+  //   icon: <FaRegUser  />,
+  //   subItems: [
+  //     // { name: "Create User", path: "/create-user", pro: false },
+  //      { name: "All Users", path: "/all-users", pro: false },
     
-    ],
-  },
+  //   ],
+  // },
   {
     name: "Maps",
     icon: <FaMapMarkerAlt  />,

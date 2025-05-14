@@ -22,7 +22,9 @@ interface Package {
 }
 
 interface PackageFilters {
-  package_for?: string; // Optional payment_status
+  package_for?: string,
+  city?:string
+   // Optional payment_status
 }
 interface Option {
   value: string;
@@ -221,15 +223,14 @@ const PackagesScren: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
    const {status } = useParams<{status:string}>();
-  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("4");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const { cities } = useSelector((state: RootState) => state.property);
   const { packages, loading, error } = useSelector((state: RootState) => state.package);
 
-   const packagesFilters: PackageFilters = {
-    package_for: status, // status is string | undefined, which matches payment_status
-  };
+   
+  
   // Transform cities into options
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
@@ -240,19 +241,26 @@ const PackagesScren: React.FC = () => {
     option.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+
+  const packagesFilters: PackageFilters = {
+    package_for: status,
+    city:selectedCity,
+  };
+  console.log(packagesFilters);
   useEffect(()=>{
-    if(status){
+    if(status && selectedCity){
       dispatch(fetchAllPackages(packagesFilters))
     }
     return () => {
       dispatch(clearPackages());
     }
-  },[dispatch,status])
+  },[dispatch,status,selectedCity])
 
   // Fetch cities and packages on mount
   useEffect(() => {
     dispatch(getCities());
   }, [dispatch]);
+
   const mappedPackages: Package[] = packages.map((pkg) => ({
     ...pkg,
     buttonText: pkg.name === "Free Listing" ? "Subscribed" : "Upgrade Now",
@@ -474,16 +482,7 @@ const PackagesScren: React.FC = () => {
                 >
                   Edit Package
                 </button>
-                <button
-                  className={`w-full py-2 rounded-lg text-center font-semibold ${
-                    pkg.buttonText === "Subscribed"
-                      ? "bg-gray-300 text-gray-600 cursor-not-allowed"
-                      : "bg-[#1D3A76] text-white hover:bg-blue-700"
-                  }`}
-                  disabled={pkg.buttonText === "Subscribed"}
-                >
-                  {pkg.buttonText}
-                </button>
+                
               </div>
             ))}
           </div>

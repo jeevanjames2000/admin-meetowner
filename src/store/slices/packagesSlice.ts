@@ -28,16 +28,19 @@ const initialState: PackageState = {
 };
 interface PackageFilters {
   package_for?: string; // Optional payment_status
+  city?:string
 }
 // Async thunk for fetching all packages
 export const fetchAllPackages = createAsyncThunk(
   "package/fetchAllPackages",
   async (filters:PackageFilters, { rejectWithValue }) => {
     try {
-      const {package_for} = filters;
+      const {package_for,city} = filters;
       const promise = axiosInstance.get<Package[]>("/packages/v1/getAllPackages",{
          params: {
             package_for,
+            city
+            
           }, 
       });
       toast.promise(promise, {

@@ -1,4 +1,4 @@
-import {  useEffect, useState } from "react";
+import {  useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsersByType } from "../../../store/slices/users";
@@ -17,6 +17,8 @@ import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
 import { clearMessages, deleteEmployee, } from "../../../store/slices/employee";
 import toast from "react-hot-toast";
 import ConfirmDeleteModal from "../../common/ConfirmDeleteModal";
+import Select from "../../form/Select";
+import DatePicker from "../../form/date-picker";
 
 
 
@@ -35,11 +37,22 @@ const userTypeMap: { [key: number]: string } = {
   11: "Customer Service",
 };
 
+const paymentStatusOptions: { value: string; label: string }[] = [
+  { value: "All", label: "All" },
+  { value: "active", label: "Active" },
+  { value: "inactive", label: "Inactive" },
+];
 
 // Format date function
-const formatDate = (dateString: string): string => {
-  const date = new Date(dateString);
-  return date.toISOString().split("T")[0];
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return "N/A"; // Handle null or undefined
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Invalid Date"; // Handle invalid dates
+    return date.toISOString().split("T")[0];
+  } catch {
+    return "Invalid Date"; // Handle parsing errors
+  }
 };
 
 export default function BasicTableOne() {
@@ -56,7 +69,10 @@ export default function BasicTableOne() {
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
-    const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const [paymentStatus, setPaymentStatus] = useState<string>("");
 
 
 
@@ -79,6 +95,10 @@ export default function BasicTableOne() {
       dispatch(fetchUsersByType({ user_type: parseInt(userType) }));
     }
   }, [dispatch, userType]);
+  
+  useEffect(() => {
+  setCurrentPage(1); // Reset to page 1 when filters change
+}, [paymentStatus, startDate, endDate]);
 
   useEffect(() => {
     if (deleteSuccess) {
@@ -114,20 +134,56 @@ export default function BasicTableOne() {
     setIsDeleteModalOpen(false);
     setUserToDelete(null);
   };
-  
 
+  const filteredUsers = useMemo(
+  () =>
+    users && Array.isArray(users)
+      ? users.filter((user) => {
+          const searchableFields = [
+            user.name,
+            ...(showMobileAndEmail ? [] : [user.mobile, user.email]),
+            user.city,
+            user.state,
+            user.address,
+            user.pincode,
+            user.gst_number,
+            user.rera_number,
+          ];
+          const matchesSearch = searchableFields
+            .filter((field): field is string => field !== null && field !== undefined)
+            .map((field) => field.toLowerCase())
+            .some((field) => field.includes(filterValue.toLowerCase()));
 
-  const filteredUsers = users.filter((user) => {
-    const searchableFields = [
-      user.name,
-      ...(showMobileAndEmail ? [] : [user.mobile, user.email]),
-      user.city,
-      user.state,
-    ];
-    return searchableFields
-      .map((field) => field?.toLowerCase() || "")
-      .some((field) => field.includes(filterValue.toLowerCase()));
-  });
+          // Payment status filter
+          const matchesPaymentStatus =
+            paymentStatus === "" || // Treat empty as "All"
+            paymentStatus === "All" ||
+            (paymentStatus === "active" && user.subscription_status === "active") ||
+            (paymentStatus === "inactive" &&
+              (user.subscription_status === "inactive" || user.subscription_status === null));
+
+          // Date range filter
+          let matchesDate = true;
+          if (startDate || endDate) {
+            if (!user.created_date) {
+              matchesDate = false; // Exclude null created_date when date filter is active
+            } else {
+              try {
+                const userDate = user.created_date.split("T")[0]; // Extract YYYY-MM-DD
+                matchesDate =
+                  (!startDate || userDate >= startDate) &&
+                  (!endDate || userDate <= endDate);
+              } catch {
+                matchesDate = false; // Exclude invalid dates
+              }
+            }
+          }
+
+          return matchesSearch && matchesPaymentStatus && matchesDate;
+        })
+      : [],
+  [users, filterValue, paymentStatus, startDate, endDate, showMobileAndEmail]
+);
 
 
 
@@ -150,7 +206,7 @@ const totalItems = filteredUsers.length;
   
 
   const handleUserClick = (userId: number, userType: number, name: string) => {
-    if ([3, 4, 5, 6].includes(userType)) {
+    if ([2,3, 4, 5, 6].includes(userType)) {
       navigate(`/user/propertyDetails?userId=${userId}&name=${encodeURIComponent(name)}`);
     }
   };
@@ -206,6 +262,35 @@ const totalItems = filteredUsers.length;
   if (loading) return <div>Loading users...</div>;
   if (error) return <div>Error: {error}</div>;
 
+  
+  const handleStartDateChange = (selectedDates: Date[]) => {
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+    }
+    setStartDate(date || null);
+  };
+
+  const handleEndDateChange = (selectedDates: Date[]) => {
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+      if (startDate && date < startDate) {
+        alert("End date cannot be before start date");
+        return;
+      }
+    }
+  setEndDate(date || null);
+};
+
   return (
     <div className="relative min-h-screen">
       <PageBreadcrumbList
@@ -213,6 +298,52 @@ const totalItems = filteredUsers.length;
         pagePlacHolder="Filter users by name, mobile, email, city"
         onFilter={handleFilter}
       />
+        <div className="flex justify-between gap-3 py-2">
+              <div className="w-auto flex gap-3">
+                <div className="w-auto">
+                <Select
+                  options={paymentStatusOptions}
+                  placeholder="Select Payment Status"
+                  onChange={(value: string) => setPaymentStatus(value)}
+                  value={paymentStatus}
+                  className="dark:bg-dark-900"
+                  
+                />
+                </div>
+                <DatePicker
+                    id="startDate"
+                    placeholder="Select start date"
+                    onChange={handleStartDateChange}
+                    defaultDate={startDate ? new Date(startDate) : undefined}
+                  />
+                <DatePicker
+                    id="endDate"
+                    placeholder="Select end date"
+                    onChange={handleEndDateChange}
+                    defaultDate={endDate ? new Date(endDate) : undefined}
+
+                  />
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      setPaymentStatus(""); // Reset to empty for placeholder
+                      setStartDate(null);
+                      setEndDate(null);
+                      setFilterValue("");
+                      setCurrentPage(1);
+                    }}
+                    className="px-4 py-2"
+                  >
+                    Clear Filters
+                  </Button>
+              </div>
+            </div>
+             {(paymentStatus || startDate || endDate || filterValue) && (
+        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+          Filters: {paymentStatus || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
+        </div>
+      )}
+
 
       {deleteSuccess && (
         <div className="p-3 bg-green-100 text-green-700 rounded-md">{deleteSuccess}</div>
@@ -239,7 +370,13 @@ const totalItems = filteredUsers.length;
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      User
+                       Id
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Name
                     </TableCell>
                     {!showMobileAndEmail && (
                       <>
@@ -273,7 +410,7 @@ const totalItems = filteredUsers.length;
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Pincode
+                      Paynment Status
                     </TableCell>
                     {showGstNumber && (
                       <TableCell
@@ -312,8 +449,11 @@ const totalItems = filteredUsers.length;
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedUsers.map((user) => (
+                  {paginatedUsers.map((user,index) => (
                     <TableRow key={user.id}>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {startIndex + index + 1}
+                      </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.id}
                       </TableCell>
@@ -349,7 +489,7 @@ const totalItems = filteredUsers.length;
                         {user.state}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.pincode}
+                        {user.subscription_status}
                       </TableCell>
                       {showGstNumber && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">

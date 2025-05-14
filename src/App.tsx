@@ -20,7 +20,7 @@ import CommercialBuyEdit from "./pages/Commercial/Buy/CommercialBuyEdit";
 import CommercialRentEdit from "./pages/Commercial/Rent/CommercialRentEdit";
 import CreateEmployee from "./pages/Employee/CreateEmployee";
 import AllEmployees from "./pages/Employee/AllEmployees";
-import PaymentSuccessUsers from "./pages/Accounts/payments/paymentSuccess";
+import PaymentStatusScreen from "./pages/Accounts/payments/paymentStatusScreen";
 
 import InvoiceDownload from "./pages/Employee/Invoice";
 import BasicTables from "./pages/Tables/BasicTables";
@@ -409,7 +409,7 @@ export default function App() {
                 element={
                   <ErrorBoundary>
                     <ProtectedRoute>
-                      <PaymentSuccessUsers />
+                      <PaymentStatusScreen />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
@@ -566,6 +566,7 @@ export default function App() {
                     </ErrorBoundary>
                   }
               />
+              
                <Route
                 path="/packages/:status"
                 element={

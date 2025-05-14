@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PageMeta from "../../../components/common/PageMeta";
 import {
@@ -15,9 +15,26 @@ import PageBreadcrumbList from "../../../components/common/PageBreadCrumbLists";
 import { useNavigate, useParams } from "react-router";
 import Button from "../../../components/ui/button/Button";
 import ConfirmStatusModal from "../../../components/common/ConfirmStatusModal";
+import DatePicker from "../../../components/form/date-picker";
+import Select from "../../../components/form/Select";
+
+const userTypeMap: { [key: number]: string } = {
+  2: "User",
+  3: "Builder",
+  4: "Agent",
+  5: "Owner",
+  6: "Channel Partner",
+
+};
+
+interface SelectOption {
+  value: string;
+  label: string;
+}
 
 interface SubscriptionFilters {
   payment_status?: string; // Optional payment_status
+  
 }
 // Define the Subscription interface (same as in paymentSlice)
 interface Subscription {
@@ -48,9 +65,10 @@ interface Subscription {
   gst_number: string;
   rera_number: string;
   invoice_number: string | null; // Nullable field
+  city:string,
 }
 
-const PaymentSuccessUsers: React.FC = () => {
+const PaymentStatusScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { subscriptions, loading, error } = useSelector(
@@ -69,6 +87,11 @@ const PaymentSuccessUsers: React.FC = () => {
     name: string;
   } | null>(null);
   const [statusAction, setStatusAction] = useState<"approve" | "reject" | null>(null);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
+  const [currentPage, setCurrentPage] = useState<number>(1);
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -97,7 +120,11 @@ const PaymentSuccessUsers: React.FC = () => {
     };
   }, [dispatch, status]); // Add status to dependencies
 
-  // Format date for display
+  
+  useEffect(() => {
+    setCurrentPage(1); // Reset to page 1 when filters change
+  }, [selectedUserType, startDate, endDate, filterValue]);
+
 
 
   const handleInvoice = useCallback((sub: Subscription) => {
@@ -156,12 +183,19 @@ const PaymentSuccessUsers: React.FC = () => {
 
 
 
-  const formatDate = (dateString: string): string => {
-    return new Date(dateString).toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
+const formatDate = (dateString: string | null): string => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Invalid Date";
+      return date.toLocaleDateString("en-US", {
+        year: "numeric",
+        month: "short",
+        day: "numeric",
+      });
+    } catch {
+      return "Invalid Date";
+    }
   };
 
   // Format package name for display
@@ -170,8 +204,10 @@ const PaymentSuccessUsers: React.FC = () => {
   };
 
   // Handle filter input
-  const handleFilter = (value: string) => {
+   const handleFilter = (value: string) => {
     setFilterValue(value);
+    
+    setCurrentPage(1);
   };
 
   const pageTitleStatus = status
@@ -179,11 +215,73 @@ const PaymentSuccessUsers: React.FC = () => {
     : "Payments ";
 
   // Filter subscriptions based on name and mobile
-  const filteredSubscriptions = subscriptions.filter((sub) =>
-    [sub.name || "", sub.mobile || ""].some((field) =>
+  const filteredSubscriptions = useMemo(() => {
+  return subscriptions.filter((sub) => {
+    const searchableFields = [sub.name || "", sub.mobile || ""];
+    const matchesSearch = searchableFields.some((field) =>
       field.toLowerCase().includes(filterValue.toLowerCase())
-    )
-  );
+    );
+
+    const matchesUserType =
+      selectedUserType === null ||
+      selectedUserType === "" ||
+      userTypeMap[sub.user_type] === selectedUserType;
+
+    let matchesDate = true;
+    if (startDate || endDate) {
+      if (!sub.subscription_start_date) {
+        matchesDate = false;
+      } else {
+        try {
+          const subDate = sub.subscription_start_date.split("T")[0]; // Extract YYYY-MM-DD
+          matchesDate =
+            (!startDate || subDate >= startDate) &&
+            (!endDate || subDate <= endDate);
+        } catch {
+          matchesDate = false;
+        }
+      }
+    }
+
+    return matchesSearch && matchesUserType && matchesDate;
+  });
+}, [subscriptions, filterValue, selectedUserType, startDate, endDate]);
+
+const userFilterOptions: SelectOption[] = [
+  { value: "", label: "All Users" }, // Empty value for "All Users"
+  ...Object.entries(userTypeMap).map(([key, value]) => ({
+    value: value,
+    label: value,
+  })),
+  ];
+
+  const handleStartDateChange = (selectedDates: Date[]) => {
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+    }
+    setStartDate(date || null);
+  };
+
+ const handleEndDateChange = (selectedDates: Date[]) => {
+  const dateObj = selectedDates[0];
+  let date = "";
+  if (dateObj) {
+    const year = dateObj.getFullYear();
+    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+    const day = String(dateObj.getDate()).padStart(2, "0");
+    date = `${year}-${month}-${day}`;
+    if (startDate && date < startDate) {
+      alert("End date cannot be before start date");
+      return;
+    }
+  }
+  setEndDate(date || null);
+};
 
   if (loading) {
     return (
@@ -195,29 +293,9 @@ const PaymentSuccessUsers: React.FC = () => {
     );
   }
 
-  if (error) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-red-500">Error: {error}</h2>
-      </div>
-    );
-  }
+  
 
-  if (!filteredSubscriptions || filteredSubscriptions.length === 0) {
-    return (
-      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-        <PageMeta title="Meet Owner Payments" />
-        <PageBreadcrumbList
-          pageTitle={pageTitleStatus}
-          pagePlacHolder="Filter subscriptions"
-          onFilter={handleFilter}
-        />
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-          {filterValue ? "No Matching Subscriptions Found" : "No Subscriptions Available"}
-        </h2>
-      </div>
-    );
-  }
+
 
   return (
     <div className="relative min-h-screen">
@@ -228,17 +306,73 @@ const PaymentSuccessUsers: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        <ComponentCard title={pageTitleStatus}>
+        <div className="w-auto flex gap-3">
+                <div className="w-43">
+                <Select
+                  options={userFilterOptions}
+                  placeholder="Select User Type"
+                  onChange={(value: string) => setSelectedUserType(value || null)}
+                  value={selectedUserType || ""}
+                  className="dark:bg-dark-900"
+                  
+                />
+                </div>
+                <DatePicker
+                    id="startDate"
+                    placeholder="Select start date"
+                    onChange={handleStartDateChange}
+                    defaultDate={startDate ? new Date(startDate) : undefined}
+                  />
+                <DatePicker
+                    id="endDate"
+                    placeholder="Select end date"
+                    onChange={handleEndDateChange}
+                    defaultDate={endDate ? new Date(endDate) : undefined}
+
+                  />
+                  <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedUserType(null);
+                    setStartDate(null);
+                    setEndDate(null);
+                    setFilterValue("");
+                    setCurrentPage(1);
+                  }}
+                  className="px-4 py-2"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+                 {(selectedUserType || startDate || endDate || filterValue) && (
+        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+          Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
+        </div>
+      )}
+          <ComponentCard title={pageTitleStatus}>
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full ">
+             { (error && 
+              (
+                  <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+                      <h2 className="text-lg font-bold text-red-500">Error: {error}</h2>
+                    </div>
+              )
+             ) }
+          
               <Table>
                 {/* Table Header */}
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
+                     <TableCell
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Sl.No
+                    </TableCell>
                     <TableCell
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      ID
+                      User Id
                     </TableCell>
                     <TableCell
                       isHeader
@@ -252,11 +386,18 @@ const PaymentSuccessUsers: React.FC = () => {
                     >
                       Mobile
                     </TableCell>
+                    
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Email
+                    </TableCell>
+                     <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      City
                     </TableCell>
                     <TableCell
                       isHeader
@@ -327,10 +468,18 @@ const PaymentSuccessUsers: React.FC = () => {
                 </TableHeader>
                 {/* Table Body */}
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {filteredSubscriptions.map((sub: Subscription) => (
+                 {(!filteredSubscriptions || filteredSubscriptions.length === 0) && (
+               <p className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400">
+                {filterValue ? "No Matching Subscriptions Found" : "No Subscriptions Available"}
+              </p>
+                 )}
+                  {filteredSubscriptions.map((sub: Subscription,index) => (
                     <TableRow key={sub.id}>
+                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {currentPage + index }
+                      </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {sub.id}
+                        {sub.user_id}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {sub.name}
@@ -340,6 +489,9 @@ const PaymentSuccessUsers: React.FC = () => {
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {sub.email}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {sub.city}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                       <span
@@ -502,4 +654,4 @@ const PaymentSuccessUsers: React.FC = () => {
   );
 };
 
-export default PaymentSuccessUsers;
+export default PaymentStatusScreen;
