@@ -2,7 +2,6 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
-
 interface Ad {
   id: number;
   ads_page: string;
@@ -29,20 +28,16 @@ interface Ad {
   property_in: string | null;
   google_address: string | null;
 }
-
 interface AdResponse {
   ads: Ad[];
 }
-
 interface CreateAdResponse {
   message: string;
   id: number;
 }
-
 interface ErrorResponse {
   message?: string;
 }
-
 export interface AdsState {
   ads: Ad[];
   loading: boolean;
@@ -50,7 +45,6 @@ export interface AdsState {
   createLoading: boolean;
   createError: string | null;
 }
-
 export const fetchAds = createAsyncThunk(
   "ads/fetchAllAds",
   async (_, { rejectWithValue }) => {
@@ -70,17 +64,16 @@ export const fetchAds = createAsyncThunk(
     }
   }
 );
-
 export const createAd = createAsyncThunk(
   "ads/createAd",
   async (adData: any, { rejectWithValue }) => {
     try {
       const response = await axiosInstance.post<CreateAdResponse>(
-        "/adAssets/v1/postAdDetails",
+        "/adAssets/v1/uploadSliderImages",
         adData,
         {
           headers: {
-            "Content-Type": "application/json",
+            "Content-Type": "multipart/form-data",
           },
         }
       );
@@ -92,7 +85,27 @@ export const createAd = createAsyncThunk(
     }
   }
 );
-
+export const deleteAd = createAsyncThunk(
+  "ads/deleteAd",
+  async (image: string, { rejectWithValue }) => {
+    const filename = image.split("/").pop();
+    if (!filename) return rejectWithValue("Invalid image filename");
+    try {
+      const promise = axiosInstance.post(`/adAssets/v1/deleteAdImage/${filename}`);
+      toast.promise(promise, {
+        loading: "Deleting ad...",
+        success: "Ad deleted successfully!",
+        error: "Failed to delete ad",
+      });
+      await promise;
+      return image;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || "Failed to delete ad";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
 const adSlice = createSlice({
   name: "ads",
   initialState: {
@@ -117,7 +130,7 @@ const adSlice = createSlice({
       })
       .addCase(fetchAds.fulfilled, (state, action) => {
         state.loading = false;
-        state.ads = action.payload.ads; // Changed from action.payload.results to action.payload.ads
+        state.ads = action.payload.ads;
       })
       .addCase(fetchAds.rejected, (state, action) => {
         state.loading = false;
@@ -133,9 +146,11 @@ const adSlice = createSlice({
       .addCase(createAd.rejected, (state, action) => {
         state.createLoading = false;
         state.createError = action.payload as string;
-      });
+      })
+      .addCase(deleteAd.fulfilled, (state, action) => {
+        state.ads = state.ads.filter((ad) => ad.image !== action.payload);
+      })
   },
 });
-
 export const { clearAds } = adSlice.actions;
 export default adSlice.reducer;

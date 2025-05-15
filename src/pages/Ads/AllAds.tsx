@@ -1,18 +1,15 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch ,RootState} from "../../store/store";
-
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import { MoreVertical, X } from "lucide-react";
 import Button from "../../components/ui/button/Button";
-import { fetchAds, clearAds, AdsState } from "../../store/slices/adSlice"; // Adjust path to adSlice
+import { fetchAds, clearAds, AdsState, deleteAd } from "../../store/slices/adSlice";
 import { toast } from "react-hot-toast";
 import Input from "../../components/form/input/InputField";
-
-// Define the Ad interface (trimmed for brevity, use the full interface from adSlice)
 interface Ad {
   id: number;
   unique_property_id: string;
@@ -25,8 +22,6 @@ interface Ad {
   admin_approved_status: string | null;
   city_id: string;
 }
-
-// Simplified edit action (replace with actual API call in your app)
 const editAd = (payload: {
   id: number;
   property_name: string;
@@ -35,7 +30,6 @@ const editAd = (payload: {
 }) => {
   return async (dispatch: AppDispatch) => {
     try {
-      
       await new Promise((resolve) => setTimeout(resolve, 1000));
       toast.success("Ad updated successfully!");
       return { success: true };
@@ -45,27 +39,9 @@ const editAd = (payload: {
     }
   };
 };
-
-// Simplified delete action (replace with actual API call in your app)
-const deleteAd = (id: number) => {
-  return async (dispatch: AppDispatch) => {
-    try {
-      // Simulate API call (replace with actual axiosInstance.delete call)
-      await new Promise((resolve) => setTimeout(resolve, 1000));
-      toast.success("Ad deleted successfully!");
-      return { success: true };
-    } catch (error) {
-      toast.error("Failed to delete ad");
-      throw error;
-    }
-  };
-};
-
 const AllAdsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { ads, loading, error } = useSelector((state: RootState) => state.ads) as AdsState;
-
-  // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
   const [adsPerPage] = useState(10);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -77,8 +53,6 @@ const AllAdsPage: React.FC = () => {
   const [newPropertyType, setNewPropertyType] = useState<string>("");
   const [newGoogleAddress, setNewGoogleAddress] = useState<string>("");
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Debounce search input
   const debounce = <F extends (...args: any[]) => void>(func: F, wait: number) => {
     let timeout: NodeJS.Timeout | null = null;
     return (...args: Parameters<F>) => {
@@ -86,23 +60,17 @@ const AllAdsPage: React.FC = () => {
       timeout = setTimeout(() => func(...args), wait);
     };
   };
-
   const handleDebouncedSearch = useCallback(
     debounce((query: string) => setDebouncedSearchQuery(query), 1000),
     []
   );
-
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     handleDebouncedSearch(query);
   };
-
-  // Fetch ads with search and pagination
   useEffect(() => {
-    dispatch(fetchAds()); // Modify fetchAds to accept search/page params if needed
+    dispatch(fetchAds());
   }, [dispatch, currentPage, debouncedSearchQuery]);
-
-  // Handle click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -112,20 +80,14 @@ const AllAdsPage: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Handle error
   useEffect(() => {
     if (error) toast.error(error);
   }, [error]);
-
-  // Clean up on unmount
   useEffect(() => {
     return () => {
       dispatch(clearAds());
     };
   }, [dispatch]);
-
-  // Filter ads based on search query
   const filteredAds = ads.filter((ad) => {
     const searchQuery = debouncedSearchQuery.toLowerCase();
     return (
@@ -134,22 +96,16 @@ const AllAdsPage: React.FC = () => {
       (ad.property_type && ad.property_type.toLowerCase().includes(searchQuery))
     );
   });
-
-  // Pagination calculations
   const totalPages = Math.ceil(filteredAds.length / adsPerPage);
   const indexOfLastAd = currentPage * adsPerPage;
   const indexOfFirstAd = indexOfLastAd - adsPerPage;
   const currentAds = filteredAds.slice(indexOfFirstAd, indexOfLastAd);
-
-  // Handle page change
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
       setActiveMenu(null);
     }
   };
-
-  // Dynamic pagination items
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
@@ -165,13 +121,9 @@ const AllAdsPage: React.FC = () => {
     if (endPage < totalPages) pages.push(totalPages);
     return pages;
   };
-
-  // Toggle dropdown menu
   const toggleMenu = (id: number) => {
     setActiveMenu(activeMenu === id ? null : id);
   };
-
-  // Handle edit
   const handleEdit = (id: number) => {
     const ad = ads.find((a) => a.id === id);
     if (ad) {
@@ -183,8 +135,6 @@ const AllAdsPage: React.FC = () => {
     }
     setActiveMenu(null);
   };
-
-  // Handle edit submit
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedAd) return;
@@ -197,29 +147,27 @@ const AllAdsPage: React.FC = () => {
     try {
       await dispatch(editAd(payload));
       setEditModalOpen(false);
-      dispatch(fetchAds()); // Refresh ads
+      dispatch(fetchAds());
     } catch (err) {
       toast.error("Failed to update ad");
     }
   };
-
-  // Handle delete
-  const handleDelete = async (id: number) => {
-    const ad = ads.find((a) => a.id === id);
+  const handleDelete = async (image: string) => {
+    console.log("image: ", image);
+    const ad = ads.find((a) => a.image === image);
     if (!ad) return;
     const confirmDelete = window.confirm(
       `Are you sure you want to delete ${ad.property_name}?`
     );
     if (!confirmDelete) return;
     try {
-      await dispatch(deleteAd(id));
-      dispatch(fetchAds()); // Refresh ads
+      await dispatch(deleteAd(image));
+      dispatch(fetchAds());
     } catch (err) {
       toast.error("Failed to delete ad");
     }
     setActiveMenu(null);
   };
-
   if (error && !loading && ads.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -254,7 +202,7 @@ const AllAdsPage: React.FC = () => {
                 <Table>
                   <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                     <TableRow>
-                      {["ID", "Property Name", "Type", "Location", "Price", "Status", "Actions"].map((header) => (
+                      {["ID", "Ad Title", "Description", "Location", "Order", "Status", "Actions"].map((header) => (
                         <TableCell
                           key={header}
                           isHeader
@@ -269,7 +217,6 @@ const AllAdsPage: React.FC = () => {
                     {loading ? (
                       <TableRow>
                         <TableCell
-
                           className="px-5 py-8 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                         >
                           Loading...
@@ -278,7 +225,6 @@ const AllAdsPage: React.FC = () => {
                     ) : currentAds.length === 0 ? (
                       <TableRow>
                         <TableCell
-                          
                           className="px-5 py-8 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                         >
                           No Ads Found!
@@ -291,16 +237,16 @@ const AllAdsPage: React.FC = () => {
                             {id}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {ad.property_name}
+                            {ad.ads_title}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {ad.ads_button_text! || "N/A"}
+                            {ad.ads_description! || "N/A"}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {ad.google_address || "N/A"}
+                            {ad.display_cities || "N/A"}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {formatToIndianCurrency(ad.property_cost) || "N/A"}
+                            {ad.ads_order || "N/A"}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                             {ad.status === 1 ? 'Approved' : "Pending"}
@@ -327,7 +273,7 @@ const AllAdsPage: React.FC = () => {
                                   </button>
                                   <button
                                     className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    onClick={() => handleDelete(ad.id)}
+                                    onClick={() => handleDelete(ad.image)}
                                   >
                                     Delete
                                   </button>
@@ -419,7 +365,6 @@ const AllAdsPage: React.FC = () => {
                   value={newPropertyName}
                   onChange={(e) => setNewPropertyName(e.target.value)}
                    className="dark:bg-dark-900"
-                  
                 />
               </div>
               <div className="mb-4">
@@ -442,7 +387,6 @@ const AllAdsPage: React.FC = () => {
                   value={newGoogleAddress}
                   onChange={(e) => setNewGoogleAddress(e.target.value)}
                   className="dark:bg-dark-900"
-                 
                 />
               </div>
               <div className="flex justify-end space-x-2">
@@ -470,5 +414,4 @@ const AllAdsPage: React.FC = () => {
     </div>
   );
 };
-
 export default AllAdsPage;

@@ -12,9 +12,8 @@ import PageMeta from "../../components/common/PageMeta";
 import { getAllApprovedListing } from "../../store/slices/approve_listings";
 import { createAd, AdsState } from "../../store/slices/adSlice";
 import { toast } from "react-hot-toast";
-
 interface FormData {
-  name: string; // Stores unique_property_id
+  name: string;
   places: string[];
   media: File | null;
   order: string;
@@ -25,7 +24,6 @@ interface FormData {
   adsButtonLink: string;
   status: boolean;
 }
-
 interface Errors {
   name?: string;
   places?: string;
@@ -37,18 +35,15 @@ interface Errors {
   adsButton?: string;
   adsButtonLink?: string;
 }
-
 interface Option {
   value: string;
   text: string;
 }
-
 export default function CreateAds() {
   const dispatch = useDispatch<AppDispatch>();
   const { cities } = useSelector((state: RootState) => state.property);
   const { listings } = useSelector((state: RootState) => state.approved);
   const { createLoading, createError } = useSelector((state: RootState) => state.ads) as AdsState;
-
   const [formData, setFormData] = useState<FormData>({
     name: "",
     places: [],
@@ -61,24 +56,17 @@ export default function CreateAds() {
     adsButtonLink: "",
     status: false,
   });
-
   const [errors, setErrors] = useState<Errors>({});
   const [localMediaError, setLocalMediaError] = useState<string>("");
-
-  // Fetch cities and listings on mount
   useEffect(() => {
     dispatch(getCities());
     dispatch(getAllApprovedListing());
   }, [dispatch]);
-
-  // Handle create error
   useEffect(() => {
     if (createError) {
       toast.error(createError);
     }
   }, [createError]);
-
-  // Options for places
   const placeOptions: Option[] = [
     { value: "best deal", text: "Best Deal" },
     { value: "best meetowner", text: "Best MeetOwner" },
@@ -88,20 +76,15 @@ export default function CreateAds() {
     { value: "property_view", text: "Property View" },
     { value: "main_slider", text: "Main Slider" },
   ];
-
-  // Options for visibility cities
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
       value: city.value,
       text: city.label,
     })) || [];
-
-  // Options for property names
   const propertyOptions: Option[] = listings.map((property) => ({
     value: property.unique_property_id,
     text: `${property.property_name || "Unnamed Property"}`,
   }));
-
   const handleSingleChange =
     (field: "order" | "title" | "description" | "adsButton" | "adsButtonLink") =>
     (value: string) => {
@@ -110,7 +93,6 @@ export default function CreateAds() {
         setErrors({ ...errors, [field]: undefined });
       }
     };
-
   const handleMultiSelectChange =
     (field: "places" | "visibilityCities") =>
     (values: string[]) => {
@@ -119,118 +101,101 @@ export default function CreateAds() {
         setErrors({ ...errors, [field]: undefined });
       }
     };
-
   const handleNameChange = (values: string[]) => {
     const selectedValue = values.length > 0 ? values[0] : "";
     setFormData({ ...formData, name: selectedValue });
-    if (errors.name) {
-      setErrors({ ...errors, name: undefined });
-    }
+   
   };
-
   const handleStatusChange = (checked: boolean) => {
     setFormData({ ...formData, status: checked });
   };
-
   const handleMediaUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-
     const validImageTypes = ["image/jpeg", "image/jpg", "image/png"];
     const validVideoTypes = ["video/mp4"];
     const isImage = validImageTypes.includes(file.type);
     const isVideo = validVideoTypes.includes(file.type);
-
     if (!isImage && !isVideo) {
       setLocalMediaError("Only JPG, JPEG, PNG, or MP4 files are allowed.");
       return;
     }
-
     if (isImage && file.size > 10 * 1024 * 1024) {
       setLocalMediaError("Photo size must be less than 10MB.");
       return;
     }
-
     if (isVideo && file.size > 30 * 1024 * 1024) {
       setLocalMediaError("Video size must be less than 30MB.");
       return;
     }
-
     setLocalMediaError("");
     setFormData({ ...formData, media: file });
     if (errors.media) {
       setErrors({ ...errors, media: undefined });
     }
   };
-
   const handleDeleteMedia = () => {
     setFormData({ ...formData, media: null });
     setLocalMediaError("");
   };
-
   const validateForm = () => {
     let newErrors: Errors = {};
-
-    if (!formData.name.trim()) newErrors.name = "Property is required";
     if (formData.places.length === 0) newErrors.places = "At least one place is required";
-    if (!formData.order.trim()) {
-      newErrors.order = "Order is required";
-    } else if (!/^\d+$/.test(formData.order)) {
-      newErrors.order = "Order must be a positive integer";
-    }
+  
     if (formData.visibilityCities.length === 0)
       newErrors.visibilityCities = "At least one city is required";
-    if (!formData.title.trim()) newErrors.title = "Title is required";
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
-   const handleSubmit = async (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
       try {
         const selectedListing = listings.find(
           (listing) => listing.unique_property_id === formData.name
         );
-
+  
         if (!selectedListing) {
           toast.error("Selected property not found");
           return;
         }
-
+  
         const selectedCityId = formData.visibilityCities[0];
         const selectedCity = cityOptions.find((city) => city.value === selectedCityId);
         const cityName = selectedCity ? selectedCity.text : null;
   
-
-        const adData = {
-          unique_property_id: selectedListing.unique_property_id || null,
-          property_name: selectedListing.property_name || null,
-          ads_page: formData.places[0] || null, // API expects a single value
-          ads_order: formData.order ? parseInt(formData.order) : null,
-          city: cityName, // API expects a single city ID
-          display_cities: cityName,
-          ads_title: formData.title || null,
-          ads_button_text: formData.adsButton || null,
-          ads_button_link: formData.adsButtonLink || null,
-          ads_description: formData.description || null,
-          user_id: selectedListing.user_id || null,
-          property_type: selectedListing.property_type || null,
-          sub_type: selectedListing.sub_type || null,
-          property_for: selectedListing.property_for || null,
-          property_cost: selectedListing.property_cost || null,
-          property_in: selectedListing.property_in || null,
-          google_address: selectedListing.google_address || null,
-        };
-
-        const promise = dispatch(createAd(adData)); 
+        // Create FormData to handle file upload
+        const adData = new FormData();
+        adData.append("unique_property_id", selectedListing.unique_property_id || "");
+        adData.append("property_name", selectedListing.property_name || "");
+        adData.append("ads_page", formData.places[0] || "");
+        adData.append("ads_order", formData.order || "");
+        adData.append("city", cityName || "");
+        adData.append("display_cities", cityName || "");
+        adData.append("ads_title", formData.title || "");
+        adData.append("ads_button_text", formData.adsButton || "");
+        adData.append("ads_button_link", formData.adsButtonLink || "");
+        adData.append("ads_description", formData.description || "");
+        adData.append("user_id", selectedListing.user_id || "");
+        adData.append("property_type", selectedListing.property_type || "");
+        adData.append("sub_type", selectedListing.sub_type || "");
+        adData.append("property_for", selectedListing.property_for || "");
+        adData.append("property_cost", selectedListing.property_cost || "");
+        adData.append("property_in", selectedListing.property_in || "");
+        adData.append("google_address", selectedListing.google_address || "");
+  
+        // Append media file if it exists
+        if (formData.media) {
+          adData.append("photo", formData.media);
+        }
+  
+        const promise = dispatch(createAd(adData));
         toast.promise(promise, {
           loading: "Creating ad...",
           success: "Ad created successfully!",
           error: "Failed to create ad",
         });
-
+  
         await promise.unwrap();
         setFormData({
           name: "",
@@ -249,8 +214,6 @@ export default function CreateAds() {
       }
     }
   };
-
-
   return (
     <div className="relative min-h-screen">
       <PageMeta title="Meet Owner Create Ads" />
@@ -264,9 +227,7 @@ export default function CreateAds() {
               onChange={handleNameChange}
               singleSelect={true}
             />
-            {errors.name && (
-              <p className="text-red-500 text-sm mt-1">{errors.name}</p>
-            )}
+            
           </div>
           <div className="relative mb-10 min-h-[80px]">
             <MultiSelect
