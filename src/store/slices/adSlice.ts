@@ -78,7 +78,7 @@ export const createAd = createAsyncThunk(
   "ads/createAd",
   async (adData: any, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.post<CreateAdResponse>(
+      const promise =  axiosInstance.post<CreateAdResponse>(
         "/adAssets/v1/uploadSliderImages",
         adData,
         {
@@ -87,6 +87,12 @@ export const createAd = createAsyncThunk(
           },
         }
       );
+      toast.promise(promise, {
+        loading: "Creating ad...",
+        success: "Ads Created successfully!",
+        error: "Failed to create ad",
+      });
+      const response = await promise;
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;

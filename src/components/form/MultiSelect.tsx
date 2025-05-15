@@ -68,6 +68,11 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+  // Add this useEffect hook in your MultiSelect component
+useEffect(() => {
+  setSelectedOptions(defaultSelected);
+}, [defaultSelected]); // Sync internal state with prop changes
+
   // Filter options based on search term and exclude selected options (for multi-select only)
   const filteredOptions = options.filter(
     (option) =>

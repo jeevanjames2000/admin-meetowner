@@ -11,7 +11,9 @@ import Switch from "../../components/form/switch/Switch";
 import PageMeta from "../../components/common/PageMeta";
 import { getAllApprovedListing } from "../../store/slices/approve_listings";
 import { createAd, AdsState } from "../../store/slices/adSlice";
-import { toast } from "react-hot-toast";
+import  toast  from "react-hot-toast";
+
+
 interface FormData {
   name: string;
   places: string[];
@@ -188,13 +190,14 @@ export default function CreateAds() {
         if (formData.media) {
           adData.append("photo", formData.media);
         }
-  
         const promise = dispatch(createAd(adData));
         toast.promise(promise, {
           loading: "Creating ad...",
           success: "Ad created successfully!",
-          error: "Failed to create ad",
-        });
+          error: "Failed to create ad",  
+        },
+   
+      );
   
         await promise.unwrap();
         setFormData({
