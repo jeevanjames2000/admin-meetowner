@@ -1,7 +1,6 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import { useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
-
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import {
@@ -15,21 +14,21 @@ import Button from "../../components/ui/button/Button";
 import { AppDispatch, RootState } from "../../store/store";
 import { fetchLeads, LeadsState } from "../../store/slices/leads";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
+import DatePicker from "../../components/form/date-picker";
+import Select from "../../components/form/Select";
+
 
 const userTypeMap: { [key: string]: string } = {
-  "1": "Admin",
-  "2": "User",
   "3": "Builder",
   "4": "Agent",
   "5": "Owner",
   "6": "Channel Partner",
-  "7": "Manager",
-  "8": "Telecaller",
-  "9": "Marketing Executive",
-  "10": "Customer Support",
-  "11": "Customer Service",
-  Total: "Total",
 };
+
+interface SelectOption {
+  value: string;
+  label: string;
+}
 
 const PropertyLeadsBuy: React.FC = () => {
   const { property_for, status } = useParams<{ property_for: string; status: string }>();
@@ -41,6 +40,11 @@ const PropertyLeadsBuy: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
   const userType = useSelector((state: RootState) => state.auth.user?.user_type);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
+  const [startDateValue, setStartDateValue] = useState<Date | null>(null);
+  const [endDateValue, setEndDateValue] = useState<Date | null>(null);
 
   const filters = {
     property_for: status === "1" ? "Sell" : status === "2" ? "Rent" : property_for || "",
@@ -69,31 +73,58 @@ const PropertyLeadsBuy: React.FC = () => {
     return `${String(formattedHour).padStart(2, "0")}:${minutes} ${period}`;
   };
 
-  const filteredLeads = leads.filter((lead) =>
-    [
-      lead.property_id || "",
-      lead.name || "",
-      lead.mobile || "",
-      lead.email || "",
-      lead.interested_status === 1 ? "Interested" :
-      lead.interested_status === 2 ? "Follows-up" :
-      lead.interested_status === 3 ? "Site Visited" : "Contacted",
-      lead.property_name || "",
-      lead.owner_name || "",
-      lead.owner_mobile || "",
-    ].some((field) => field.toLowerCase().includes(filterValue.toLowerCase()))
-  );
+  const filteredLeads = useMemo(() => {
+    return leads.filter((lead) => {
+      const searchableFields = [
+        lead.property_id || "",
+        lead.name || "",
+        lead.mobile || "",
+        lead.email || "",
+        lead.interested_status === 1 ? "Interested" :
+        lead.interested_status === 2 ? "Follows-up" :
+        lead.interested_status === 3 ? "Site Visited" : "Contacted",
+        lead.property_name || "",
+        lead.owner_name || "",
+        lead.owner_mobile || "",
+      ];
+      const matchesSearch = searchableFields.some((field) =>
+        field.toLowerCase().includes(filterValue.toLowerCase())
+      );
 
-  const totalItems = filteredLeads.length;
-  const effectiveTotalPages = Math.ceil(totalItems / itemsPerPage);
+      const matchesUserType =
+        selectedUserType === null ||
+        selectedUserType === "" ||
+        userTypeMap[lead.owner_type!] === selectedUserType;
+
+      let matchesDate = true;
+      if (startDate || endDate) {
+        if (!lead.searched_on_date) {
+          matchesDate = false;
+        } else {
+          try {
+            const leadDate = lead.searched_on_date.split("T")[0]; // Extract YYYY-MM-DD
+            matchesDate =
+              (!startDate || leadDate >= startDate) &&
+              (!endDate || leadDate <= endDate);
+          } catch {
+            matchesDate = false;
+          }
+        }
+      }
+
+      return matchesSearch && matchesUserType && matchesDate;
+    });
+  }, [leads, filterValue, selectedUserType, startDate, endDate]);
+
+const totalItems = filteredLeads.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
-  const endIndex = startIndex + itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
 
+
   const goToPage = (page: number) => {
-    if (page >= 1 && page <= effectiveTotalPages) {
-      setCurrentPage(page);
-    }
+    setCurrentPage(page);
   };
 
   const goToPreviousPage = () => {
@@ -101,37 +132,41 @@ const PropertyLeadsBuy: React.FC = () => {
   };
 
   const goToNextPage = () => {
-    if (currentPage < effectiveTotalPages) setCurrentPage(currentPage + 1);
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
   const getPaginationItems = () => {
-    const pages = [];
-    const totalVisiblePages = 7;
-    let startPage = 1;
-    let endPage = effectiveTotalPages;
+    const pages: (number | string)[] = [];
+    const totalVisiblePages = 5;
 
-    if (effectiveTotalPages > totalVisiblePages) {
-      const halfVisible = Math.floor(totalVisiblePages / 2);
-      startPage = Math.max(1, currentPage - halfVisible);
-      endPage = Math.min(effectiveTotalPages, currentPage + halfVisible);
-
-      if (currentPage - halfVisible < 1) {
-        endPage = totalVisiblePages;
+    if (totalPages <= totalVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
       }
-      if (currentPage + halfVisible > effectiveTotalPages) {
-        startPage = effectiveTotalPages - totalVisiblePages + 1;
+    } else {
+      let start = Math.max(2, currentPage - 2);
+      let end = Math.min(totalPages - 1, currentPage + 2);
+
+      if (currentPage <= 3) {
+        start = 2;
+        end = 5;
       }
+
+      if (currentPage >= totalPages - 2) {
+        start = totalPages - 4;
+        end = totalPages - 1;
+      }
+
+      pages.push(1);
+      if (start > 2) pages.push("...");
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages - 1) pages.push("...");
+      if (totalPages > 1) pages.push(totalPages);
     }
-
-    if (startPage > 1) pages.push(1);
-    if (startPage > 2) pages.push("...");
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    if (endPage < effectiveTotalPages - 1) pages.push("...");
-    if (endPage < effectiveTotalPages) pages.push(effectiveTotalPages);
 
     return pages;
   };
@@ -151,7 +186,47 @@ const PropertyLeadsBuy: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  
+  const userFilterOptions: SelectOption[] = [
+    { value: "", label: "All Users" },
+    ...Object.entries(userTypeMap).map(([key, value]) => ({
+      value: value,
+      label: value,
+    })),
+  ];
+
+  const handleStartDateChange = (selectedDates: Date[]) => {
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+      setStartDateValue(dateObj);
+    } else {
+      setStartDateValue(null);
+    }
+    setStartDate(date || null);
+  };
+
+  const handleEndDateChange = (selectedDates: Date[]) => {
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+      if (startDate && date < startDate) {
+        alert("End date cannot be before start date");
+        return;
+      }
+      setEndDateValue(dateObj);
+    } else {
+      setEndDateValue(null);
+    }
+    setEndDate(date || null);
+  };
 
   if (loading) {
     return (
@@ -194,6 +269,56 @@ const PropertyLeadsBuy: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
+        <div className="w-auto flex gap-3">
+          <div className="w-48">
+          
+            <Select
+              options={userFilterOptions}
+              placeholder="Select User Type"
+              onChange={(value: string) => setSelectedUserType(value || null)}
+              value={selectedUserType || ""}
+              className="dark:bg-dark-900"
+            />
+          </div>
+          <div className="w-48">
+           
+            <DatePicker
+              id="startDate"
+              placeholder="Select start date"
+              onChange={handleStartDateChange}
+              
+            />
+          </div>
+          <div className="w-48">
+
+            <DatePicker
+              id="endDate"
+              placeholder="Select end date"
+              onChange={handleEndDateChange}
+              
+            />
+          </div>
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSelectedUserType(null);
+              setStartDate(null);
+              setEndDate(null);
+              setFilterValue("");
+              setCurrentPage(1);
+              setStartDateValue(null);
+              setEndDateValue(null);
+            }}
+            className="px-4 py-2"
+          >
+            Clear Filters
+          </Button>
+        </div>
+        {(selectedUserType || startDate || endDate || filterValue) && (
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
+          </div>
+        )}
         <ComponentCard title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
@@ -203,14 +328,12 @@ const PropertyLeadsBuy: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl. No</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Approach</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Customer Name</TableCell>
-                    {userType === 1 && 
+                    {userType === 1 && (
                       <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Mobile Number</TableCell>
-                      
-                    }
-                    {userType === 1 && 
+                    )}
+                    {userType === 1 && (
                       <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
-                    }
-                    
+                    )}
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property For</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Id</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
@@ -218,71 +341,65 @@ const PropertyLeadsBuy: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedLeads.map((lead, index) => {
-                  
-                    return (
-                      <TableRow key={lead.id}>
+                  {paginatedLeads.map((lead, index) => (
+                    <TableRow key={lead.id}>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {startIndex + index + 1}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {lead.interested_status === 1 ? "Interested" :
+                         lead.interested_status === 2 ? "Follows-up" :
+                         lead.interested_status === 3 ? "Site Visited" : "Closed"}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {lead.name}
+                      </TableCell>
+                      {userType === 1 && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {startIndex + index + 1}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {lead.interested_status === 1 ? "Interested" :
-                           lead.interested_status === 2 ? "Follows-up" :
-                           lead.interested_status === 3 ? "Site Visited" : "Closed"}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {lead.name}
-                        </TableCell>
-                        {
-                          userType === 1 && <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {lead.mobile}
-                          </TableCell>
-                        }
-                        {
-                          userType === 1 &&  <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        </TableCell>
+                      )}
+                      {userType === 1 && (
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {lead.email}
                         </TableCell>
-                        }
-                        
-                       
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {lead.property_for}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {lead.property_id}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
-                          <span className="text-black dark:text-gray-400 cursor-default">
-                            {lead.property_name}
-                          </span>
-                          <div className="absolute z-10 w-64 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 left-0 top-full mt-1 hidden group-hover:block">
-                            <div className="text-sm text-gray-800 dark:text-gray-200">
-                              <p className="font-semibold">User Name: <span className="font-normal">{lead.owner_name}</span></p>
-                              <p className="font-semibold">Phone Number: <span className="font-normal">{lead.owner_mobile}</span></p>
-                              
-                              <p className="font-semibold">Owner Type: <span className="font-normal">{userTypeMap[lead.owner_type!] || "Unknown"}</span></p>
-                            </div>
-                            {/* Triangle pointer */}
-                            <div className="absolute top-[-6px] left-10 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white dark:border-b-gray-800" />
+                      )}
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {lead.property_for}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {lead.property_id}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
+                        <span className="text-black dark:text-gray-400 cursor-default">
+                          {lead.property_name}
+                        </span>
+                        <div className="absolute z-10 w-64 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 left-0 top-full mt-1 hidden group-hover:block">
+                          <div className="text-sm text-gray-800 dark:text-gray-200">
+                            <p className="font-semibold">User Name: <span className="font-normal">{lead.owner_name}</span></p>
+                            <p className="font-semibold">Phone Number: <span className="font-normal">{lead.owner_mobile}</span></p>
+                            <p className="font-semibold">Owner Type: <span className="font-normal">{userTypeMap[lead.owner_type!] || "Unknown"}</span></p>
                           </div>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {`${formatDate(lead.searched_on_date)} ${formatTime(lead.searched_on_time)}`}
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
+                          <div className="absolute top-[-6px] left-10 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white dark:border-b-gray-800" />
+                        </div>
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {`${formatDate(lead.searched_on_date)} ${formatTime(lead.searched_on_time)}`}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>
           </div>
 
-          {totalItems > itemsPerPage && (
+       {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
-                Showing {startIndex + 1} to {Math.min(endIndex, totalItems)} of {totalItems} entries
+                Showing {startIndex + 1} to {endIndex} of {totalItems} entries
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
+                {/* Previous Button */}
                 <Button
                   variant={currentPage === 1 ? "outline" : "primary"}
                   size="sm"
@@ -292,10 +409,11 @@ const PropertyLeadsBuy: React.FC = () => {
                   Previous
                 </Button>
 
+                {/* Page Buttons */}
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
                     <span
-                      key={index}
+                      key={`ellipsis-${index}`}
                       className="px-3 py-1 text-gray-500 dark:text-gray-400"
                     >
                       ...
@@ -303,21 +421,26 @@ const PropertyLeadsBuy: React.FC = () => {
                   ) : (
                     <Button
                       key={page}
-                      variant="outline"
+                      variant={page === currentPage ? "primary" : "outline"}
                       size="sm"
                       onClick={() => goToPage(page as number)}
-                      isActive={page === currentPage}
+                      className={
+                        page === currentPage
+                          ? "bg-[#1D3A76] text-white"
+                          : "text-gray-500"
+                      }
                     >
                       {page}
                     </Button>
                   )
                 )}
 
+                {/* Next Button */}
                 <Button
-                  variant={currentPage === effectiveTotalPages ? "outline" : "primary"}
+                  variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"
                   onClick={goToNextPage}
-                  disabled={currentPage === effectiveTotalPages}
+                  disabled={currentPage === totalPages}
                 >
                   Next
                 </Button>

@@ -1,4 +1,4 @@
-import { useEffect, useState, ChangeEvent, FormEvent } from "react";
+import { useEffect, useState, ChangeEvent, FormEvent, useMemo } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllUsers } from "../../store/slices/users";
@@ -18,20 +18,17 @@ import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
 import axios from "axios";
+import DatePicker from "../../components/form/date-picker";
 
 // User type mapping
 const userTypeMap: { [key: number]: string } = {
-  1: "Admin",
+ 
   2: "User",
   3: "Builder",
   4: "Agent",
   5: "Owner",
   6: "Channel Partner",
-  7: "Manager",
-  8: "Telecaller",
-  9: "Marketing Executive",
-  10: "Customer Support",
-  11: "Customer Service",
+
 };
 
 interface SelectOption {
@@ -45,6 +42,7 @@ interface FormData {
   mobile: string;
   email: string;
   name: string;
+  city:string,
   userType: string;
   package: string;
 }
@@ -61,6 +59,7 @@ export default function GeneratePayments() {
   const navigate = useNavigate();
   const { users, loading, error } = useSelector((state: RootState) => state.users);
 
+const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -72,20 +71,24 @@ export default function GeneratePayments() {
     mobile: "",
     email: "",
     name: "",
+    city:"",
     userType: "",
     package: "",
   });
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [apiError, setApiError] = useState<string>("");
   const [paymentLink, setPaymentLink] = useState<string>("");
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
 
   const itemsPerPage = 10;
 
-  const packageOptions: SelectOption[] = [
-    { value: "Basic", label: "Basic (₹6999)" },
-    { value: "Prime", label: "Prime (₹24999)" },
-    { value: "Prime Plus", label: "Prime Plus (₹49999)" },
-  ];
+const packageOptions: SelectOption[] = [
+  { value: "Basic", label: "Basic (₹6999)" },
+  { value: "Prime", label: "Prime (₹24999)" },
+  { value: "Prime Plus", label: "Prime Plus (₹49999)" },
+  { value: "Custom", label: "Custom" },
+];
 
   const packageAmounts: { [key: string]: number } = {
     Basic: 6999,
@@ -97,8 +100,15 @@ export default function GeneratePayments() {
     dispatch(fetchAllUsers());
   }, [dispatch]);
 
-  // Safeguard for users array
-  const filteredUsers =
+ useEffect(() => {
+  setCurrentPage(1); 
+}, [selectedUserType, startDate, endDate]);
+
+
+
+
+const filteredUsers = useMemo(
+  () =>
     users && Array.isArray(users)
       ? users.filter((user) => {
           const searchableFields = [
@@ -110,13 +120,39 @@ export default function GeneratePayments() {
             user.address,
             user.designation,
           ];
-          return searchableFields
+          const matchesSearch = searchableFields
             .filter((field): field is string => field !== null && field !== undefined)
             .map((field) => field.toLowerCase())
             .some((field) => field.includes(filterValue.toLowerCase()));
-        })
-      : [];
 
+          const matchesUserType =
+            selectedUserType === null ||
+            selectedUserType === "" ||
+            userTypeMap[user.user_type] === selectedUserType;
+
+          // Date range filter
+          let matchesDate = true; // Default to true
+          if (startDate || endDate) {
+            if (!user.created_date) {
+              matchesDate = false; // Exclude null created_date when date filter is active
+              // Alternative: matchesDate = true; // Include null created_date as a special case
+            } else {
+              try {
+                const userDate = user.created_date.split("T")[0]; // Extract YYYY-MM-DD
+                matchesDate =
+                  (!startDate || userDate >= startDate) &&
+                  (!endDate || userDate <= endDate);
+              } catch {
+                matchesDate = false; // Exclude invalid dates
+              }
+            }
+          }
+
+          return matchesSearch && matchesUserType && matchesDate;
+        })
+      : [],
+  [users, filterValue, selectedUserType, startDate, endDate]
+);
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -132,7 +168,7 @@ export default function GeneratePayments() {
   };
 
   const handleFilter = (value: string) => {
-    setFilterValue(value);
+   setFilterValue(value);
     setCurrentPage(1);
   };
 
@@ -193,6 +229,7 @@ export default function GeneratePayments() {
       mobile: user.mobile || "",
       email: user.email || "",
       name: user.name || "",
+      city:user.city || "",
       userType: user.user_type.toString(),
       package: "",
     });
@@ -216,41 +253,53 @@ export default function GeneratePayments() {
   };
 
   const handleSelectChange = (name: keyof FormData) => (value: string) => {
-    setFormData((prev) => {
-      const newData = { ...prev, [name]: value };
-      if (name === "package") {
-        newData.amount = packageAmounts[value]?.toString() || "";
-      }
-      return newData;
-    });
-    setErrors((prev) => ({ ...prev, [name]: "" }));
-    setApiError("");
-  };
+  setFormData((prev) => {
+    const newData = { ...prev, [name]: value };
+    if (name === "package") {
+      newData.amount = value === "Custom" ? "" : packageAmounts[value]?.toString() || "";
+    }
+    return newData;
+  });
+  setErrors((prev) => ({ ...prev, [name]: "" }));
+  setApiError("");
+};
 
   const validateForm = (): boolean => {
-    const newErrors: Partial<FormData> = {};
+  const newErrors: Partial<FormData> = {};
 
-    if (!formData.package) {
-      newErrors.package = "Package is required";
-    } else if (!packageAmounts[formData.package]) {
-      newErrors.package = "Invalid package selected";
+  if (!formData.package) {
+    newErrors.package = "Package is required";
+  } else if (formData.package !== "Custom" && !packageAmounts[formData.package]) {
+    newErrors.package = "Invalid package selected";
+  }
+
+  if (formData.package === "Custom" && !formData.amount) {
+    newErrors.amount = "Amount is required for custom package";
+  } else if (formData.package === "Custom" && (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0)) {
+    newErrors.amount = "Please enter a valid positive amount";
+  }
+
+  if (!formData.mobile) {
+    newErrors.mobile = "Mobile number is required";
+  } else if (!/^\d{10}$/.test(formData.mobile)) {
+    newErrors.mobile = "Mobile number must be exactly 10 digits";
+  }
+
+  if (!formData.email) {
+    newErrors.email = "Email is required";
+  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+    newErrors.email = "Please enter a valid email address";
+  }
+   if (
+      (!selectedUser?.city || selectedUser?.city === "") &&
+      !formData.city.trim()
+    ) {
+      newErrors.city = "City is required";
     }
 
-    if (!formData.mobile) {
-      newErrors.mobile = "Mobile number is required";
-    } else if (!/^\d{10}$/.test(formData.mobile)) {
-      newErrors.mobile = "Mobile number must be exactly 10 digits";
-    }
-
-    if (!formData.email) {
-      newErrors.email = "Email is required";
-    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-      newErrors.email = "Please enter a valid email address";
-    }
-
-    setErrors(newErrors);
-    return Object.keys(newErrors).length === 0;
-  };
+  setErrors(newErrors);
+  return Object.keys(newErrors).length === 0;
+};
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -268,6 +317,7 @@ export default function GeneratePayments() {
       name: formData.name,
       mobile: formData.mobile,
       email: formData.email,
+      city:formData.city,
       subscription_package: formData.package,
       customer_email: formData.email,
       customer_contact: formData.mobile,
@@ -300,6 +350,42 @@ export default function GeneratePayments() {
     }
   };
 
+  const userFilterOptions: SelectOption[] = [
+      { value: "", label: "All Users" }, // Empty value for "All Users"
+      ...Object.entries(userTypeMap).map(([key, value]) => ({
+        value: value,
+        label: value,
+      })),
+  ];
+
+    const handleStartDateChange = (selectedDates: Date[]) => {
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+    }
+    setStartDate(date || null);
+  };
+
+  const handleEndDateChange = (selectedDates: Date[]) => {
+      const dateObj = selectedDates[0];
+      let date = "";
+      if (dateObj) {
+        const year = dateObj.getFullYear();
+        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+        const day = String(dateObj.getDate()).padStart(2, "0");
+        date = `${year}-${month}-${day}`;
+        if (startDate && date < startDate) {
+          alert("End date cannot be before start date");
+          return;
+        }
+      }
+      setEndDate(date || null);
+  };
+
   if (loading) return <div>Loading users...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!users || users.length === 0) return <div>No users found.</div>;
@@ -313,26 +399,80 @@ export default function GeneratePayments() {
       />
 
       <div className="space-y-6">
-        <div className="flex justify-end">
-          <button
-            type="submit"
-            className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleCreate}
-          >
-            Create new user
-          </button>
+          <div className="flex justify-between gap-3">
+              <div className="w-auto flex gap-3">
+                <div className="w-43">
+                <Select
+                  options={userFilterOptions}
+                  placeholder="Select User Type"
+                  onChange={(value: string) => setSelectedUserType(value || null)}
+                  value={selectedUserType || ""}
+                  className="dark:bg-dark-900"
+                  
+                />
+                </div>
+                <DatePicker
+                    id="startDate"
+                    placeholder="Select start date"
+                    onChange={handleStartDateChange}
+                    defaultDate={startDate ? new Date(startDate) : undefined}
+                  />
+                <DatePicker
+                    id="endDate"
+                    placeholder="Select end date"
+                    onChange={handleEndDateChange}
+                    defaultDate={endDate ? new Date(endDate) : undefined}
+
+                  />
+                  <Button
+                  variant="outline"
+                  onClick={() => {
+                    setSelectedUserType(null);
+                    setStartDate(null);
+                    setEndDate(null);
+                    setFilterValue("");
+                    setCurrentPage(1);
+                  }}
+                  className="px-4 py-2"
+                >
+                  Clear Filters
+                </Button>
+              </div>
+               <button
+                type="submit"
+                className="px-6 py-2 bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+                onClick={handleCreate}
+              >
+                Create new user
+              </button>
+             
+            </div>
+
+      {(selectedUserType || startDate || endDate || filterValue) && (
+        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+          Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
         </div>
+      )}
+            
+  
         <ComponentCard title="All Users Table">
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full overflow-x-auto">
+            <div className="max-w-full ">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
+                
                   <TableRow>
-                    <TableCell
+                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Sl.No
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      User Id
                     </TableCell>
                     <TableCell
                       isHeader
@@ -362,7 +502,7 @@ export default function GeneratePayments() {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      State
+                      Paynment Status
                     </TableCell>
                     <TableCell
                       isHeader
@@ -385,8 +525,11 @@ export default function GeneratePayments() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedUsers.map((user) => (
+                  {paginatedUsers.map((user,index) => (
                     <TableRow key={user.id}>
+                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {startIndex + index + 1}
+                      </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.id}
                       </TableCell>
@@ -411,8 +554,8 @@ export default function GeneratePayments() {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.city}
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.state}
+                     <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {user.subscription_status}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(user.created_date)}
@@ -572,10 +715,18 @@ export default function GeneratePayments() {
                     id="amount"
                     name="amount"
                     value={formData.amount}
-                  
-                    className="dark:bg-dark-900 bg-gray-100 cursor-not-allowed"
-                    placeholder="Amount set by package"
+                    onChange={formData.package === "Custom" ? handleInputChange : undefined}
+                   
+                    className={`dark:bg-dark-900 ${
+                      formData.package !== "Custom" ? "bg-gray-100 cursor-not-allowed" : ""
+                    }`}
+                    placeholder={
+                      formData.package === "Custom" ? "Enter custom amount" : "Amount set by package"
+                    }
                   />
+                  {errors.amount && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.amount}</p>
+                  )}
                 </div>
               )}
               {(!selectedUser?.email || selectedUser?.email === "") && (
@@ -616,9 +767,27 @@ export default function GeneratePayments() {
                   )}
                 </div>
               )}
+            {(!selectedUser?.city || selectedUser?.city === "") && (
+                <div>
+                  <Label htmlFor="city">City</Label>
+                  <Input
+                    type="text"
+                    id="city"
+                    name="city"
+                    value={formData.city}
+                    onChange={handleInputChange}
+                    className="dark:bg-dark-900"
+                    placeholder="Enter the city"
+                  />
+                  {errors.city && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {errors.city}
+                    </p>
+                  )}
+                </div>
+              )}
               <div className="flex justify-end gap-4">
                 <Button
-                
                   variant="outline"
                   onClick={closePopup}
                   className="px-4 py-2"
@@ -626,7 +795,6 @@ export default function GeneratePayments() {
                   Cancel
                 </Button>
                 <Button
-                  
                   className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700"
                 >
                   Generate Payment Link

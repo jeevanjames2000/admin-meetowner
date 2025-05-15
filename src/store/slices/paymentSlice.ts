@@ -32,6 +32,8 @@ interface Subscription {
   gst_number: string;
   rera_number: string;
   invoice_number: string | null; // Nullable field
+  user_type:number;
+  city:string;
 }
 interface ErrorResponse {
   message?: string;

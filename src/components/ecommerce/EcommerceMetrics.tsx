@@ -11,7 +11,7 @@ import { useNavigate } from "react-router";
 // Mapping of user_type to user names
 const userTypeMap: { [key: string]: string } = {
   "1": "Admin",
-  // "2":"User",
+  "2":"User",
   "3":"Builder",
   "4":"Agent",
   "5": "Owner",
