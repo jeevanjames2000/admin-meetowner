@@ -101,23 +101,41 @@ export const createAd = createAsyncThunk(
     }
   }
 );
+
+interface DeleteAdPayload {
+ 
+  ads_page: string; // Required for all
+  unique_property_id?: string; // For listing_ads, property_ads
+  property_name?: string; // For listing_ads, property_ads
+}
+
 export const deleteAd = createAsyncThunk(
   "ads/deleteAd",
-  async (image: string, { rejectWithValue }) => {
-    const filename = image.split("/").pop();
-    if (!filename) return rejectWithValue("Invalid image filename");
+  async (payload: DeleteAdPayload, { rejectWithValue }) => {
     try {
-      const promise = axiosInstance.post(`/adAssets/v1/deleteAdImage/${filename}`);
+      const { ads_page, unique_property_id, property_name } = payload;
+
+      // Construct query parameters
+      const queryParams = new URLSearchParams({ ads_page });
+      if (unique_property_id) queryParams.append("unique_property_id", unique_property_id);
+      if (property_name) queryParams.append("property_name", property_name);
+
+      // Determine URL based on ads_page
+      const url = `/adAssets/v1/deleteAdImage`;
+
+      const promise =  axiosInstance.post(`${url}?${queryParams.toString()}`);
       toast.promise(promise, {
         loading: "Deleting ad...",
-        success: "Ad deleted successfully!",
-        error: "Failed to delete ad",
+        success: "Ad Deleted successfully!",
+        error: "Failed to delte ad",
       });
-      await promise;
-      return image;
+
+      const response = await promise;
+      return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError<ErrorResponse>;
-      const errorMessage = axiosError.response?.data?.message || "Failed to delete ad";
+      const axiosError = error as any;
+      const errorMessage =
+        axiosError.response?.data?.message || "Failed to delete ad";
       return rejectWithValue(errorMessage);
     }
   }

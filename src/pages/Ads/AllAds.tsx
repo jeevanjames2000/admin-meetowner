@@ -167,27 +167,34 @@ const AllAdsPage: React.FC = () => {
     try {
       await dispatch(editAd(payload));
       setEditModalOpen(false);
-      dispatch(fetchAds());
+      dispatch(fetchAds(fetchAdsParams));
     } catch (err) {
       toast.error("Failed to update ad");
     }
   };
-  const handleDelete = async (image: string) => {
-    console.log("image: ", image);
-    const ad = ads.find((a) => a.image === image);
-    if (!ad) return;
-    const confirmDelete = window.confirm(
-      `Are you sure you want to delete ${ad.property_name}?`
-    );
-    if (!confirmDelete) return;
-    try {
-      await dispatch(deleteAd(image));
-      dispatch(fetchAds());
-    } catch (err) {
-      toast.error("Failed to delete ad");
-    }
-    setActiveMenu(null);
-  };
+  const handleDelete = async (ad: any) => {
+  const confirmDelete = window.confirm(
+    `Are you sure you want to delete ${ad.property_name || "this ad"}?`
+  );
+  if (!confirmDelete) return;
+
+  try {
+    // Construct payload according to the thunk's expectations
+    const payload = {
+      ads_page: ad.ads_page,
+      unique_property_id: ad.unique_property_id || undefined,
+      property_name: ad.property_name || undefined,
+    };
+
+    const promise = dispatch(deleteAd(payload));
+    
+    await promise.unwrap();
+    dispatch(fetchAds(fetchAdsParams)); // Refresh ads list
+  } catch (err) {
+    console.error("Delete error:", err);
+  }
+  setActiveMenu(null);
+};
   if (error && !loading && ads.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -291,9 +298,9 @@ const AllAdsPage: React.FC = () => {
                                   >
                                     Edit
                                   </button>
-                                  <button
+                                <button
                                     className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    onClick={() => handleDelete(ad.image)}
+                                    onClick={() => handleDelete(ad)}
                                   >
                                     Delete
                                   </button>
