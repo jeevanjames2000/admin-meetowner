@@ -161,7 +161,9 @@ const navItems: NavItem[] = [
     name: "Ads",
     icon: <FaAd />,
     subItems: [
-      { name: "All Ads", path: "/adds/all-ads", pro: false },
+      { name: "All Ads", path: "/adds/all_ads", pro: false },
+      { name: "Listing Ads", path: "/adds/listing_ads", pro: false },
+       { name: "Property Ads", path: "/adds/property_ads", pro: false },
       { name: "Create Ads", path: "/adds/upload-ads", pro: false },
     ],
   },

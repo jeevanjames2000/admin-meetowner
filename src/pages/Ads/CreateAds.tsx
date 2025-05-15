@@ -72,8 +72,8 @@ export default function CreateAds() {
     { value: "best meetowner", text: "Best MeetOwner" },
     { value: "best_demanded", text: "Best Demanded Projects" },
     { value: "meetowner exclusive", text: "MeetOwner Exclusive" },
-    { value: "listing_side", text: "Listing Side Ad" },
-    { value: "property_view", text: "Property View" },
+    { value: "listing_ads", text: "Listing Side Ad" },
+    { value: "property_ads", text: "Property View" },
     { value: "main_slider", text: "Main Slider" },
   ];
   const cityOptions: Option[] =

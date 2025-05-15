@@ -10,6 +10,7 @@ import Button from "../../components/ui/button/Button";
 import { fetchAds, clearAds, AdsState, deleteAd } from "../../store/slices/adSlice";
 import { toast } from "react-hot-toast";
 import Input from "../../components/form/input/InputField";
+import { useParams } from "react-router";
 interface Ad {
   id: number;
   unique_property_id: string;
@@ -39,11 +40,18 @@ const editAd = (payload: {
     }
   };
 };
+
+interface FetchAdsParams {
+  ads_page?: string; 
+  
+}
+
 const AllAdsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { ads, loading, error } = useSelector((state: RootState) => state.ads) as AdsState;
   const [currentPage, setCurrentPage] = useState(1);
   const [adsPerPage] = useState(10);
+   const {status } = useParams<{status:string}>();
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
@@ -68,9 +76,18 @@ const AllAdsPage: React.FC = () => {
     setSearchQuery(query);
     handleDebouncedSearch(query);
   };
+
+  const fetchAdsParams : FetchAdsParams = {
+    ads_page : status
+  }
+
   useEffect(() => {
-    dispatch(fetchAds());
-  }, [dispatch, currentPage, debouncedSearchQuery]);
+    if (status){
+       dispatch(fetchAds(fetchAdsParams));
+    }
+   
+  }, [dispatch, currentPage, debouncedSearchQuery,status]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -80,14 +97,17 @@ const AllAdsPage: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
   useEffect(() => {
     if (error) toast.error(error);
   }, [error]);
+
   useEffect(() => {
     return () => {
       dispatch(clearAds());
     };
   }, [dispatch]);
+
   const filteredAds = ads.filter((ad) => {
     const searchQuery = debouncedSearchQuery.toLowerCase();
     return (

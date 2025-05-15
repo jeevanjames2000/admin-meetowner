@@ -45,11 +45,21 @@ export interface AdsState {
   createLoading: boolean;
   createError: string | null;
 }
+
+interface FetchAdsParams {
+  ads_page?: string; 
+  
+}
 export const fetchAds = createAsyncThunk(
   "ads/fetchAllAds",
-  async (_, { rejectWithValue }) => {
+  async (filters:FetchAdsParams, { rejectWithValue }) => {
     try {
-      const promise = axiosInstance.get<AdResponse>("/adAssets/v1/getAdDetails");
+      const {ads_page} = filters;
+      const promise = axiosInstance.get<AdResponse>("/adAssets/v1/getAds",{
+        params:{
+          ads_page
+        }
+      });
       toast.promise(promise, {
         loading: "Fetching ads...",
         success: "Ads fetched successfully!",

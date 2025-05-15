@@ -537,7 +537,7 @@ export default function App() {
                 }
               />
               <Route
-                path="/adds/all-ads"
+                path="/adds/:status"
                 element={
                   <ErrorBoundary>
                     <ProtectedRoute>
