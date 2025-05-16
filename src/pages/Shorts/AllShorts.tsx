@@ -149,6 +149,19 @@ const AllShorts: React.FC = () => {
     setActiveMenu(null);
   };
 
+  const handleView = (property_id: string) => {
+    if (!property_id) {
+      console.error("Property ID is missing");
+      return;
+    }
+    try {
+      const url = `https://meetowner.in/property?Id_${encodeURIComponent(property_id)}`;
+      window.open(url, "_blank"); // Open in new tab
+    } catch (error) {
+      console.error("Error navigating to property:", error);
+    }
+  };
+
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     // if (!selectedShort) return;
@@ -385,6 +398,15 @@ const AllShorts: React.FC = () => {
                             className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
                           >
                             <div className="py-2">
+                               <button
+                              onClick={() => {
+                                handleView(short.unique_property_id);
+                            
+                              }}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                              View
+                            </button>
                               <button
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 onClick={() => handleEditClick(short)}

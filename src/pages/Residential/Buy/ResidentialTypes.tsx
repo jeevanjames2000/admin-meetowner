@@ -304,7 +304,7 @@ const ResidentialTypes: React.FC = () => {
 
   const shouldShowActions = (userType: number | undefined) => {
     if (userType === undefined) return false;
-    return !excludedUserTypes.includes(userType) && (parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1);
+    return !excludedUserTypes.includes(userType) && (parseInt(status || "0", 10) === 0 || parseInt(status || "0", 10) === 1 || parseInt(status || "0",10) === 2);
   };
 
   // Modal Form Handlers
@@ -435,12 +435,14 @@ const ResidentialTypes: React.FC = () => {
                                   >
                                     View 
                                   </button>
+                                 {parseInt(status || "0", 10) !== 2 && (
                                 <button
                                   onClick={() => handleEdit(item)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 >
                                   Edit
                                 </button>
+                                 )}
                                 {/* <button onClick={() => handleDelete(item.unique_property_id, item.property_name || "this property")} className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700">Delete</button> */}
                                 {parseInt(status || "0", 10) === 0 && (
                                 <button
@@ -450,12 +452,14 @@ const ResidentialTypes: React.FC = () => {
                                   Approve
                                 </button>
                                 )}
+                                {parseInt(status || "0", 10) !== 2 && (
                                 <button
                                   onClick={() => handleApprove(item.unique_property_id, item.property_name || "this property", 'reject')}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 >
                                   Reject
                                 </button>
+                                )}
                                 {parseInt(status || "0", 10) === 1 && (
                                   <button
                                     onClick={() => handleLead()}

@@ -1,4 +1,4 @@
-import React, { ChangeEvent, useEffect, useState } from "react";
+import React, { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
@@ -76,6 +76,9 @@ const CreateShorts: React.FC = () => {
       setErrors({ ...errors, unique_property_id: undefined, property_name: undefined });
     }
   };
+   const defaultSelected = useMemo(() => {
+    return formData.unique_property_id ? [formData.unique_property_id] : [];
+  }, [formData.unique_property_id]);
 
   // Handle text input changes
   const handleChange = (field: keyof FormData) => (e: ChangeEvent<HTMLInputElement>) => {
@@ -139,7 +142,7 @@ const CreateShorts: React.FC = () => {
             <MultiSelect
               label="Property"
               options={propertyOptions}
-              defaultSelected={formData.unique_property_id ? [formData.unique_property_id] : []}
+                defaultSelected={defaultSelected}
               onChange={handlePropertyChange}
               singleSelect={true}
             />

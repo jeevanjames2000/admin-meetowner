@@ -11,7 +11,7 @@ interface MultiSelectProps {
   defaultSelected?: string[];
   onChange?: (selected: string[]) => void;
   disabled?: boolean;
-  singleSelect?: boolean; // New optional prop to enforce single selection
+  singleSelect?: boolean;
 }
 
 const MultiSelect: React.FC<MultiSelectProps> = ({
@@ -20,41 +20,23 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
   defaultSelected = [],
   onChange,
   disabled = false,
-  singleSelect = false, // Default to false (multiple selections allowed)
+  singleSelect = false,
 }) => {
   const [selectedOptions, setSelectedOptions] = useState<string[]>(defaultSelected);
   const [isOpen, setIsOpen] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const toggleDropdown = () => {
-    if (!disabled) setIsOpen((prev) => !prev);
-  };
-
-  const handleSelect = (optionValue: string) => {
-    let newSelectedOptions: string[];
-
-    if (singleSelect) {
-      // For single selection: replace the current selection with the new one
-      newSelectedOptions = [optionValue];
-    } else {
-      // For multiple selections: toggle the option
-      newSelectedOptions = selectedOptions.includes(optionValue)
-        ? selectedOptions.filter((value) => value !== optionValue)
-        : [...selectedOptions, optionValue];
+  // Sync selectedOptions with defaultSelected only when necessary
+  useEffect(() => {
+    // Compare arrays to avoid unnecessary updates
+    if (
+      defaultSelected.length !== selectedOptions.length ||
+      defaultSelected.some((val, idx) => val !== selectedOptions[idx])
+    ) {
+      setSelectedOptions(defaultSelected);
     }
-
-    setSelectedOptions(newSelectedOptions);
-    onChange?.(newSelectedOptions);
-    setSearchTerm(""); // Clear search term after selection
-    if (singleSelect) setIsOpen(false); // Close dropdown after single selection
-  };
-
-  const removeOption = (value: string) => {
-    const newSelectedOptions = selectedOptions.filter((opt) => opt !== value);
-    setSelectedOptions(newSelectedOptions);
-    onChange?.(newSelectedOptions);
-  };
+  }, [defaultSelected]);
 
   // Close dropdown when clicking outside
   useEffect(() => {
@@ -68,15 +50,37 @@ const MultiSelect: React.FC<MultiSelectProps> = ({
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Add this useEffect hook in your MultiSelect component
-useEffect(() => {
-  setSelectedOptions(defaultSelected);
-}, [defaultSelected]); // Sync internal state with prop changes
+  const toggleDropdown = () => {
+    if (!disabled) setIsOpen((prev) => !prev);
+  };
+
+  const handleSelect = (optionValue: string) => {
+    let newSelectedOptions: string[];
+
+    if (singleSelect) {
+      newSelectedOptions = [optionValue];
+    } else {
+      newSelectedOptions = selectedOptions.includes(optionValue)
+        ? selectedOptions.filter((value) => value !== optionValue)
+        : [...selectedOptions, optionValue];
+    }
+
+    setSelectedOptions(newSelectedOptions);
+    onChange?.(newSelectedOptions);
+    setSearchTerm("");
+    if (singleSelect) setIsOpen(false);
+  };
+
+  const removeOption = (value: string) => {
+    const newSelectedOptions = selectedOptions.filter((opt) => opt !== value);
+    setSelectedOptions(newSelectedOptions);
+    onChange?.(newSelectedOptions);
+  };
 
   // Filter options based on search term and exclude selected options (for multi-select only)
   const filteredOptions = options.filter(
     (option) =>
-      (!singleSelect || !selectedOptions.includes(option.value)) && // Exclude selected for single-select after selection
+      (!singleSelect || !selectedOptions.includes(option.value)) &&
       option.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
@@ -89,7 +93,6 @@ useEffect(() => {
       <label className="mb-1.5 block text-sm font-medium text-gray-700 dark:text-gray-400">
         {label}
       </label>
-
       <div className="relative inline-block w-full">
         <div className="relative flex flex-col items-center">
           <div className="w-full">
@@ -135,8 +138,6 @@ useEffect(() => {
               </div>
             </div>
           </div>
-
-          {/* Display selected options below the input */}
           {selectedValuesText.length > 0 && (
             <div className="flex flex-wrap items-start gap-2 mt-2">
               {selectedValuesText.map((text, index) => (
@@ -173,7 +174,6 @@ useEffect(() => {
               ))}
             </div>
           )}
-
           {isOpen && (
             <div
               className="absolute left-0 w-full overflow-y-auto bg-white rounded-lg shadow-lg top-[calc(100%+0.5rem)] max-h-40 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 z-50"
