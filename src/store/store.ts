@@ -16,6 +16,7 @@ import packageSlice from './slices/packagesSlice';
 import paymentSlice from './slices/paymentSlice';
 import propertyDetailsByUserSlice from './slices/propertyDetailsbyUser';
 import carrerSlice from './slices/careerSlice';
+import shortsSlice from './slices/shortsSlice';
 
 const preloadedState = {
     auth : initializeAuthState()
@@ -37,7 +38,8 @@ const store =  configureStore({
         package:packageSlice,
         payment:paymentSlice,
         propertyDetailsByUser:propertyDetailsByUserSlice,
-        career:carrerSlice
+        career:carrerSlice,
+        shorts:shortsSlice
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),

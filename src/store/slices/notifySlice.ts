@@ -16,6 +16,14 @@ interface NotifyTicket {
   id: string;
 }
 
+interface Notification {
+  id: number;
+  user_id: string;
+  title: string;
+  message: string;
+  created_at: string;
+}
+
 interface NotifyAllResponse {
   success: boolean;
   count: number;
@@ -27,29 +35,39 @@ interface NotifyUserResponse {
   tickets: NotifyTicket[];
 }
 
+interface NotificationHistoryResponse {
+  notifications: Notification[];
+}
+
 interface ErrorResponse {
   message?: string;
 }
 
 export interface NotifyState {
   users: User[];
+  notifications: Notification[]; // New state for notification history
   loading: boolean;
   error: string | null;
   notifyAllLoading: boolean;
   notifyAllError: string | null;
   notifyUserLoading: boolean;
   notifyUserError: string | null;
+  notificationHistoryLoading: boolean; // New loading state
+  notificationHistoryError: string | null; // New error state
 }
 
 // Initial state
 const initialState: NotifyState = {
   users: [],
+  notifications: [], // Initialize notifications array
   loading: false,
   error: null,
   notifyAllLoading: false,
   notifyAllError: null,
   notifyUserLoading: false,
   notifyUserError: null,
+  notificationHistoryLoading: false,
+  notificationHistoryError: null,
 };
 
 // Async thunk for fetching all tokens
@@ -67,7 +85,6 @@ export const fetchAllTokens = createAsyncThunk(
       });
       
       const response = await promise;
-    
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
@@ -138,6 +155,28 @@ export const notifySingleUser = createAsyncThunk(
   }
 );
 
+// Async thunk for fetching notification history
+export const fetchNotificationHistory = createAsyncThunk(
+  "notify/fetchNotificationHistory",
+  async (_, { rejectWithValue }) => {
+    try {
+      const promise = axiosInstance.get<NotificationHistoryResponse>("/user/v1/getAllNotificationHistory");
+      toast.promise(promise, {
+        loading: "Fetching notification history...",
+        success: "Notification history fetched successfully!",
+        error: "Failed to fetch notification history",
+      });
+      
+      const response = await promise;
+      return response.data.notifications; // Return the notifications array
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || "Failed to fetch notification history";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 // Notify slice
 const notifySlice = createSlice({
   name: "notify",
@@ -145,9 +184,11 @@ const notifySlice = createSlice({
   reducers: {
     clearNotify: (state) => {
       state.users = [];
+      state.notifications = []; // Clear notifications
       state.error = null;
       state.notifyAllError = null;
       state.notifyUserError = null;
+      state.notificationHistoryError = null; // Clear notification history error
     },
   },
   extraReducers: (builder) => {
@@ -159,7 +200,7 @@ const notifySlice = createSlice({
       })
       .addCase(fetchAllTokens.fulfilled, (state, action) => {
         state.loading = false;
-        state.users = action.payload; // Directly use the array
+        state.users = action.payload;
       })
       .addCase(fetchAllTokens.rejected, (state, action) => {
         state.loading = false;
@@ -172,7 +213,6 @@ const notifySlice = createSlice({
       })
       .addCase(notifyAllUsers.fulfilled, (state) => {
         state.notifyAllLoading = false;
-        // No state update needed unless you want to store tickets
       })
       .addCase(notifyAllUsers.rejected, (state, action) => {
         state.notifyAllLoading = false;
@@ -185,11 +225,23 @@ const notifySlice = createSlice({
       })
       .addCase(notifySingleUser.fulfilled, (state) => {
         state.notifyUserLoading = false;
-        // No state update needed unless you want to store tickets
       })
       .addCase(notifySingleUser.rejected, (state, action) => {
         state.notifyUserLoading = false;
         state.notifyUserError = action.payload as string;
+      })
+      // Fetch notification history
+      .addCase(fetchNotificationHistory.pending, (state) => {
+        state.notificationHistoryLoading = true;
+        state.notificationHistoryError = null;
+      })
+      .addCase(fetchNotificationHistory.fulfilled, (state, action) => {
+        state.notificationHistoryLoading = false;
+        state.notifications = action.payload; // Store notifications array
+      })
+      .addCase(fetchNotificationHistory.rejected, (state, action) => {
+        state.notificationHistoryLoading = false;
+        state.notificationHistoryError = action.payload as string;
       });
   },
 });

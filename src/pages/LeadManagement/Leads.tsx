@@ -17,7 +17,6 @@ import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 import DatePicker from "../../components/form/date-picker";
 import Select from "../../components/form/Select";
 
-
 const userTypeMap: { [key: string]: string } = {
   "3": "Builder",
   "4": "Agent",
@@ -116,12 +115,11 @@ const PropertyLeadsBuy: React.FC = () => {
     });
   }, [leads, filterValue, selectedUserType, startDate, endDate]);
 
-const totalItems = filteredLeads.length;
+  const totalItems = filteredLeads.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
-
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
@@ -228,6 +226,20 @@ const totalItems = filteredLeads.length;
     setEndDate(date || null);
   };
 
+  // Handle View action
+  const handleView = (property_id: string) => {
+    if (!property_id) {
+      console.error("Property ID is missing");
+      return;
+    }
+    try {
+      const url = `https://meetowner.in/property?Id_${encodeURIComponent(property_id)}`;
+      window.open(url, "_blank"); // Open in new tab
+    } catch (error) {
+      console.error("Error navigating to property:", error);
+    }
+  };
+
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -271,7 +283,6 @@ const totalItems = filteredLeads.length;
       <div className="space-y-6">
         <div className="w-auto flex gap-3">
           <div className="w-48">
-          
             <Select
               options={userFilterOptions}
               placeholder="Select User Type"
@@ -281,21 +292,17 @@ const totalItems = filteredLeads.length;
             />
           </div>
           <div className="w-48">
-           
             <DatePicker
               id="startDate"
               placeholder="Select start date"
               onChange={handleStartDateChange}
-              
             />
           </div>
           <div className="w-48">
-
             <DatePicker
               id="endDate"
               placeholder="Select end date"
               onChange={handleEndDateChange}
-              
             />
           </div>
           <Button
@@ -338,6 +345,7 @@ const totalItems = filteredLeads.length;
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Id</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Date & Time</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -386,6 +394,30 @@ const totalItems = filteredLeads.length;
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {`${formatDate(lead.searched_on_date)} ${formatTime(lead.searched_on_time)}`}
                       </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDropdownOpen(dropdownOpen === lead.id ? null : lead.id)}
+                        >
+                          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </Button>
+                        {dropdownOpen === lead.id && (
+                          <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                            <button
+                              onClick={() => {
+                                handleView(lead.property_id);
+                                setDropdownOpen(null);
+                              }}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                              View
+                            </button>
+                          </div>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>
@@ -393,13 +425,12 @@ const totalItems = filteredLeads.length;
             </div>
           </div>
 
-       {totalItems > itemsPerPage && (
+          {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Showing {startIndex + 1} to {endIndex} of {totalItems} entries
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
-                {/* Previous Button */}
                 <Button
                   variant={currentPage === 1 ? "outline" : "primary"}
                   size="sm"
@@ -408,8 +439,6 @@ const totalItems = filteredLeads.length;
                 >
                   Previous
                 </Button>
-
-                {/* Page Buttons */}
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
                     <span
@@ -434,8 +463,6 @@ const totalItems = filteredLeads.length;
                     </Button>
                   )
                 )}
-
-                {/* Next Button */}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"

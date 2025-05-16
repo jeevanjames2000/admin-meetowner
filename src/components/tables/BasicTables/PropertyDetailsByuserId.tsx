@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { getPropertyDetailsByUserId } from "../../../store/slices/propertyDetailsbyUser";
@@ -11,17 +11,15 @@ import {
   TableRow,
 } from "../../ui/table";
 import Button from "../../ui/button/Button";
-
 import ComponentCard from "../../common/ComponentCard";
 import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
 
-// Property type mapping for display (if needed)
+// Property type mapping for display
 const propertyTypeMap: { [key: string]: string } = {
   Apartment: "Apartment",
   Villa: "Villa",
   Plot: "Plot",
   Commercial: "Commercial",
-  // Add more property types as needed
 };
 
 // Format date function
@@ -42,6 +40,8 @@ export default function PropertyDetailsByUserId() {
   const { properties, loading, error } = useSelector((state: RootState) => state.propertyDetailsByUser);
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const itemsPerPage = 10;
 
@@ -55,6 +55,17 @@ export default function PropertyDetailsByUserId() {
       }
     }
   }, [dispatch, userId]);
+
+  // Close dropdown when clicking outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   // Filter properties based on search input
   const filteredProperties = properties.filter((property) => {
@@ -77,21 +88,31 @@ export default function PropertyDetailsByUserId() {
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedProperties = filteredProperties.slice(startIndex, endIndex);
 
-
-
   // Handle search filter
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
 
-
-  const handlepropertyClick = (propertyId:string) => {
-    console.log(propertyId);
-    if (propertyId){
-      navigate(`/user-activities?property_id=${propertyId}`)
+  const handlepropertyClick = (propertyId: string) => {
+    if (propertyId) {
+      navigate(`/user-activities?property_id=${propertyId}`);
     }
-  }
+  };
+
+  // Handle View action
+  const handleView = (property_id: string) => {
+    if (!property_id) {
+      console.error("Property ID is missing");
+      return;
+    }
+    try {
+      const url = `https://meetowner.in/property?Id_${encodeURIComponent(property_id)}`;
+      window.open(url, "_blank"); // Open in new tab
+    } catch (error) {
+      console.error("Error navigating to property:", error);
+    }
+  };
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
@@ -135,11 +156,10 @@ export default function PropertyDetailsByUserId() {
   return (
     <div className="relative min-h-screen p-6">
       <PageBreadcrumbList
-        pageTitle={`Properties  by ${name}`}
+        pageTitle={`Properties by ${name}`}
         pagePlacHolder="Filter properties by name, address, city, type, or Id"
         onFilter={handleFilter}
       />
-
       <div className="space-y-6">
         <ComponentCard title={`Properties by ${name}`}>
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -171,7 +191,6 @@ export default function PropertyDetailsByUserId() {
                     >
                       Type
                     </TableCell>
-                    
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -184,81 +203,102 @@ export default function PropertyDetailsByUserId() {
                     >
                       City
                     </TableCell>
-                    
-                   
                     <TableCell
-                   isHeader
+                      isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Updated Date
                     </TableCell>
-                   
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Actions
+                    </TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-200 dark:divide-white/[0.05]">
                   {loading && (
                     <TableRow>
                       <TableCell
-                      
                         className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                       >
                         Loading properties...
                       </TableCell>
                     </TableRow>
                   )}
-                  {/* Display error state */}
                   {!loading && error && (
                     <TableRow>
                       <TableCell
-                      
                         className="px-5 py-4 text-center text-red-500 text-theme-sm dark:text-red-400"
                       >
                         Error: {error}
                       </TableCell>
                     </TableRow>
                   )}
-                  {/* Display no properties state */}
                   {!loading && !error && properties.length === 0 && (
                     <TableRow>
                       <TableCell
-                       
                         className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                       >
                         No properties found
                       </TableCell>
                     </TableRow>
                   )}
-                  {/* Display properties */}
-                  {!loading && !error && properties.length > 0 &&  paginatedProperties.map((property, index) => (
+                  {!loading && !error && properties.length > 0 && paginatedProperties.map((property, index) => (
                     <TableRow key={property.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                       {property.unique_property_id}
+                        {property.unique_property_id}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
-                        <span  onClick={()=> handlepropertyClick(property.unique_property_id)}
-                         className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
+                        <span
+                          onClick={() => handlepropertyClick(property.unique_property_id)}
+                          className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline"
+                        >
                           {property.property_name}
                         </span>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {propertyTypeMap[property.sub_type] || property.sub_type}
                       </TableCell>
-                      
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {property.google_address || "N/A"}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {property.city_id}
                       </TableCell>
-                      
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(property.updated_date)}
                       </TableCell>
-                     
-                     
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => setDropdownOpen(dropdownOpen === property.unique_property_id ? null : property.unique_property_id)}
+                          aria-label="Open actions menu"
+                          aria-expanded={dropdownOpen === property.unique_property_id}
+                        >
+                          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                          </svg>
+                        </Button>
+                        {dropdownOpen === property.unique_property_id && (
+                          <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                            <button
+                              onClick={() => {
+                                handleView(property.unique_property_id);
+                                setDropdownOpen(null);
+                              }}
+                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                            >
+                              View
+                            </button>
+                          </div>
+                        )}
+                      </TableCell>
                     </TableRow>
                   ))}
                 </TableBody>

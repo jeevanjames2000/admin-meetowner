@@ -10,7 +10,7 @@ import {
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import { FaAd, FaBell,FaBusinessTime,FaUserTie,FaHouseUser,FaRegUser ,FaMapMarkerAlt    } from "react-icons/fa";
+import { FaAd, FaBell,FaBusinessTime,FaUserTie,FaHouseUser,FaRegUser ,FaMapMarkerAlt, FaVideo    } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 
@@ -184,6 +184,16 @@ const navItems: NavItem[] = [
     icon: <FaBell />,
     subItems: [
       { name: "Send Notifications", path: "notification/notify",},
+      {name :'All Notificatons', path:'notifications/all'}
+   
+    ],
+  },
+  {
+    name: "Dynamic Screens",
+    icon: <FaVideo />,
+    subItems: [
+      { name: "All Shorts", path: "Shorts/all",},
+       { name: "Create Short", path: "Shorts/Create",},
    
     ],
   },

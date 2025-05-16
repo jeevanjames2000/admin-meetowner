@@ -56,6 +56,9 @@ import EditUserDetails from "./components/tables/BasicTables/EditUserDetails";
 import CreateNewUser from "./pages/Accounts/CreateNewUser";
 import PackagesScren from "./pages/packages/PackagesScreen";
 import AddCareer from "./pages/Forms/AddCareer";
+import AllNotifications from "./pages/Notify/AllNotifications";
+import AllShorts from "./pages/Shorts/AllShorts";
+import CreateShorts from "./pages/Shorts/CreateShorts";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -566,6 +569,16 @@ export default function App() {
                     </ErrorBoundary>
                   }
               />
+                <Route
+                  path="notifications/all"
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute>
+                        <AllNotifications />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  }
+              />
               
                <Route
                 path="/packages/:status"
@@ -573,6 +586,26 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <PackagesScren />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="Shorts/all"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AllShorts />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="Shorts/Create"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <CreateShorts />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

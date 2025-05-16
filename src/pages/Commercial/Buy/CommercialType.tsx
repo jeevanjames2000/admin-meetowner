@@ -151,6 +151,21 @@ const CommercialTypes: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
+
+  const handleView = useCallback((unique_property_id: string) => {
+    if (!unique_property_id) {
+      
+      return;
+    }
+    try {
+      const url = `https://meetowner.in/property?Id_${encodeURIComponent(unique_property_id)}`;
+      window.open(url, "_blank"); // Open in new tab
+    } catch (error) {
+      console.error("Error navigating to property:", error);
+      
+    }
+  }, []);
+  
   const handleEdit = (item: any) => {
     const editPath = property_for === "buy" ? "/commercial-buy-edit" : "/commercial-rent-edit";
     navigate(editPath, { state: { property: item } });
@@ -400,6 +415,12 @@ const CommercialTypes: React.FC = () => {
                               </Button>
                               {dropdownOpen === item.id.toString() && (
                               <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                                <button
+                                    onClick={() => handleView(item.unique_property_id)}
+                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  >
+                                    View 
+                                  </button>
                                 <button
                                   onClick={() => handleEdit(item)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
