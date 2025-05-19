@@ -22,7 +22,7 @@ import CreateEmployee from "./pages/Employee/CreateEmployee";
 import AllEmployees from "./pages/Employee/AllEmployees";
 import PaymentStatusScreen from "./pages/Accounts/payments/paymentStatusScreen";
 
-import InvoiceDownload from "./pages/Employee/Invoice";
+
 import BasicTables from "./pages/Tables/BasicTables";
 import { ProtectedRouteProps } from "./types/auth";
 import { AppDispatch, RootState } from "./store/store";
@@ -30,10 +30,10 @@ import { isTokenExpired, logout } from "./store/slices/authSlice";
 import BasicTableOne from "./components/tables/BasicTables/BasicTableOne";
 import LocationManager from "./pages/maps/locality";
 
-import { lazy, Suspense, useState, useEffect, useRef } from "react";
+import { lazy, Suspense, useState, } from "react";
 import { TableLoader } from "./components/Loaders/LoadingLisings";
 import ErrorBoundary from "./hooks/ErrorBoundary";
-import axiosInstance from "./utils/axiosInstance";
+
 import EditEmployee from "./pages/Employee/EditEmployee";
 import HomeFooter from "./pages/Forms/HomeFooter";
 import CreateUser from "./pages/users/CreateUsers";
@@ -59,11 +59,13 @@ import AddCareer from "./pages/Forms/AddCareer";
 import AllNotifications from "./pages/Notify/AllNotifications";
 import AllShorts from "./pages/Shorts/AllShorts";
 import CreateShorts from "./pages/Shorts/CreateShorts";
+import { Invoice } from "./pages/Accounts/Invoice";
+import ServerStatusCheck from "./hooks/ServerStatusCheck";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, token } = useSelector((state: RootState) => state.auth);
-  console.log(token)
+
 
   const tokenExpired = isTokenExpired(token);
 
@@ -81,64 +83,15 @@ const ResidentialTypes = lazy(() => import("./pages/Residential/Buy/ResidentialT
 const CommercialTypes = lazy(() => import("./pages/Commercial/Buy/CommercialType"));
 
 // Simple server status check component
-const ServerStatusCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [serverDown, setServerDown] = useState(false);
-  const isMounted = useRef(false); // Track initial API call
 
-  useEffect(() => {
-    console.log("ServerStatusCheck useEffect triggered"); // Debug
-    const checkServerStatus = async () => {
-      try {
-        await axiosInstance.get("/user/v1/getAllUsersCount");
-        setServerDown(false);
-      } catch (error) {
-        setServerDown(true);
-      }
-    };
-
-    if (!isMounted.current) {
-      isMounted.current = true;
-      console.log("ServerStatusCheck: Calling checkServerStatus"); // Debug
-      checkServerStatus();
-    }
-
-    const interval = setInterval(checkServerStatus, 100000);
-    return () => {
-      clearInterval(interval);
-      isMounted.current = false; // Reset on unmount
-    };
-  }, []);
-
-  if (serverDown) {
-    return (
-      <div className="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-dark-900 p-4">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold text-gray-800 mb-2">
-            Server Unavailable
-          </h2>
-          <p className="text-gray-600 dark:text-gray-400 mb-4">
-            Our servers are currently down. Please try again later.
-          </p>
-          <button
-            className="px-4 py-2 bg-brand-500 text-white rounded hover:bg-brand-600"
-            onClick={() => window.location.reload()}
-          >
-            Retry
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  return <>{children}</>;
-};
 
 export default function App() {
+  const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
   return (
     <>
       <Router>
         <ScrollToTop />
-        <ServerStatusCheck>
+         <ServerStatusCheck isOnline={isOnline}>
           <Routes>
             <Route element={<AppLayout />}>
               <Route
@@ -494,7 +447,7 @@ export default function App() {
                 element={
                   <ErrorBoundary>
                     <ProtectedRoute>
-                      <InvoiceDownload />
+                      <Invoice />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

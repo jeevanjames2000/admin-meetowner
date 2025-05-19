@@ -1,6 +1,6 @@
 import React from "react";
 
-import { Link } from "react-router";
+
 
 export default function AuthLayout({
   children,
@@ -15,14 +15,14 @@ export default function AuthLayout({
           <div className="relative flex items-center justify-center z-1">
             {/* <!-- ===== Common Grid Shape Start ===== --> */}
             <div className="flex flex-col items-center max-w-xs">
-              <Link to="/" className="block mb-4">
+             
                 <img
                   width={231}
                   height={70}
                   src="/images/meet_white.png"
                   alt="Logo"
                 />
-              </Link>
+              
               <p className="text-center text-gray-400 dark:text-white/60">
               Welcome to Meet Owner, where we believe that finding the perfect property should be a seamless and empowering experience.
               </p>

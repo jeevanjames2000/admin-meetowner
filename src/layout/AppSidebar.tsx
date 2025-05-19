@@ -179,6 +179,15 @@ const navItems: NavItem[] = [
      
     ],
   },
+  {
+    name: "Quotations",
+    icon: <ListIcon />,
+    subItems: [
+      { name: "Offline", path: "quotations/offline",},
+      {name :'Online', path:"quotations/online"}
+   
+    ],
+  },
    {
     name: "Push Notifications",
     icon: <FaBell />,

@@ -90,6 +90,7 @@ export default function BasicTableOne() {
   // Condition to show Mobile and Email columns
   const showMobileAndEmail = pageuserType === 7 && userType !== null && parseInt(userType) === 2;
 
+
   useEffect(() => {
     if (userType) {
       dispatch(fetchUsersByType({ user_type: parseInt(userType) }));
@@ -188,7 +189,7 @@ export default function BasicTableOne() {
 
 
 
-const totalItems = filteredUsers.length;
+  const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
@@ -210,8 +211,9 @@ const totalItems = filteredUsers.length;
       navigate(`/user/propertyDetails?userId=${userId}&name=${encodeURIComponent(name)}`);
     }
   };
+  
 
-     const goToPage = (page: number) => {
+  const goToPage = (page: number) => {
     setCurrentPage(page);
   };
 
@@ -298,17 +300,21 @@ const totalItems = filteredUsers.length;
         pagePlacHolder="Filter users by name, mobile, email, city"
         onFilter={handleFilter}
       />
-        <div className="flex justify-between gap-3 py-2">
+    
+         <div className="flex justify-between gap-3 py-2">
               <div className="w-auto flex gap-3">
                 <div className="w-auto">
-                <Select
-                  options={paymentStatusOptions}
-                  placeholder="Select Payment Status"
-                  onChange={(value: string) => setPaymentStatus(value)}
-                  value={paymentStatus}
-                  className="dark:bg-dark-900"
-                  
-                />
+               {[2, 3, 4, 5, 6].includes(parseInt(userType || "0")) && (
+                  <div className="w-auto">
+                    <Select
+                      options={paymentStatusOptions}
+                      placeholder="Select Payment Status"
+                      onChange={(value: string) => setPaymentStatus(value)}
+                      value={paymentStatus}
+                      className="dark:bg-dark-900"
+                    />
+                  </div>
+                )}
                 </div>
                 <DatePicker
                     id="startDate"
@@ -338,7 +344,9 @@ const totalItems = filteredUsers.length;
                   </Button>
               </div>
             </div>
-             {(paymentStatus || startDate || endDate || filterValue) && (
+    
+       
+        {(paymentStatus || startDate || endDate || filterValue) && (
         <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
           Filters: {paymentStatus || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
         </div>

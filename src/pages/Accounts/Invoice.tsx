@@ -551,4 +551,4 @@ const Invoice = () => {
   );
 };
 
-export default Invoice;
+export { Invoice, InvoicePDF };

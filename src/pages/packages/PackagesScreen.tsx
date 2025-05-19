@@ -1,16 +1,18 @@
-import React, { useState, useEffect, ChangeEvent } from "react";
+import React, { useState, useEffect, ChangeEvent, useRef } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import ComponentCard from "../../components/common/ComponentCard";
 import { getCities } from "../../store/slices/propertyDetails";
 import { AppDispatch } from "../../store/store";
 import { clearPackages, fetchAllPackages } from "../../store/slices/packagesSlice";
 import { useParams } from "react-router";
+import { fetchUsersByType } from "../../store/slices/users";
 
 // Define the type for a rule
 interface Rule {
   name: string;
   included: boolean;
 }
+
 interface Package {
   id: string;
   name: string;
@@ -19,17 +21,27 @@ interface Package {
   rules: Rule[];
   buttonText: string;
   isPopular?: boolean;
+  packageFor?: string; // "All" or "Custom"
+  customNumber?: string | null; 
 }
 
 interface PackageFilters {
-  package_for?: string,
-  city?:string
-   // Optional payment_status
+  package_for?: string;
+  city?: string;
 }
+
 interface Option {
   value: string;
   text: string;
 }
+
+interface User {
+  id: number;
+  user_type: number;
+  name: string | null; // Allow null
+  mobile: string | null; // Allow null
+}
+
 interface RootState {
   property: {
     cities: { value: string; label: string }[];
@@ -39,18 +51,96 @@ interface RootState {
     loading: boolean;
     error: string | null;
   };
+  users: {
+    users: User[];
+    loading?: boolean;
+    error?: string | null;
+  };
 }
+
 interface EditPackageProps {
   pkg: Package;
   onSave: (updatedPackage: Package) => void;
   onCancel: () => void;
+  users: User[];
 }
-const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
-  const [formData, setFormData] = useState<Package>({ ...pkg });
+
+const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users }) => {
+  const [formData, setFormData] = useState<Package>({
+    ...pkg,
+    packageFor: pkg.packageFor || "All",
+    customNumber: pkg.customNumber || null,
+  });
+  const [userSearchTerm, setUserSearchTerm] = useState<string>("");
+  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState<boolean>(false);
+
+  // Prefill userSearchTerm if customNumber corresponds to a user
+  useEffect(() => {
+    if (formData.customNumber && formData.packageFor === "Custom") {
+      const selectedUser = users.find((user) => user.id.toString() === formData.customNumber);
+      if (selectedUser) {
+        const displayText = [selectedUser.name, selectedUser.mobile].filter(Boolean).join(" (") + (selectedUser.mobile ? ")" : "");
+        setUserSearchTerm(displayText || "");
+      }
+    } else {
+      setUserSearchTerm("");
+    }
+  }, [formData.customNumber, formData.packageFor, users]);
+
+  // Filter users with null checks
+  const filteredUserOptions = users.filter((user) =>
+    (user.name?.toLowerCase()?.includes(userSearchTerm.toLowerCase() || "") ||
+      user.mobile?.toLowerCase()?.includes(userSearchTerm.toLowerCase() || "")) ??
+    false
+  );
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
+    const cleanValue = name === "price" ? value.replace("/-", "").trim() : value;
+    setFormData((prev) => ({ ...prev, [name]: cleanValue }));
   };
+
+  const handlePackageForChange = (e: ChangeEvent<HTMLSelectElement>) => {
+    const packageFor = e.target.value;
+    setFormData((prev) => ({
+      ...prev,
+      packageFor,
+      customNumber: packageFor === "All" ? null : prev.customNumber,
+    }));
+    setUserSearchTerm("");
+    setIsUserDropdownOpen(false);
+  };
+
+  const handleUserSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
+    setUserSearchTerm(e.target.value);
+    setIsUserDropdownOpen(true);
+  };
+
+  const handleUserSelect = (user: User) => {
+    setFormData((prev) => ({ ...prev, customNumber: user.id.toString() }));
+    const displayText = [user.name, user.mobile].filter(Boolean).join(" (") + (user.mobile ? ")" : "");
+    setUserSearchTerm(displayText || "");
+    setIsUserDropdownOpen(false);
+  };
+
+  const toggleUserDropdown = () => {
+    setIsUserDropdownOpen((prev) => !prev);
+  };
+
+  const handleUserClickOutside = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest(".user-dropdown")) {
+      setIsUserDropdownOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("click", handleUserClickOutside);
+    return () => {
+      document.removeEventListener("click", handleUserClickOutside);
+    };
+  }, []);
+
   const handleRuleChange = (
     index: number,
     field: "name" | "included",
@@ -63,25 +153,30 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
       ),
     }));
   };
+
   const handleAddRule = () => {
     setFormData((prev) => ({
       ...prev,
       rules: [...prev.rules, { name: "New Rule", included: false }],
     }));
   };
+
   const handleRemoveRule = (index: number) => {
     setFormData((prev) => ({
       ...prev,
       rules: prev.rules.filter((_, i) => i !== index),
     }));
   };
+
   const handleIsPopularChange = (e: ChangeEvent<HTMLInputElement>) => {
     setFormData((prev) => ({ ...prev, isPopular: e.target.checked }));
   };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onSave(formData);
   };
+
   return (
     <div className="fixed inset-0 bg-white/30 backdrop-blur-none flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg max-h-[80vh] overflow-y-auto">
@@ -89,7 +184,80 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
           Edit Package: {pkg.name}
         </h2>
         <form onSubmit={handleSubmit} className="space-y-4">
-          {}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Package For
+            </label>
+            <select
+              name="packageFor"
+              value={formData.packageFor}
+              onChange={handlePackageForChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+            >
+              <option value="All">All</option>
+              <option value="Custom">Custom</option>
+            </select>
+          </div>
+          {formData.packageFor === "Custom" && (
+            <div className="mb-6 w-full user-dropdown">
+              <label
+                htmlFor="user-search"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
+              >
+                Select User
+              </label>
+              <div className="relative">
+                <input
+                  id="user-search"
+                  type="text"
+                  value={userSearchTerm}
+                  onChange={handleUserSearchChange}
+                  onClick={toggleUserDropdown}
+                  placeholder="Search for a user..."
+                  className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+                />
+                <button
+                  type="button"
+                  onClick={toggleUserDropdown}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                >
+                  <svg
+                    className={`w-4 h-4 transform ${isUserDropdownOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                {isUserDropdownOpen && (
+                  <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                    {filteredUserOptions.length > 0 ? (
+                      filteredUserOptions.map((user) => (
+                        <li
+                          key={user.id}
+                          onClick={() => handleUserSelect(user)}
+                          className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                        >
+                          {[user.name, user.mobile].filter(Boolean).join(" (") + (user.mobile ? ")" : "") || "Unknown User"}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                        No users found
+                      </li>
+                    )}
+                  </ul>
+                )}
+              </div>
+            </div>
+          )}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Package Name
@@ -102,33 +270,23 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
             />
           </div>
-          {}
-          {/* <div>
-            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
-              Duration
-            </label>
-            <input
-              type="text"
-              name="duration"
-              value={formData.duration}
-              onChange={handleInputChange}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
-            />
-          </div> */}
-          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Price
             </label>
-            <input
-              type="text"
-              name="price"
-              value={formData.price+"/-"}
-              onChange={handleInputChange}
-              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
-            />
+            <div className="relative">
+              <input
+                type="text"
+                name="price"
+                value={formData.price}
+                onChange={handleInputChange}
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+              />
+              <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                /-
+              </span>
+            </div>
           </div>
-          {}
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Button Text
@@ -141,7 +299,6 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
             />
           </div>
-          {}
           <div className="flex items-center">
             <input
               type="checkbox"
@@ -153,7 +310,6 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               Mark as Popular
             </label>
           </div>
-          {}
           <div>
             <div className="flex justify-between items-center mb-2">
               <h3 className="text-lg font-semibold text-gray-800 dark:text-white">
@@ -196,7 +352,6 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
               </div>
             ))}
           </div>
-          {}
           <div className="flex justify-end space-x-3">
             <button
               type="button"
@@ -218,45 +373,77 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
   );
 };
 
-// Main BuilderPackages Component
-const PackagesScren: React.FC = () => {
+// Main PackagesScreen Component
+const PackagesScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const [editingPackage, setEditingPackage] = useState<Package | null>(null);
-   const {status } = useParams<{status:string}>();
-  const [selectedCity, setSelectedCity] = useState<string>("4");
+  const { status } = useParams<{ status: string }>();
+  const [selectedCity, setSelectedCity] = useState<string>("Hyderabad");
   const [searchTerm, setSearchTerm] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const { cities } = useSelector((state: RootState) => state.property);
   const { packages, loading, error } = useSelector((state: RootState) => state.package);
+  const { users } = useSelector((state: RootState) => state.users);
 
-   
-  
-  // Transform cities into options
+  const hasSetInitialCity = useRef(false);
+
+  const userTypeIdMap: { [key: string]: number } = {
+    User: 2,
+    Builder: 3,
+    Agent: 4,
+    Owner: 5,
+    "Channel Partner": 6,
+  };
+
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
       value: city.value,
       text: city.label,
     })) || [];
+
+  useEffect(() => {
+    if (cities.length > 0 && !hasSetInitialCity.current) {
+      const hyderabadCity = cities.find((city) => city.value === "Hyderabad");
+      if (hyderabadCity) {
+        setSearchTerm(hyderabadCity.label);
+      } else {
+        setSearchTerm("Hyderabad");
+      }
+      hasSetInitialCity.current = true;
+    }
+  }, [cities]);
+
   const filteredCityOptions = cityOptions.filter((option) =>
     option.text.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
+  useEffect(() => {
+    if (status && selectedCity) {
+      let normalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
+      if (status === "channel_partner") {
+        normalizedStatus = "Channel Partner";
+      }
 
-  const packagesFilters: PackageFilters = {
-    package_for: status,
-    city:selectedCity,
-  };
-  console.log(packagesFilters);
-  useEffect(()=>{
-    if(status && selectedCity){
-      dispatch(fetchAllPackages(packagesFilters))
+      const userTypeId = userTypeIdMap[normalizedStatus];
+      console.log(userTypeId);
+      console.log({ package_for: status, city: selectedCity });
+
+      if (userTypeId) {
+        const packagesFilters: PackageFilters = {
+          package_for: status,
+          city: selectedCity,
+        };
+        dispatch(fetchAllPackages(packagesFilters));
+        dispatch(fetchUsersByType({ user_type: userTypeId }));
+      } else {
+        console.warn(`Invalid user type: ${status}`);
+      }
     }
     return () => {
       dispatch(clearPackages());
-    }
-  },[dispatch,status,selectedCity])
+    };
+  }, [dispatch, status, selectedCity]);
 
-  // Fetch cities and packages on mount
   useEffect(() => {
     dispatch(getCities());
   }, [dispatch]);
@@ -266,6 +453,7 @@ const PackagesScren: React.FC = () => {
     buttonText: pkg.name === "Free Listing" ? "Subscribed" : "Upgrade Now",
     isPopular: pkg.name === "Prime",
   }));
+
   const formatPrice = (price: string): string => {
     const priceNumber = parseFloat(price);
     if (priceNumber === 0) {
@@ -273,50 +461,55 @@ const PackagesScren: React.FC = () => {
     }
     return `${Math.floor(priceNumber)} /-`;
   };
+
   const handleEditPackage = (pkg: Package) => {
     setEditingPackage(pkg);
   };
+
   const handleSavePackage = (updatedPackage: Package) => {
     console.log("Updated package:", updatedPackage);
     setEditingPackage(null);
   };
+
   const handleCancelEdit = () => {
     setEditingPackage(null);
   };
+
   const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
     setSearchTerm(e.target.value);
     setIsDropdownOpen(true);
   };
+
   const handleCitySelect = (city: Option) => {
     setSelectedCity(city.value);
     setSearchTerm(city.text);
     setIsDropdownOpen(false);
     console.log("Selected city:", city.value);
   };
+
   const toggleDropdown = () => {
     setIsDropdownOpen((prev) => !prev);
   };
+
   const handleClickOutside = (e: MouseEvent) => {
     const target = e.target as HTMLElement;
     if (!target.closest(".city-dropdown")) {
       setIsDropdownOpen(false);
     }
   };
+
   useEffect(() => {
     document.addEventListener("click", handleClickOutside);
     return () => {
       document.removeEventListener("click", handleClickOutside);
     };
   }, []);
+
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-      {}
       <div
-        className={`transition-all duration-300 ${
-          editingPackage ? "blur-sm" : ""
-        }`}
+        className={`transition-all duration-300 ${editingPackage ? "blur-sm" : ""}`}
       >
-        {}
         <div className="mb-6 max-w-xs city-dropdown">
           <label
             htmlFor="city-search"
@@ -361,7 +554,7 @@ const PackagesScren: React.FC = () => {
                     <li
                       key={option.value}
                       onClick={() => handleCitySelect(option)}
-                      className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      className="px-4 py-2 powered by www.html-code-generator.com text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                     >
                       {option.text}
                     </li>
@@ -400,9 +593,7 @@ const PackagesScren: React.FC = () => {
                 <div className="text-center mb-4">
                   <h3
                     className={`text-lg font-bold ${
-                      pkg.isPopular
-                        ? "text-white"
-                        : "text-gray-800 dark:text-white"
+                      pkg.isPopular ? "text-white" : "text-gray-800 dark:text-white"
                     }`}
                   >
                     {pkg.name}
@@ -411,25 +602,21 @@ const PackagesScren: React.FC = () => {
                 <div className="text-center mb-2">
                   <p
                     className={`text-sm ${
-                      pkg.isPopular
-                        ? "text-white"
-                        : "text-gray-500 dark:text-gray-400"
+                      pkg.isPopular ? "text-white" : "text-gray-500 dark:text-gray-400"
                     }`}
                   >
                     {pkg.duration_days} Days
                   </p>
                 </div>
                 <div className="text-center mb-4">
-                <p
-                  className={`text-2xl font-semibold ${
-                    pkg.isPopular
-                      ? "text-white"
-                      : "text-gray-800 dark:text-white"
-                  }`}
-                >
-                  {formatPrice(pkg.price)}
-                </p>
-              </div>
+                  <p
+                    className={`text-2xl font-semibold ${
+                      pkg.isPopular ? "text-white" : "text-gray-800 dark:text-white"
+                    }`}
+                  >
+                    {formatPrice(pkg.price)}
+                  </p>
+                </div>
                 <ul className="space-y-2 mb-6">
                   {pkg.rules.map((rule, index) => (
                     <li key={index} className="flex items-center space-x-2">
@@ -466,9 +653,7 @@ const PackagesScren: React.FC = () => {
                       )}
                       <span
                         className={`text-sm ${
-                          pkg.isPopular
-                            ? "text-white"
-                            : "text-gray-800 dark:text-white"
+                          pkg.isPopular ? "text-white" : "text-gray-800 dark:text-white"
                         }`}
                       >
                         {rule.name}
@@ -482,22 +667,21 @@ const PackagesScren: React.FC = () => {
                 >
                   Edit Package
                 </button>
-                
               </div>
             ))}
           </div>
         </ComponentCard>
       </div>
-      {}
       {editingPackage && (
         <EditPackage
           pkg={editingPackage}
           onSave={handleSavePackage}
           onCancel={handleCancelEdit}
+          users={users}
         />
       )}
     </div>
   );
 };
 
-export default PackagesScren;
+export default PackagesScreen;

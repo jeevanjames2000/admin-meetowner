@@ -17,6 +17,10 @@ import Button from "../../../components/ui/button/Button";
 import ConfirmStatusModal from "../../../components/common/ConfirmStatusModal";
 import DatePicker from "../../../components/form/date-picker";
 import Select from "../../../components/form/Select";
+import { pdf } from "@react-pdf/renderer";
+import { InvoicePDF } from "../Invoice";
+import axios from "axios";
+
 
 const userTypeMap: { [key: number]: string } = {
   2: "User",
@@ -92,6 +96,8 @@ const PaymentStatusScreen: React.FC = () => {
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
 
+   const itemsPerPage = 10;
+
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -164,10 +170,34 @@ const PaymentStatusScreen: React.FC = () => {
           subscription_status: subscriptionStatus,
           payment_status: paymentStatus,
         })
-      ).then((result) => {
+      ).then(async (result) => {
         if (result.meta.requestStatus === "fulfilled") {
-          
           dispatch(fetchAllSubscriptions({ payment_status: status }));
+          if (statusAction === 'approve'){
+            try{
+                const subscription = subscriptions.find((sub)=> sub.user_id === selectedSubscription.id);
+                if(!subscription){
+                  throw new Error("Subscription not found");
+                }
+                const pdfDoc = pdf(<InvoicePDF subscription={subscription} />)
+                const pdfBlob = await pdfDoc.toBlob();
+
+                const formData = new FormData();
+                formData.append('pdf', pdfBlob, `invoice-${subscription.id}.pdf`);
+                formData.append('user_id', selectedSubscription.id.toString());
+                formData.append('subscription_name', selectedSubscription.name);
+                await axios.post('YOUR_BACKEND_ENDPOINT', formData, {
+                headers: {
+                'Content-Type': 'multipart/form-data',
+                },
+                
+               });
+              console.log('PDF sent to backend successfully');
+                
+            }catch(error){
+                 console.error('Failed to generate or send PDF:', error);
+            }
+          }
         } else if (result.meta.requestStatus === "rejected") {
           console.error("Failed to update subscription status:", result.payload);
         }
@@ -178,7 +208,7 @@ const PaymentStatusScreen: React.FC = () => {
       setSelectedSubscription(null);
       setStatusAction(null);
     }
-  }, [dispatch, selectedSubscription, statusAction, status]);
+  }, [dispatch, selectedSubscription, statusAction, status,subscriptions]);
 
 
 
@@ -282,6 +312,60 @@ const userFilterOptions: SelectOption[] = [
   }
   setEndDate(date || null);
 };
+
+  const totalItems = filteredSubscriptions.length;
+  const totalPages = Math.ceil(totalItems / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
+  const paginatedSubscriptions = filteredSubscriptions.slice(startIndex, endIndex);
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
+  };
+
+
+ const getPaginationItems = () => {
+    const pages: (number | string)[] = [];
+    const totalVisiblePages = 5;
+
+    if (totalPages <= totalVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let start = Math.max(2, currentPage - 2);
+      let end = Math.min(totalPages - 1, currentPage + 2);
+
+      if (currentPage <= 3) {
+        start = 2;
+        end = 5;
+      }
+
+      if (currentPage >= totalPages - 2) {
+        start = totalPages - 4;
+        end = totalPages - 1;
+      }
+
+      pages.push(1);
+      if (start > 2) pages.push("...");
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages - 1) pages.push("...");
+      if (totalPages > 1) pages.push(totalPages);
+    }
+
+    return pages;
+  };
 
   if (loading) {
     return (
@@ -468,12 +552,12 @@ const userFilterOptions: SelectOption[] = [
                 </TableHeader>
                 {/* Table Body */}
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                 {(!filteredSubscriptions || filteredSubscriptions.length === 0) && (
+                 {(!paginatedSubscriptions || paginatedSubscriptions.length === 0) && (
                <p className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400">
                 {filterValue ? "No Matching Subscriptions Found" : "No Subscriptions Available"}
               </p>
                  )}
-                  {filteredSubscriptions.map((sub: Subscription,index) => (
+                  {paginatedSubscriptions.map((sub: Subscription,index) => (
                     <TableRow key={sub.id}>
                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {currentPage + index }
@@ -495,7 +579,7 @@ const userFilterOptions: SelectOption[] = [
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                       <span
-                        className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                        className={`inline-block px-2 py-1 rounded-md  text-xs w-auto font-medium ${
                           sub.subscription_package.toLowerCase() === "basic"
                             ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
                             : sub.subscription_package.toLowerCase() === "prime"
@@ -636,8 +720,61 @@ const userFilterOptions: SelectOption[] = [
               </Table>
             </div>
           </div>
-        </ComponentCard>
-        <ConfirmStatusModal
+          {totalItems > itemsPerPage && (
+            <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
+              <div className="text-sm text-gray-500 dark:text-gray-400">
+                Showing {startIndex + 1} to {endIndex} of {totalItems} entries
+              </div>
+              <div className="flex gap-2 flex-wrap justify-center">
+                {/* Previous Button */}
+                <Button
+                  variant={currentPage === 1 ? "outline" : "primary"}
+                  size="sm"
+                  onClick={goToPreviousPage}
+                  disabled={currentPage === 1}
+                >
+                  Previous
+                </Button>
+
+                {/* Page Buttons */}
+                {getPaginationItems().map((page, index) =>
+                  page === "..." ? (
+                    <span
+                      key={`ellipsis-${index}`}
+                      className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                    >
+                      ...
+                    </span>
+                  ) : (
+                    <Button
+                      key={page}
+                      variant={page === currentPage ? "primary" : "outline"}
+                      size="sm"
+                      onClick={() => goToPage(page as number)}
+                      className={
+                        page === currentPage
+                          ? "bg-[#1D3A76] text-white"
+                          : "text-gray-500"
+                      }
+                    >
+                      {page}
+                    </Button>
+                  )
+                )}
+
+                {/* Next Button */}
+                <Button
+                  variant={currentPage === totalPages ? "outline" : "primary"}
+                  size="sm"
+                  onClick={goToNextPage}
+                  disabled={currentPage === totalPages}
+                >
+                  Next
+                </Button>
+              </div>
+            </div>
+          )}
+          <ConfirmStatusModal
             isOpen={isStatusModalOpen}
             propertyName={selectedSubscription?.name || ""}
             action={statusAction || "approve"} // Fallback to "approve" if null
@@ -648,6 +785,9 @@ const userFilterOptions: SelectOption[] = [
               setStatusAction(null);
             }}
         />
+        </ComponentCard>
+
+        
       </div>
     </div>
     
