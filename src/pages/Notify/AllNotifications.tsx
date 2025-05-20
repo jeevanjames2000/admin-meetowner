@@ -3,13 +3,14 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
-import DatePicker from "../../components/form/date-picker"; // Import DatePicker
+import DatePicker from "../../components/form/date-picker";
 import { fetchNotificationHistory, clearNotify } from "../../store/slices/notifySlice";
 import { toast } from "react-hot-toast";
 import { NotifyState } from "../../store/slices/notifySlice";
+import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 
 // Format date function
 const formatDate = (dateString: string | null): string => {
@@ -119,34 +120,57 @@ const AllNotifications: React.FC = () => {
   });
 
   // Pagination
-  const totalPages = Math.ceil(filteredNotifications.length / notificationsPerPage);
-  const indexOfLastNotification = currentPage * notificationsPerPage;
-  const indexOfFirstNotification = indexOfLastNotification - notificationsPerPage;
-  const currentNotifications = filteredNotifications.slice(
-    indexOfFirstNotification,
-    indexOfLastNotification
-  );
+  const totalItems = filteredNotifications.length;
+  const totalPages = Math.ceil(totalItems / notificationsPerPage);
+  const startIndex = (currentPage - 1) * notificationsPerPage;
+  const endIndex = Math.min(startIndex + notificationsPerPage, totalItems);
+  const currentNotifications = filteredNotifications.slice(startIndex, endIndex);
 
-  const handlePageChange = (page: number) => {
-    if (page >= 1 && page <= totalPages) {
-      setCurrentPage(page);
-      setActiveMenu(null);
-    }
+  const goToPage = (page: number) => {
+    setCurrentPage(page);
+  };
+
+  const goToPreviousPage = () => {
+    if (currentPage > 1) setCurrentPage(currentPage - 1);
+  };
+
+  const goToNextPage = () => {
+    if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
-    let startPage = Math.max(1, currentPage - Math.floor(totalVisiblePages / 2));
-    const endPage = Math.min(totalPages, startPage + totalVisiblePages - 1);
-    if (endPage - startPage + 1 < totalVisiblePages) {
-      startPage = Math.max(1, endPage - totalVisiblePages + 1);
+
+    if (totalPages <= totalVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let start = Math.max(2, currentPage - 2);
+      let end = Math.min(totalPages - 1, currentPage + 2);
+
+      if (currentPage <= 3) {
+        start = 2;
+        end = 5;
+      }
+
+      if (currentPage >= totalPages - 2) {
+        start = totalPages - 4;
+        end = totalPages - 1;
+      }
+
+      pages.push(1);
+      if (start > 2) pages.push("...");
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages - 1) pages.push("...");
+      if (totalPages > 1) pages.push(totalPages);
     }
-    if (startPage > 1) pages.push(1);
-    if (startPage > 2) pages.push("...");
-    for (let i = startPage; i <= endPage; i++) pages.push(i);
-    if (endPage < totalPages - 1) pages.push("...");
-    if (endPage < totalPages) pages.push(totalPages);
+
     return pages;
   };
 
@@ -193,11 +217,11 @@ const AllNotifications: React.FC = () => {
     <div className="relative min-h-screen">
       <div>
         <PageMeta title="All Notifications" />
-        <PageBreadcrumb
+        <PageBreadcrumbList
           pageTitle="All Notifications"
           pagePlacHolder="Search by Title, Message, User ID"
           onFilter={handleSearch}
-          persistSearch={true}
+         
         />
         <div className="flex justify-between gap-3 py-2">
           <div className="w-auto flex gap-3">
@@ -272,7 +296,7 @@ const AllNotifications: React.FC = () => {
                       currentNotifications.map((notification, index) => (
                         <TableRow key={notification.id}>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {indexOfFirstNotification + index + 1}
+                            {startIndex + index + 1}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                             {notification.user_id}
@@ -293,18 +317,16 @@ const AllNotifications: React.FC = () => {
                 </Table>
               </div>
             </div>
-            {filteredNotifications.length > notificationsPerPage && (
+            {totalItems > notificationsPerPage && (
               <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
                 <div className="text-sm text-gray-500 dark:text-gray-400">
-                  Showing {indexOfFirstNotification + 1} to{" "}
-                  {Math.min(indexOfLastNotification, filteredNotifications.length)} of{" "}
-                  {filteredNotifications.length} notifications
+                  Showing {startIndex + 1} to {endIndex} of {totalItems} notifications
                 </div>
                 <div className="flex gap-2 flex-wrap justify-center">
                   <Button
                     variant={currentPage === 1 ? "outline" : "primary"}
                     size="sm"
-                    onClick={() => handlePageChange(currentPage - 1)}
+                    onClick={goToPreviousPage}
                     disabled={currentPage === 1}
                   >
                     Previous
@@ -312,7 +334,7 @@ const AllNotifications: React.FC = () => {
                   {getPaginationItems().map((page, index) =>
                     page === "..." ? (
                       <span
-                        key={index}
+                        key={`ellipsis-${index}`}
                         className="px-3 py-1 text-gray-500 dark:text-gray-400"
                       >
                         ...
@@ -322,7 +344,7 @@ const AllNotifications: React.FC = () => {
                         key={page}
                         variant={page === currentPage ? "primary" : "outline"}
                         size="sm"
-                        onClick={() => handlePageChange(page)}
+                        onClick={() => goToPage(page as number)}
                         className={
                           page === currentPage
                             ? "bg-[#1D3A76] text-white"
@@ -336,7 +358,7 @@ const AllNotifications: React.FC = () => {
                   <Button
                     variant={currentPage === totalPages ? "outline" : "primary"}
                     size="sm"
-                    onClick={() => handlePageChange(currentPage + 1)}
+                    onClick={goToNextPage}
                     disabled={currentPage === totalPages}
                   >
                     Next
