@@ -60,7 +60,7 @@ const CreateShorts: React.FC = () => {
   // Property options for MultiSelect
   const propertyOptions: Option[] = listings.map((property) => ({
     value: property.unique_property_id,
-    text: `${property.property_name || "Unnamed Property"}`,
+    text: `${property.property_name || "Unnamed Property"} - (${property.unique_property_id})`,
   }));
 
   // Handle property selection
