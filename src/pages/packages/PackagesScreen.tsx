@@ -3,12 +3,22 @@ import { useDispatch, useSelector } from "react-redux";
 import ComponentCard from "../../components/common/ComponentCard";
 import { getCities } from "../../store/slices/propertyDetails";
 import { AppDispatch } from "../../store/store";
-import { clearPackages, fetchAllPackages } from "../../store/slices/packagesSlice";
+import {
+  clearPackages,
+  fetchAllPackages,
+  insertRules,
+  editRule,
+  deleteRule,
+  editPackage,
+  clearMessages,
+} from "../../store/slices/packagesSlice";
 import { useParams } from "react-router";
 import { fetchUsersByType } from "../../store/slices/users";
+import { toast } from "react-hot-toast";
 
 // Define the type for a rule
 interface Rule {
+  id?: number; // Optional for new rules
   name: string;
   included: boolean;
 }
@@ -18,16 +28,51 @@ interface Package {
   name: string;
   duration_days: number;
   price: string;
+  is_popular: boolean;
+  button_text: string;
+  actual_amount: string;
+  gst: string;
+  sgst: string;
+  gst_percentage: string;
+  gst_number: string;
+  rera_number: string;
+  package_for: string;
   rules: Rule[];
-  buttonText: string;
-  isPopular?: boolean;
   packageFor?: string; // "All" or "Custom"
-  customNumber?: string | null; 
+  customNumber?: string | null;
 }
 
 interface PackageFilters {
   package_for?: string;
   city?: string;
+}
+export interface InsertRulesPayload {
+  package_name: string;
+  package_id: number;
+  package_for: string;
+  rules: { name: string; included: boolean }[];
+}
+
+export interface EditRulePayload {
+  id: string;
+  rule_name: string;
+  included: boolean;
+}
+
+export interface EditPackagePayload {
+  id: string;
+  name: string;
+  duration_days: number;
+  price: string;
+  is_popular: boolean;
+  button_text: string;
+  actual_amount: string;
+  gst: string;
+  sgst: string;
+  gst_percentage: string;
+  gst_number: string;
+  rera_number: string;
+  package_for: string;
 }
 
 interface Option {
@@ -38,8 +83,8 @@ interface Option {
 interface User {
   id: number;
   user_type: number;
-  name: string | null; // Allow null
-  mobile: string | null; // Allow null
+  name: string | null;
+  mobile: string | null;
 }
 
 interface RootState {
@@ -50,6 +95,18 @@ interface RootState {
     packages: Package[];
     loading: boolean;
     error: string | null;
+    insertLoading: boolean;
+    insertError: string | null;
+    insertSuccess: string | null;
+    editLoading: boolean;
+    editError: string | null;
+    editSuccess: string | null;
+    deleteLoading: boolean;
+    deleteError: string | null;
+    deleteSuccess: string | null;
+    editPackageLoading: boolean;
+    editPackageError: string | null;
+    editPackageSuccess: string | null;
   };
   users: {
     users: User[];
@@ -66,10 +123,28 @@ interface EditPackageProps {
 }
 
 const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users }) => {
+  const dispatch = useDispatch<AppDispatch>();
+  const {
+    insertSuccess,
+    insertError,
+    editSuccess,
+    editError,
+    deleteSuccess,
+    deleteError,
+    editPackageSuccess,
+    editPackageError,
+  } = useSelector((state: RootState) => state.package);
+
   const [formData, setFormData] = useState<Package>({
     ...pkg,
     packageFor: pkg.packageFor || "All",
     customNumber: pkg.customNumber || null,
+    actual_amount: pkg.actual_amount || "0.00",
+    gst: pkg.gst || "0.00",
+    sgst: pkg.sgst || "0.00",
+    gst_percentage: pkg.gst_percentage || "18.00",
+    gst_number: pkg.gst_number || "",
+    rera_number: pkg.rera_number || "",
   });
   const [userSearchTerm, setUserSearchTerm] = useState<string>("");
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState<boolean>(false);
@@ -79,13 +154,63 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
     if (formData.customNumber && formData.packageFor === "Custom") {
       const selectedUser = users.find((user) => user.id.toString() === formData.customNumber);
       if (selectedUser) {
-        const displayText = [selectedUser.name, selectedUser.mobile].filter(Boolean).join(" (") + (selectedUser.mobile ? ")" : "");
+        const displayText = [selectedUser.name, selectedUser.mobile]
+          .filter(Boolean)
+          .join(" (") + (selectedUser.mobile ? ")" : "");
         setUserSearchTerm(displayText || "");
       }
     } else {
       setUserSearchTerm("");
     }
   }, [formData.customNumber, formData.packageFor, users]);
+
+  // Show toasts for API responses
+  useEffect(() => {
+    if (insertSuccess) {
+      toast.success(insertSuccess);
+      dispatch(clearMessages());
+    }
+    if (insertError) {
+      toast.error(insertError);
+      dispatch(clearMessages());
+    }
+    if (editSuccess) {
+      toast.success(editSuccess);
+      dispatch(clearMessages());
+    }
+    if (editError) {
+      toast.error(editError);
+      dispatch(clearMessages());
+    }
+    if (deleteSuccess) {
+      toast.success(deleteSuccess);
+      dispatch(clearMessages());
+    }
+    if (deleteError) {
+      toast.error(deleteError);
+      dispatch(clearMessages());
+    }
+    if (editPackageSuccess) {
+      toast.success(editPackageSuccess);
+      dispatch(clearMessages());
+      onCancel(); // Close the edit modal on successful package update
+    }
+    if (editPackageError) {
+      toast.error(editPackageError);
+      dispatch(clearMessages());
+    }
+  }, [
+    insertSuccess,
+    insertError,
+    editSuccess,
+    editError,
+    deleteSuccess,
+    deleteError,
+    editPackageSuccess,
+    editPackageError,
+    dispatch,
+    onCancel,
+  ]);
 
   // Filter users with null checks
   const filteredUserOptions = users.filter((user) =>
@@ -96,7 +221,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const cleanValue = name === "price" ? value.replace("/-", "").trim() : value;
+    const cleanValue = name === "price" || name === "actual_amount" ? value.replace("/-", "").trim() : value;
     setFormData((prev) => ({ ...prev, [name]: cleanValue }));
   };
 
@@ -106,6 +231,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
       ...prev,
       packageFor,
       customNumber: packageFor === "All" ? null : prev.customNumber,
+      package_for: packageFor === "All" ? "" : prev.package_for,
     }));
     setUserSearchTerm("");
     setIsUserDropdownOpen(false);
@@ -117,7 +243,11 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
   };
 
   const handleUserSelect = (user: User) => {
-    setFormData((prev) => ({ ...prev, customNumber: user.id.toString() }));
+    setFormData((prev) => ({
+      ...prev,
+      customNumber: user.id.toString(),
+      package_for: user.user_type.toString(),
+    }));
     const displayText = [user.name, user.mobile].filter(Boolean).join(" (") + (user.mobile ? ")" : "");
     setUserSearchTerm(displayText || "");
     setIsUserDropdownOpen(false);
@@ -162,6 +292,11 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
   };
 
   const handleRemoveRule = (index: number) => {
+    const rule = formData.rules[index];
+    if (rule.id) {
+      // Delete existing rule
+      dispatch(deleteRule(rule.id));
+    }
     setFormData((prev) => ({
       ...prev,
       rules: prev.rules.filter((_, i) => i !== index),
@@ -169,11 +304,59 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
   };
 
   const handleIsPopularChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setFormData((prev) => ({ ...prev, isPopular: e.target.checked }));
+    setFormData((prev) => ({ ...prev, is_popular: e.target.checked }));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Handle package update
+    const packagePayload: EditPackagePayload = {
+      id: formData.id,
+      name: formData.name,
+      duration_days: formData.duration_days,
+      price: formData.price,
+      is_popular: formData.is_popular,
+      button_text: formData.button_text,
+      actual_amount: formData.actual_amount,
+      gst: formData.gst,
+      sgst: formData.sgst,
+      gst_percentage: formData.gst_percentage,
+      gst_number: formData.gst_number,
+      rera_number: formData.rera_number,
+      package_for: formData.packageFor === "Custom" ? formData.package_for : "",
+    };
+    await dispatch(editPackage(packagePayload));
+
+    // Handle rules
+    const newRules = formData.rules.filter((rule) => !rule.id); // New rules to insert
+    const existingRules = formData.rules.filter((rule) => rule.id); // Rules to update
+
+    // Insert new rules
+    if (newRules.length > 0) {
+      const insertPayload: InsertRulesPayload = {
+        package_name: formData.name,
+        package_id: parseInt(formData.id),
+        package_for: formData.packageFor === "Custom" ? formData.package_for : formData.package_for,
+        rules: newRules.map((rule) => ({ name: rule.name, included: rule.included })),
+      };
+      await dispatch(insertRules(insertPayload));
+    }
+
+    // Update existing rules
+    for (const rule of existingRules) {
+      if (rule.id) {
+        const editPayload: EditRulePayload = {
+          id: rule.id.toString(),
+          rule_name: rule.name,
+          included: rule.included,
+        };
+        await dispatch(editRule(editPayload));
+      }
+    }
+
+    // Refetch packages after all operations
+    dispatch(fetchAllPackages({ package_for: formData.package_for, city: "" }));
     onSave(formData);
   };
 
@@ -272,6 +455,18 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Duration (Days)
+            </label>
+            <input
+              type="number"
+              name="duration_days"
+              value={formData.duration_days}
+              onChange={handleInputChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Price
             </label>
             <div className="relative">
@@ -289,12 +484,89 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
           </div>
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              Actual Amount
+            </label>
+            <div className="relative">
+              <input
+                type="text"
+                name="actual_amount"
+                value={formData.actual_amount}
+                onChange={handleInputChange}
+                className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+              />
+              <span className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500">
+                /-
+              </span>
+            </div>
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              GST
+            </label>
+            <input
+              type="text"
+              name="gst"
+              value={formData.gst}
+              onChange={handleInputChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              SGST
+            </label>
+            <input
+              type="text"
+              name="sgst"
+              value={formData.sgst}
+              onChange={handleInputChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              GST Percentage
+            </label>
+            <input
+              type="text"
+              name="gst_percentage"
+              value={formData.gst_percentage}
+              onChange={handleInputChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              GST Number
+            </label>
+            <input
+              type="text"
+              name="gst_number"
+              value={formData.gst_number}
+              onChange={handleInputChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+              RERA Number
+            </label>
+            <input
+              type="text"
+              name="rera_number"
+              value={formData.rera_number}
+              onChange={handleInputChange}
+              className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+            />
+          </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Button Text
             </label>
             <input
               type="text"
-              name="buttonText"
-              value={formData.buttonText}
+              name="button_text"
+              value={formData.button_text}
               onChange={handleInputChange}
               className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
             />
@@ -302,7 +574,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
           <div className="flex items-center">
             <input
               type="checkbox"
-              checked={formData.isPopular || false}
+              checked={formData.is_popular || false}
               onChange={handleIsPopularChange}
               className="h-4 w-4 text-[#1D3A76] focus:ring-[#1D3A76] border-gray-300 rounded"
             />
@@ -425,9 +697,6 @@ const PackagesScreen: React.FC = () => {
       }
 
       const userTypeId = userTypeIdMap[normalizedStatus];
-      console.log(userTypeId);
-      console.log({ package_for: status, city: selectedCity });
-
       if (userTypeId) {
         const packagesFilters: PackageFilters = {
           package_for: status,
@@ -450,8 +719,10 @@ const PackagesScreen: React.FC = () => {
 
   const mappedPackages: Package[] = packages.map((pkg) => ({
     ...pkg,
-    buttonText: pkg.name === "Free Listing" ? "Subscribed" : "Upgrade Now",
-    isPopular: pkg.name === "Prime",
+    button_text: pkg.button_text || (pkg.name === "Free Listing" ? "Subscribed" : "Upgrade Now"),
+    is_popular: pkg.is_popular || pkg.name === "Prime",
+    packageFor: pkg.package_for ? "Custom" : "All",
+    customNumber: pkg.package_for ? pkg.package_for : null,
   }));
 
   const formatPrice = (price: string): string => {
@@ -467,7 +738,6 @@ const PackagesScreen: React.FC = () => {
   };
 
   const handleSavePackage = (updatedPackage: Package) => {
-    console.log("Updated package:", updatedPackage);
     setEditingPackage(null);
   };
 
@@ -484,7 +754,6 @@ const PackagesScreen: React.FC = () => {
     setSelectedCity(city.value);
     setSearchTerm(city.text);
     setIsDropdownOpen(false);
-    console.log("Selected city:", city.value);
   };
 
   const toggleDropdown = () => {
@@ -554,7 +823,7 @@ const PackagesScreen: React.FC = () => {
                     <li
                       key={option.value}
                       onClick={() => handleCitySelect(option)}
-                      className="px-4 py-2 powered by www.html-code-generator.com text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                     >
                       {option.text}
                     </li>
@@ -580,12 +849,12 @@ const PackagesScreen: React.FC = () => {
               <div
                 key={pkg.id}
                 className={`relative p-6 rounded-lg shadow-lg border ${
-                  pkg.isPopular
+                  pkg.is_popular
                     ? "bg-[#1D3A76] text-white border-[#1D3A76]"
                     : "bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
                 }`}
               >
-                {pkg.isPopular && (
+                {pkg.is_popular && (
                   <span className="absolute top-0 left-1/2 transform -translate-x-1/2 -translate-y-1/2 bg-[#1D3A76] text-white text-xs font-semibold px-3 py-1 rounded-full">
                     Popular
                   </span>
@@ -593,7 +862,7 @@ const PackagesScreen: React.FC = () => {
                 <div className="text-center mb-4">
                   <h3
                     className={`text-lg font-bold ${
-                      pkg.isPopular ? "text-white" : "text-gray-800 dark:text-white"
+                      pkg.is_popular ? "text-white" : "text-gray-800 dark:text-white"
                     }`}
                   >
                     {pkg.name}
@@ -602,7 +871,7 @@ const PackagesScreen: React.FC = () => {
                 <div className="text-center mb-2">
                   <p
                     className={`text-sm ${
-                      pkg.isPopular ? "text-white" : "text-gray-500 dark:text-gray-400"
+                      pkg.is_popular ? "text-white" : "text-gray-500 dark:text-gray-400"
                     }`}
                   >
                     {pkg.duration_days} Days
@@ -611,7 +880,7 @@ const PackagesScreen: React.FC = () => {
                 <div className="text-center mb-4">
                   <p
                     className={`text-2xl font-semibold ${
-                      pkg.isPopular ? "text-white" : "text-gray-800 dark:text-white"
+                      pkg.is_popular ? "text-white" : "text-gray-800 dark:text-white"
                     }`}
                   >
                     {formatPrice(pkg.price)}
@@ -653,7 +922,7 @@ const PackagesScreen: React.FC = () => {
                       )}
                       <span
                         className={`text-sm ${
-                          pkg.isPopular ? "text-white" : "text-gray-800 dark:text-white"
+                          pkg.is_popular ? "text-white" : "text-gray-800 dark:text-white"
                         }`}
                       >
                         {rule.name}
