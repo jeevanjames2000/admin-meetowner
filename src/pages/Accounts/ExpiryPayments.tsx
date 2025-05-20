@@ -4,20 +4,23 @@ import { AppDispatch, RootState } from "../../store/store";
 import { fetchExpiringSoonSubscriptions } from "../../store/slices/paymentSlice";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
-import { Select } from "@react-pdf/renderer";
 import DatePicker from "../../components/form/date-picker";
 import Button from "../../components/ui/button/Button";
 import ComponentCard from "../../components/common/ComponentCard";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
+import Select from "../../components/form/Select";
 
-
-
-// Define the ExpiringSoonUser interface (same as in paymentSlice)
+// Updated interface to align with Redux state
 interface ExpiringSoonUser {
   user_id: number;
   name: string;
   email: string;
+  mobile: string;
+  city: string;
+  subscription_package: string;
+  payment_amount: string; // Changed to string to match Redux state
   subscription_expiry_date: string;
+  user_type: number;
   message: string;
 }
 
@@ -26,11 +29,10 @@ interface SelectOption {
   label: string;
 }
 
-// User type mapping (same as in PaymentStatusScreen)
 const userTypeMap: { [key: number]: string } = {
   2: "User",
   3: "Builder",
- 4: "Agent",
+  4: "Agent",
   5: "Owner",
   6: "Channel Partner",
 };
@@ -45,20 +47,18 @@ const ExpiryPayments: React.FC = () => {
   const [endDate, setEndDate] = useState<string | null>(null);
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [dateError, setDateError] = useState<string | null>(null);
 
   const itemsPerPage = 10;
 
-  // Fetch expiring subscriptions on mount
   useEffect(() => {
     dispatch(fetchExpiringSoonSubscriptions());
   }, [dispatch]);
 
-  // Reset to page 1 when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedUserType, startDate, endDate, filterValue]);
 
-  // Format date for display
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return "N/A";
     try {
@@ -74,29 +74,39 @@ const ExpiryPayments: React.FC = () => {
     }
   };
 
-  // Handle filter input
+  // Helper function to format payment amount
+  const formatPaymentAmount = (amount: string | null): string => {
+    if (!amount) return "N/A";
+    try {
+      const numericAmount = parseFloat(amount);
+      if (isNaN(numericAmount)) return "N/A";
+      return `₹${numericAmount.toFixed(2)}`;
+    } catch {
+      return "N/A";
+    }
+  };
+
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
 
-  // Filter subscriptions based on name, email, user type, and date range
   const filteredSubscriptions = useMemo(() => {
-    return expiringSoonSubscriptions.filter((sub) => {
-      const searchableFields = [sub.name || "", sub.email || ""];
+    return expiringSoonSubscriptions.filter((sub: ExpiringSoonUser) => {
+      const searchableFields = [
+        sub.name || "",
+        sub.email || "",
+        sub.mobile || "",
+        sub.city || "",
+        sub.subscription_package || "",
+      ];
       const matchesSearch = searchableFields.some((field) =>
         field.toLowerCase().includes(filterValue.toLowerCase())
       );
 
-      // User type filter (assuming user_type might be added to the API response in the future)
-      // For now, since user_type isn't in ExpiringSoonUser, we'll skip this filter
-      // If user_type is added to the API, uncomment and adjust accordingly
-      /*
       const matchesUserType =
-        selectedUserType === null ||
-        selectedUserType === "" ||
+        !selectedUserType ||
         userTypeMap[sub.user_type] === selectedUserType;
-      */
 
       let matchesDate = true;
       if (startDate || endDate) {
@@ -104,7 +114,7 @@ const ExpiryPayments: React.FC = () => {
           matchesDate = false;
         } else {
           try {
-            const subDate = sub.subscription_expiry_date.split("T")[0]; // Extract YYYY-MM-DD
+            const subDate = sub.subscription_expiry_date.split("T")[0];
             matchesDate =
               (!startDate || subDate >= startDate) &&
               (!endDate || subDate <= endDate);
@@ -114,11 +124,10 @@ const ExpiryPayments: React.FC = () => {
         }
       }
 
-      return matchesSearch && matchesDate; // Add matchesUserType if user_type is available
+      return matchesSearch && matchesUserType && matchesDate;
     });
-  }, [expiringSoonSubscriptions, filterValue, startDate, endDate]); // Add selectedUserType if user_type is available
+  }, [expiringSoonSubscriptions, filterValue, startDate, endDate, selectedUserType]);
 
-  // User type filter options (for future use if user_type is added)
   const userFilterOptions: SelectOption[] = [
     { value: "", label: "All Users" },
     ...Object.entries(userTypeMap).map(([key, value]) => ({
@@ -127,7 +136,6 @@ const ExpiryPayments: React.FC = () => {
     })),
   ];
 
-  // Handle date changes
   const handleStartDateChange = (selectedDates: Date[]) => {
     const dateObj = selectedDates[0];
     let date = "";
@@ -138,6 +146,7 @@ const ExpiryPayments: React.FC = () => {
       date = `${year}-${month}-${day}`;
     }
     setStartDate(date || null);
+    setDateError(null);
   };
 
   const handleEndDateChange = (selectedDates: Date[]) => {
@@ -149,14 +158,14 @@ const ExpiryPayments: React.FC = () => {
       const day = String(dateObj.getDate()).padStart(2, "0");
       date = `${year}-${month}-${day}`;
       if (startDate && date < startDate) {
-        alert("End date cannot be before start date");
+        setDateError("End date cannot be earlier than start date");
         return;
       }
     }
     setEndDate(date || null);
+    setDateError(null);
   };
 
-  // Pagination logic
   const totalItems = filteredSubscriptions.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -213,8 +222,11 @@ const ExpiryPayments: React.FC = () => {
 
     return pages;
   };
+    const formatPackageName = (packageName: string): string => {
+    return packageName.charAt(0).toUpperCase() + packageName.slice(1).toLowerCase();
+  };
 
-  // Loading and Error UI
+
   if (expiringSoonLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -246,7 +258,7 @@ const ExpiryPayments: React.FC = () => {
       <div className="space-y-6">
         {/* Filters */}
         <div className="w-auto flex gap-3">
-          {/* <div className="w-43">
+          <div className="w-43">
             <Select
               options={userFilterOptions}
               placeholder="Select User Type"
@@ -254,7 +266,7 @@ const ExpiryPayments: React.FC = () => {
               value={selectedUserType || ""}
               className="dark:bg-dark-900"
             />
-          </div> */}
+          </div>
           <DatePicker
             id="startDate"
             placeholder="Select start date"
@@ -275,12 +287,18 @@ const ExpiryPayments: React.FC = () => {
               setEndDate(null);
               setFilterValue("");
               setCurrentPage(1);
+              setDateError(null);
             }}
             className="px-4 py-2"
           >
             Clear Filters
           </Button>
         </div>
+
+        {/* Display date error if present */}
+        {dateError && (
+          <div className="text-sm text-red-500 mb-2">{dateError}</div>
+        )}
 
         {/* Display active filters */}
         {(selectedUserType || startDate || endDate || filterValue) && (
@@ -295,7 +313,6 @@ const ExpiryPayments: React.FC = () => {
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-auto">
               <Table>
-                {/* Table Header */}
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
                     <TableCell
@@ -326,17 +343,40 @@ const ExpiryPayments: React.FC = () => {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
+                      Mobile
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      City
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Subscription Package
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Payment Amount
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
                       Expiry Date
                     </TableCell>
                   </TableRow>
                 </TableHeader>
-                {/* Table Body */}
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {(!paginatedSubscriptions ||
                     paginatedSubscriptions.length === 0) && (
                     <TableRow>
                       <TableCell
-                       
+                      
                         className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                       >
                         {filterValue
@@ -355,10 +395,35 @@ const ExpiryPayments: React.FC = () => {
                           {sub.user_id}
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {sub.name}
+                          <div>{sub.name}</div>
+                          <span className="block text-gray-400 text-theme-xs dark:text-gray-500">
+                            {userTypeMap[sub.user_type] || "Unknown"}
+                          </span>
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {sub.email}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {sub.mobile || "N/A"}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {sub.city || "N/A"}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                                             <span
+                                               className={`inline-block px-2 py-1 rounded-md  text-xs w-auto font-medium ${
+                                                 sub.subscription_package.toLowerCase() === "basic"
+                                                   ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                                                   : sub.subscription_package.toLowerCase() === "prime"
+                                                   ? "bg-[#EC9A0C] text-black dark:bg-[#EC9A0C] dark:text-white"
+                                                   : "bg-[#1D3A76] text-white dark:bg-purple-900 dark:text-purple-200"
+                                               }`}
+                                             >
+                                               {formatPackageName(sub.subscription_package === 'prime_plus' ? 'Prime Plus' : sub.subscription_package)}
+                                             </span>
+                                           </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {formatPaymentAmount(sub.payment_amount)}
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {formatDate(sub.subscription_expiry_date)}

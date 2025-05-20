@@ -11,6 +11,7 @@ interface LocationData {
   locality: string;
   city: string;
   state: string;
+  status:string;
 }
 
 interface RootState {
@@ -29,17 +30,20 @@ const LocationManager: React.FC = () => {
     insertLoading,
     insertError,
   } = useSelector((state: RootState) => state.places);
+   
 
   const [formData, setFormData] = useState<LocationData>({
     locality: "",
     city: "",
     state: "",
+    status: "inactive", 
   });
   const [tableData, setTableData] = useState<LocationData[]>([]);
   const [isStateDropdownOpen, setIsStateDropdownOpen] = useState<boolean>(false);
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
   const [stateSearchTerm, setStateSearchTerm] = useState<string>("");
   const [citySearchTerm, setCitySearchTerm] = useState<string>("");
+  
 
   useEffect(() => {
     dispatch(fetchAllStates());
@@ -69,7 +73,7 @@ const LocationManager: React.FC = () => {
   const [filteredStates, setFilteredStates] = useState<string[]>([]);
   const [filteredCities, setFilteredCities] = useState<string[]>([]);
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     if (name === "state") {
@@ -102,9 +106,9 @@ const LocationManager: React.FC = () => {
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const { state, city, locality } = formData;
-    if (!state || !city || !locality) {
-      toast.error("State, City, and Locality are required");
+    const { state, city, locality,status  } = formData;
+    if (!state || !city || !locality || !status) {
+      toast.error("State, City, Locality and status are required");
       return;
     }
     try {
@@ -112,7 +116,7 @@ const LocationManager: React.FC = () => {
       if (insertPlace.fulfilled.match(resultAction)) {
         toast.success("Place added successfully!");
         setTableData((prev) => [...prev, formData]);
-        setFormData({ locality: "", city: "", state: "" });
+        setFormData({ locality: "", city: "", state: "",status:"inactive" });
         setStateSearchTerm("");
         setCitySearchTerm("");
         setIsStateDropdownOpen(false);
@@ -129,59 +133,59 @@ const LocationManager: React.FC = () => {
     }
   };
 
-  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+ const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        try {
-          const data = event.target?.result;
-          if (data) {
-            const workbook = XLSX.read(data, { type: "binary" });
-            const sheetName = workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json<LocationData>(sheet, {
-              header: ["locality", "city", "state"],
-              range: 1,
-            });
-            const insertPromises = jsonData.map(async (row) => {
-              if (!row.state || !row.city || !row.locality) {
-                toast.error(
-                  `Skipping row: State, City, and Locality are required - ${JSON.stringify(row)}`
-                );
-                return null;
-              }
-              try {
-                const resultAction = await dispatch(insertPlace(row));
-                if (insertPlace.fulfilled.match(resultAction)) {
-                  return row;
-                } else {
-                  const errorMessage =
-                    (resultAction.payload as any)?.message || "Failed to add place";
-                  toast.error(`Failed to add place: ${JSON.stringify(row)} - ${errorMessage}`);
-                  return null;
-                }
-              } catch (err) {
-                toast.error(`Failed to add place: ${JSON.stringify(row)}`);
-                return null;
-              }
-            });
-            const insertedRows = (await Promise.all(insertPromises)).filter(
-              (row): row is LocationData => row !== null
-            );
-            if (insertedRows.length > 0) {
-              setTableData((prev) => [...prev, ...insertedRows]);
-              toast.success(`${insertedRows.length} places added successfully!`);
-              dispatch(fetchAllStates());
-              dispatch(fetchAllCities());
-            } else {
-              toast.error("No places were added from the Excel file.");
-            }
-          }
-        } catch (error) {
-          console.error("Error reading Excel file:", error);
-          toast.error("Error reading Excel file");
-        }
+        // try {
+        //   const data = event.target?.result;
+        //   if (data) {
+        //     const workbook = XLSX.read(data, { type: "binary" });
+        //     const sheetName = workbook.SheetNames[0];
+        //     const sheet = workbook.Sheets[sheetName];
+        //     const jsonData = XLSX.utils.sheet_to_json<LocationData>(sheet, {
+        //       header: ["locality", "city", "state", "status"], // Updated to include status
+        //       range: 1,
+        //     });
+        //     const insertPromises = jsonData.map(async (row) => {
+        //       if (!row.state || !row.city || !row.locality || !row.status) {
+        //         toast.error(
+        //           `Skipping row: State, City, Locality, and Status are required - ${JSON.stringify(row)}`
+        //         );
+        //         return null;
+        //       }
+        //       try {
+        //         // const resultAction = await dispatch(insertPlace(row));
+        //         if (insertPlace.fulfilled.match(resultAction)) {
+        //           return row;
+        //         } else {
+        //           const errorMessage =
+        //             (resultAction.payload as any)?.message || "Failed to add place";
+        //           toast.error(`Failed to add place: ${JSON.stringify(row)} - ${errorMessage}`);
+        //           return null;
+        //         }
+        //       } catch (err) {
+        //         toast.error(`Failed to add place: ${JSON.stringify(row)}`);
+        //         return null;
+        //       }
+        //     });
+        //     const insertedRows = (await Promise.all(insertPromises)).filter(
+        //       (row): row is LocationData => row !== null
+        //     );
+        //     if (insertedRows.length > 0) {
+        //       setTableData((prev) => [...prev, ...insertedRows]);
+        //       toast.success(`${insertedRows.length} places added successfully!`);
+        //       // dispatch(fetchAllStates());
+        //       // dispatch(fetchAllCities());
+        //     } else {
+        //       toast.error("No places were added from the Excel file.");
+        //     }
+        //   }
+        // } catch (error) {
+        //   console.error("Error reading Excel file:", error);
+        //   toast.error("Error reading Excel file");
+        // }
       };
       reader.onerror = (error) => {
         console.error("FileReader error:", error);
@@ -196,86 +200,78 @@ const LocationManager: React.FC = () => {
       <ComponentCard title="Location Manager">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {/* State Dropdown */}
-<div className="mb-6 max-w-xs state-dropdown">
-  <Label htmlFor="state-search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
-    Select State
-  </Label>
-  <div className="relative">
-    <Input
-      id="state-search"
-      type="text"
-      name="state"
-      value={formData.state}
-      onChange={handleInputChange}
-      onClick={() => setIsStateDropdownOpen(true)} // Open dropdown on input click
-      onFocus={() => setIsStateDropdownOpen(true)} // Open dropdown on focus for accessibility
-      placeholder="Search for a state..."
-      className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
-      disabled={insertLoading || statesLoading}
-    />
-    <button
-      type="button"
-      onClick={toggleStateDropdown}
-      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
-      disabled={insertLoading || statesLoading}
-    >
-      <svg
-        className={`w-4 h-4 transform ${isStateDropdownOpen ? "rotate-180" : ""}`}
-        fill="none"
-        stroke="currentColor"
-        viewBox="0 0 24 24"
-        xmlns="http://www.w3.org/2000/svg"
-      >
-        <path
-          strokeLinecap="round"
-          strokeLinejoin="round"
-          strokeWidth="2"
-          d="M19 9l-7 7-7-7"
-        />
-      </svg>
-    </button>
-    {isStateDropdownOpen && (
-      <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
-        {filteredStates.length > 0 ? (
-          filteredStates.map((state) => (
-            <li
-              key={state}
-              onClick={() => handleSelectSuggestion("state", state)}
-              className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-            >
-              {state}
-            </li>
-          ))
-        ) : (
-          <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
-            No states found
-          </li>
-        )}
-      </ul>
-    )}
-    {statesError && (
-      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-        {statesError}
-      </p>
-    )}
-  </div>
-</div>
+                <div className="mb-6 max-w-xs state-dropdown">
+              <Label htmlFor="state-search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Select State
+              </Label>
+              <div className="relative">
+                <input
+                  id="state-search"
+                  type="text"
+                  name="state"
+                  value={formData.state}
+                  onChange={handleInputChange}
+                  onClick={() => setIsStateDropdownOpen(true)}
+                  onFocus={() => setIsStateDropdownOpen(true)}
+                  placeholder="Search for a state..."
+                  className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+                  disabled={insertLoading || statesLoading}
+                />
+                <button
+                  type="button"
+                  onClick={toggleStateDropdown}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                  disabled={insertLoading || statesLoading}
+                >
+                  <svg
+                    className={`w-4 h-4 transform ${isStateDropdownOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                {isStateDropdownOpen && filteredStates.length > 0 && (
+                  <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                    {filteredStates.map((state) => (
+                      <li
+                        key={state}
+                        onClick={() => handleSelectSuggestion("state", state)}
+                        className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      >
+                        {state}
+                      </li>
+                    ))}
+                  </ul>
+                )}
+                {statesError && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {statesError}
+                  </p>
+                )}
+              </div>
+            </div>
 
-            {/* City Dropdown */}
             <div className="mb-6 max-w-xs city-dropdown">
               <Label htmlFor="city-search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Select City
               </Label>
               <div className="relative">
-                <Input
+                <input
                   id="city-search"
                   type="text"
                   name="city"
                   value={formData.city}
                   onChange={handleInputChange}
-                  onClick={() => setIsCityDropdownOpen(true)} // Open dropdown on input click
-                  onFocus={() => setIsCityDropdownOpen(true)} // Open dropdown on focus for accessibility
+                  onClick={() => setIsCityDropdownOpen(true)}
+                  onFocus={() => setIsCityDropdownOpen(true)}
                   placeholder="Search for a city..."
                   className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
                   disabled={insertLoading || citiesLoading}
@@ -301,23 +297,17 @@ const LocationManager: React.FC = () => {
                     />
                   </svg>
                 </button>
-                {isCityDropdownOpen && (
+                {isCityDropdownOpen && filteredCities.length > 0 && (
                   <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
-                    {filteredCities.length > 0 ? (
-                      filteredCities.map((city) => (
-                        <li
-                          key={city}
-                          onClick={() => handleSelectSuggestion("city", city)}
-                          className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                        >
-                          {city}
-                        </li>
-                      ))
-                    ) : (
-                      <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
-                        No cities found
+                    {filteredCities.map((city) => (
+                      <li
+                        key={city}
+                        onClick={() => handleSelectSuggestion("city", city)}
+                        className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                      >
+                        {city}
                       </li>
-                    )}
+                    ))}
                   </ul>
                 )}
                 {citiesError && (
@@ -327,21 +317,39 @@ const LocationManager: React.FC = () => {
                 )}
               </div>
             </div>
-          
 
             {/* Locality Input */}
-            <div>
-              <Label htmlFor="locality">Locality</Label>
-              <Input
-                type="text"
-                id="locality"
-                name="locality"
-                value={formData.locality}
-                onChange={handleInputChange}
-                className="dark:bg-dark-900"
-                placeholder="Enter locality"
-                disabled={insertLoading}
-              />
+              <div>
+                <Label htmlFor="locality">Locality</Label>
+                <Input
+                  type="text"
+                  id="locality"
+                  name="locality"
+                  value={formData.locality}
+                  onChange={handleInputChange}
+                  className="dark:bg-dark-900"
+                  placeholder="Enter locality"
+                  disabled={insertLoading}
+                />
+              </div>
+
+                <div className="mb-6 max-w-xs status-dropdown">
+              <Label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Select Status
+              </Label>
+              <div className="relative">
+                <select
+                  id="status"
+                  name="status"
+                  value={formData.status}
+                  onChange={handleInputChange}
+                  className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+                  disabled={insertLoading}
+                >
+                  <option value="active">Active</option>
+                  <option value="inactive">Inactive</option>
+                </select>
+              </div>
             </div>
           </div>
 

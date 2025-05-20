@@ -7,6 +7,7 @@ interface Place {
   state: string;
   city: string;
   locality: string;
+  status:string;
   areas: string | null;
 }
 interface PlacesResponse {
@@ -59,11 +60,14 @@ export interface PlacesState {
 interface PlaceFilter {
   page: number;
   search: string;
+   state?: string; 
+  city?: string; 
 }
 interface DeletePlacePayload {
   state: string;
   city: string;
   locality: string;
+
 }
 interface EditPlacePayload {
   oldState: string;
@@ -72,11 +76,13 @@ interface EditPlacePayload {
   newState: string;
   newCity: string;
   newLocality: string;
+  status:string;
 }
 interface InsertPlacePayload {
   state: string;
   city: string;
   locality: string;
+  status:string;
 }
 export const fetchAllStates = createAsyncThunk(
   "places/fetchAllStates",
@@ -119,11 +125,12 @@ export const insertPlace = createAsyncThunk(
   "places/insertPlace",
   async (payload: InsertPlacePayload, { rejectWithValue }) => {
     try {
-      const { state, city, locality } = payload;
+      const { state, city, locality,status } = payload;
       const response = await axiosInstance.post(`/api/v1/insertPlaces`, {
         state,
         city,
         locality,
+        status
       });
       return response.data;
     } catch (error) {
@@ -134,17 +141,24 @@ export const insertPlace = createAsyncThunk(
     }
   }
 );
+
 export const fetchAllPlaces = createAsyncThunk(
   "places/fetchAllPlaces",
   async (filter: PlaceFilter, { rejectWithValue }) => {
     try {
-      const { page, search } = filter;
-      const promise = axiosInstance.get<PlacesResponse>(`/api/v1/getAllPlaces?page=${page}&search=${encodeURIComponent(search)}`);
-      toast.promise(promise, {
-        loading: "Fetching places...",
-        success: "Places fetched successfully!",
-        error: "Failed to fetch places",
-      });
+      const { page, search,city,state} = filter;
+      const params = new URLSearchParams();
+      params.append("page", page.toString());
+      params.append("search", search);
+      if (state) params.append("state", state);
+      if (city) params.append("city", city);
+
+      const promise = axiosInstance.get<PlacesResponse>(`/api/v1/getAllPlaces?${params.toString()}`);
+      // toast.promise(promise, {
+      //   loading: "Fetching places...",
+      //   success: "Places fetched successfully!",
+      //   error: "Failed to fetch places",
+      // });
       const response = await promise;
       return response.data;
     } catch (error) {
@@ -155,6 +169,7 @@ export const fetchAllPlaces = createAsyncThunk(
     }
   }
 );
+
 export const deletePlace = createAsyncThunk(
   "places/deletePlace",
   async (payload: DeletePlacePayload, { rejectWithValue }) => {
@@ -180,7 +195,7 @@ export const editPlace = createAsyncThunk(
     console.log("payload: ", payload);
     try {
       const { oldState, oldCity, oldLocality, newState, newCity, newLocality,status } = payload;
-      const response = await axiosInstance.post(`/api/v1/editPlacesss`, {
+      const response = await axiosInstance.post(`/api/v1/editPlace`, {
         oldState,
         oldCity,
         oldLocality,

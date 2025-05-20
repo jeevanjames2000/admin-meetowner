@@ -154,8 +154,8 @@ const navItems: NavItem[] = [
     subItems: [
       { name: "Places", path: "/maps/locality", pro: false },
       { name: "Places List", path: "/maps/allPlaces", pro: false },
-      { name: "States", path: "/maps/states", pro: false },
-      { name: "Cities", path: "/maps/cities", pro: false },
+      // { name: "States", path: "/maps/states", pro: false },
+      // { name: "Cities", path: "/maps/cities", pro: false },
       
       
     ],
@@ -182,15 +182,15 @@ const navItems: NavItem[] = [
      
     ],
   },
-  {
-    name: "Quotations",
-    icon: <ListIcon />,
-    subItems: [
-      { name: "Offline", path: "quotations/offline",},
-      {name :'Online', path:"quotations/online"}
+  // {
+  //   name: "Quotations",
+  //   icon: <ListIcon />,
+  //   subItems: [
+  //     { name: "Offline", path: "quotations/offline",},
+  //     {name :'Online', path:"quotations/online"}
    
-    ],
-  },
+  //   ],
+  // },
    {
     name: "Push Notifications",
     icon: <FaBell />,

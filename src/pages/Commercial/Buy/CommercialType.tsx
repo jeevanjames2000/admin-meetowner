@@ -345,8 +345,9 @@ const CommercialTypes: React.FC = () => {
                   <Table>
                     <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                       <TableRow>
+                          <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl. No</TableCell>
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">ID</TableCell>
-                        <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl. No</TableCell>
+                      
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property SubType</TableCell>
                         <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Type</TableCell>
@@ -360,8 +361,9 @@ const CommercialTypes: React.FC = () => {
                     <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                       {listings.map((item, index) => (
                         <TableRow key={item.id}>
+                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{(currentPage - 1) * currentCount + index + 1}</TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{item.unique_property_id || item.id}</TableCell>
-                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{(currentPage - 1) * currentCount + index + 1}</TableCell>
+                         
                          {parseInt(status || "0", 10) === 1 ? (
                           <TableCell 
                             className="px-5 py-4 sm:px-6 text-start">

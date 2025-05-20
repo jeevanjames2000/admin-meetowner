@@ -5,12 +5,23 @@ import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
-
 import Button from "../../components/ui/button/Button";
-
+import DatePicker from "../../components/form/date-picker"; // Import DatePicker
 import { fetchNotificationHistory, clearNotify } from "../../store/slices/notifySlice";
 import { toast } from "react-hot-toast";
 import { NotifyState } from "../../store/slices/notifySlice";
+
+// Format date function
+const formatDate = (dateString: string | null): string => {
+  if (!dateString) return "N/A";
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Invalid Date";
+    return date.toISOString().split("T")[0];
+  } catch {
+    return "Invalid Date";
+  }
+};
 
 const AllNotifications: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -22,6 +33,8 @@ const AllNotifications: React.FC = () => {
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Debounce search
@@ -41,6 +54,7 @@ const AllNotifications: React.FC = () => {
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     handleDebouncedSearch(query);
+    setCurrentPage(1); // Reset page on search
   };
 
   // Fetch notifications
@@ -71,14 +85,37 @@ const AllNotifications: React.FC = () => {
     };
   }, [dispatch]);
 
+  // Reset page on filter change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [startDate, endDate, debouncedSearchQuery]);
+
   // Filter notifications
   const filteredNotifications = notifications.filter((notification) => {
-    const searchQuery = debouncedSearchQuery.toLowerCase();
-    return (
-      notification.title.toLowerCase().includes(searchQuery) ||
-      notification.message.toLowerCase().includes(searchQuery) ||
-      notification.user_id.toLowerCase().includes(searchQuery)
-    );
+    const searchQueryLower = debouncedSearchQuery.toLowerCase();
+    const matchesSearch =
+      notification.title.toLowerCase().includes(searchQueryLower) ||
+      notification.message.toLowerCase().includes(searchQueryLower) ||
+      notification.user_id.toLowerCase().includes(searchQueryLower);
+
+    // Date range filter
+    let matchesDate = true;
+    if (startDate || endDate) {
+      if (!notification.created_at) {
+        matchesDate = false;
+      } else {
+        try {
+          const notificationDate = notification.created_at.split("T")[0];
+          matchesDate =
+            (!startDate || notificationDate >= startDate) &&
+            (!endDate || notificationDate <= endDate);
+        } catch {
+          matchesDate = false;
+        }
+      }
+    }
+
+    return matchesSearch && matchesDate;
   });
 
   // Pagination
@@ -113,8 +150,33 @@ const AllNotifications: React.FC = () => {
     return pages;
   };
 
- 
- 
+  const handleStartDateChange = (selectedDates: Date[]) => {
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+    }
+    setStartDate(date || null);
+  };
+
+  const handleEndDateChange = (selectedDates: Date[]) => {
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+      if (startDate && date < startDate) {
+        alert("End date cannot be before start date");
+        return;
+      }
+    }
+    setEndDate(date || null);
+  };
 
   // Error state
   if (notificationHistoryError && !notificationHistoryLoading && notifications.length === 0) {
@@ -137,6 +199,40 @@ const AllNotifications: React.FC = () => {
           onFilter={handleSearch}
           persistSearch={true}
         />
+        <div className="flex justify-between gap-3 py-2">
+          <div className="w-auto flex gap-3">
+            <DatePicker
+              id="startDate"
+              placeholder="Select start date"
+              onChange={handleStartDateChange}
+              defaultDate={startDate ? new Date(startDate) : undefined}
+            />
+            <DatePicker
+              id="endDate"
+              placeholder="Select end date"
+              onChange={handleEndDateChange}
+              defaultDate={endDate ? new Date(endDate) : undefined}
+            />
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchQuery("");
+                setDebouncedSearchQuery("");
+                setStartDate(null);
+                setEndDate(null);
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2"
+            >
+              Clear Filters
+            </Button>
+          </div>
+        </div>
+        {(searchQuery || startDate || endDate) && (
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Filters: Search: {searchQuery || "None"} | Date: {startDate || "Any"} to {endDate || "Any"}
+          </div>
+        )}
         <div className="space-y-6">
           <ComponentCard title="All Notifications">
             <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -144,7 +240,7 @@ const AllNotifications: React.FC = () => {
                 <Table>
                   <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                     <TableRow>
-                      {["ID", "User ID", "Title", "Message", "Created At",].map((header) => (
+                      {["ID", "User ID", "Title", "Message", "Created At"].map((header) => (
                         <TableCell
                           key={header}
                           isHeader
@@ -188,9 +284,8 @@ const AllNotifications: React.FC = () => {
                             {notification.message}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {new Date(notification.created_at).toLocaleString()}
+                            {formatDate(notification.created_at)}
                           </TableCell>
-                         
                         </TableRow>
                       ))
                     )}

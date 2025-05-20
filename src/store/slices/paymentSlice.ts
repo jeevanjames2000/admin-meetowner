@@ -42,6 +42,14 @@ interface ExpiringSoonUser {
   email: string;
   subscription_expiry_date: string;
   message: string;
+  mobile: string;
+  user_type: number; 
+  subscription_package: string; 
+  payment_id: number; 
+  payment_amount: string;
+  payment_status: string; 
+  city: string; 
+  payment_date: string; 
 }
 
 interface ErrorResponse {

@@ -83,10 +83,11 @@ export default function CreateAds() {
       value: city.value,
       text: city.label,
     })) || [];
-  const propertyOptions: Option[] = listings.map((property) => ({
+    const propertyOptions: Option[] = listings.map((property) => ({
     value: property.unique_property_id,
-    text: `${property.property_name || "Unnamed Property"}`,
+    text: `${property.property_name || "Unnamed Property"} - (${property.unique_property_id})`,
   }));
+
   const handleSingleChange =
     (field: "order" | "title" | "description" | "adsButton" | "adsButtonLink") =>
     (value: string) => {
@@ -238,6 +239,7 @@ export default function CreateAds() {
               options={placeOptions}
               defaultSelected={formData.places}
               onChange={handleMultiSelectChange("places")}
+              singleSelect={true}
             />
             {errors.places && (
               <p className="text-red-500 text-sm mt-1">{errors.places}</p>
@@ -309,6 +311,7 @@ export default function CreateAds() {
               options={cityOptions}
               defaultSelected={formData.visibilityCities}
               onChange={handleMultiSelectChange("visibilityCities")}
+              singleSelect={true}
             />
             {errors.visibilityCities && (
               <p className="text-red-500 text-sm mt-1">{errors.visibilityCities}</p>

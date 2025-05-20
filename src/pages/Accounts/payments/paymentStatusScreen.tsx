@@ -12,7 +12,7 @@ import { clearSubscriptions, fetchAllSubscriptions, updateSubscriptionStatus } f
 import { AppDispatch, RootState } from "../../../store/store";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageBreadcrumbList from "../../../components/common/PageBreadCrumbLists";
-import { useNavigate, useParams } from "react-router";
+import {  useParams } from "react-router";
 import Button from "../../../components/ui/button/Button";
 import ConfirmStatusModal from "../../../components/common/ConfirmStatusModal";
 import DatePicker from "../../../components/form/date-picker";
@@ -83,7 +83,7 @@ interface InvoiceResponse {
 
 const PaymentStatusScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
+  
   const { subscriptions, loading, error } = useSelector(
     (state: RootState) => state.payment
   );

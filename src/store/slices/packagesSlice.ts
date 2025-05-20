@@ -43,11 +43,11 @@ export const fetchAllPackages = createAsyncThunk(
             
           }, 
       });
-      toast.promise(promise, {
-        loading: "Fetching packages...",
-        success: "Packages fetched successfully!",
-        error: "Failed to fetch packages",
-      });
+      // toast.promise(promise, {
+      //   loading: "Fetching packages...",
+      //   success: "Packages fetched successfully!",
+      //   error: "Failed to fetch packages",
+      // });
       const response = await promise;
       return response.data;
     } catch (error) {

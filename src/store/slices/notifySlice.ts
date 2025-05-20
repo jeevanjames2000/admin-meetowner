@@ -161,11 +161,11 @@ export const fetchNotificationHistory = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.get<NotificationHistoryResponse>("/user/v1/getAllNotificationHistory");
-      toast.promise(promise, {
-        loading: "Fetching notification history...",
-        success: "Notification history fetched successfully!",
-        error: "Failed to fetch notification history",
-      });
+      // toast.promise(promise, {
+      //   loading: "Fetching notification history...",
+      //   success: "Notification history fetched successfully!",
+      //   error: "Failed to fetch notification history",
+      // });
       
       const response = await promise;
       return response.data.notifications; // Return the notifications array
