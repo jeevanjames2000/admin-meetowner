@@ -118,7 +118,7 @@ const navItems: NavItem[] = [
         { name: "Payment Processing", path: "/payments/processing" },
         { name: "Payment rejected", path: "/payments/rejected" },
         { name: "Payment Cancelled", path: "/payments/cancelled" },
-        { name: "Expiry Soon", path: "/payments/expirysoon" },
+        { name: "Expiry Soon", path: "/accounts/expiry-payments" },
      
       
     ],

@@ -61,6 +61,7 @@ import AllShorts from "./pages/Shorts/AllShorts";
 import CreateShorts from "./pages/Shorts/CreateShorts";
 import { Invoice } from "./pages/Accounts/Invoice";
 import ServerStatusCheck from "./hooks/ServerStatusCheck";
+import ExpiryPayments from "./pages/Accounts/ExpiryPayments";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -346,6 +347,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <GeneratePayments />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/accounts/expiry-payments"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <ExpiryPayments />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

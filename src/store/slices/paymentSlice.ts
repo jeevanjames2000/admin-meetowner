@@ -32,24 +32,39 @@ interface Subscription {
   gst_number: string;
   rera_number: string;
   invoice_number: string | null; // Nullable field
-  user_type:number;
-  city:string;
+  user_type: number;
+  city: string;
 }
+
+interface ExpiringSoonUser {
+  user_id: number;
+  name: string;
+  email: string;
+  subscription_expiry_date: string;
+  message: string;
+}
+
 interface ErrorResponse {
   message?: string;
 }
 
 export interface PaymentState {
   subscriptions: Subscription[];
+  expiringSoonSubscriptions: ExpiringSoonUser[];
   loading: boolean;
+  expiringSoonLoading: boolean;
   error: string | null;
+  expiringSoonError: string | null;
 }
 
 // Initial state
 const initialState: PaymentState = {
   subscriptions: [],
+  expiringSoonSubscriptions: [],
   loading: false,
+  expiringSoonLoading: false,
   error: null,
+  expiringSoonError: null,
 };
 
 interface SubscriptionFilters {
@@ -60,11 +75,17 @@ interface SubscriptionsResponse {
   data: Subscription[];
 }
 
+interface ExpiringSoonResponse {
+  success: boolean;
+  expiringSoon: boolean;
+  total: number;
+  users: ExpiringSoonUser[];
+}
+
 interface UpdateSubscriptionResponse {
   success: boolean;
   message: string;
 }
-
 
 // Async thunk for fetching all subscriptions
 export const fetchAllSubscriptions = createAsyncThunk<
@@ -103,12 +124,52 @@ export const fetchAllSubscriptions = createAsyncThunk<
   }
 );
 
+// Async thunk for fetching expiring soon subscriptions
+export const fetchExpiringSoonSubscriptions = createAsyncThunk<
+  ExpiringSoonUser[], // Return type
+  void, // No arguments needed
+  { rejectValue: string } // ThunkAPI config for rejectWithValue
+>(
+  "payment/fetchExpiringSoonSubscriptions",
+  async (_, { rejectWithValue }) => {
+    try {
+      const promise = axiosInstance.get<ExpiringSoonResponse>(
+        "/payments/getAllExpiringSoon"
+      );
+
+      toast.promise(promise, {
+        loading: "Fetching expiring soon subscriptions...",
+        success: "Expiring soon subscriptions fetched successfully!",
+        error: "Failed to fetch expiring soon subscriptions",
+      });
+
+      const response = await promise;
+      if (response.data.success && response.data.expiringSoon) {
+        return response.data.users; // Extract the 'users' array from the response
+      } else {
+        return [];
+      }
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage =
+        axiosError.response?.data?.message ||
+        "Failed to fetch expiring soon subscriptions";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// Async thunk for updating subscription status
 export const updateSubscriptionStatus = createAsyncThunk<
   UpdateSubscriptionResponse,
   { user_id: number; subscription_status: string; payment_status: string },
-  { rejectValue: string }>(
+  { rejectValue: string }
+>(
   "payment/updateSubscriptionStatus",
-  async ({ user_id, subscription_status, payment_status }, { rejectWithValue }) => {
+  async (
+    { user_id, subscription_status, payment_status },
+    { rejectWithValue }
+  ) => {
     try {
       const promise = axiosInstance.post<UpdateSubscriptionResponse>(
         "/payments/updateSubscription",
@@ -121,7 +182,7 @@ export const updateSubscriptionStatus = createAsyncThunk<
 
       toast.promise(promise, {
         loading: "Updating subscription status...",
-        success: (data ) => data.data.message ,
+        success: (data) => data.data.message,
         error: "Failed to update subscription status",
       });
 
@@ -130,7 +191,8 @@ export const updateSubscriptionStatus = createAsyncThunk<
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       const errorMessage =
-        axiosError.response?.data?.message || "Failed to update subscription status";
+        axiosError.response?.data?.message ||
+        "Failed to update subscription status";
       return rejectWithValue(errorMessage);
     }
   }
@@ -143,7 +205,9 @@ const paymentSlice = createSlice({
   reducers: {
     clearSubscriptions: (state) => {
       state.subscriptions = [];
+      state.expiringSoonSubscriptions = [];
       state.error = null;
+      state.expiringSoonError = null;
     },
   },
   extraReducers: (builder) => {
@@ -160,9 +224,25 @@ const paymentSlice = createSlice({
       .addCase(fetchAllSubscriptions.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
-      })
+      });
 
-      builder
+    // Fetch expiring soon subscriptions
+    builder
+      .addCase(fetchExpiringSoonSubscriptions.pending, (state) => {
+        state.expiringSoonLoading = true;
+        state.expiringSoonError = null;
+      })
+      .addCase(fetchExpiringSoonSubscriptions.fulfilled, (state, action) => {
+        state.expiringSoonLoading = false;
+        state.expiringSoonSubscriptions = action.payload;
+      })
+      .addCase(fetchExpiringSoonSubscriptions.rejected, (state, action) => {
+        state.expiringSoonLoading = false;
+        state.expiringSoonError = action.payload as string;
+      });
+
+    // Update subscription status
+    builder
       .addCase(updateSubscriptionStatus.pending, (state) => {
         state.loading = true;
         state.error = null;
