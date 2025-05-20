@@ -16,25 +16,20 @@ import Button from "../../components/ui/button/Button";
 import { MoreVertical, X } from "lucide-react";
 import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal";
 import * as XLSX from "xlsx";
-import { getStates } from "../../store/slices/propertyDetails";
+
 import { toast } from "react-hot-toast";
 import ActiveStatusModal from "../../components/common/ActiveStatusModel";
-
-interface StateData {
-  state: string;
-  status: boolean;
-}
-
+import { getAllStates } from "../../store/slices/locationsSlice";
+import { editPlace } from "../../store/slices/places";
 
 interface State {
-  value: number;
-  label: string;
-  status: boolean;
+  state: string;
+  status: string; 
 }
 
 interface FormData {
   state: string;
-  status: boolean;
+  status: string; 
 }
 
 interface FormErrors {
@@ -43,15 +38,14 @@ interface FormErrors {
 
 const StatesManager: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { states } = useSelector(
-    (state: RootState) => state.property
+  const { states, statesLoading, statesError } = useSelector(
+    (state: RootState) => state.locations
   );
 
-  // Table state
-  const [tableData, setTableData] = useState<State[]>([]);
+  // Component state
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [activeMenu, setActiveMenu] = useState<number | null>(null);
+  const [activeMenu, setActiveMenu] = useState<number | null>(null); // Use index instead of state name
   const dropdownRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 10;
 
@@ -65,28 +59,15 @@ const StatesManager: React.FC = () => {
   const [stateToEdit, setStateToEdit] = useState<State | null>(null);
   const [formData, setFormData] = useState<FormData>({
     state: "",
-    status: false,
+    status: "inactive",
   });
+  console.log("formData: ", formData);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
 
   // Fetch states on mount
   useEffect(() => {
-    dispatch(getStates());
+    dispatch(getAllStates());
   }, [dispatch]);
-
-  // Normalize and update table data
-  useEffect(() => {
-    if (states && states.length > 0) {
-      const normalizedStates: State[] = states.map((state, index) => ({
-        value: Number(state.value) || index + 1, // Ensure value is a number
-        label: state.label,
-        status: true, // Default status
-      }));
-      setTableData(normalizedStates);
-    } else {
-      setTableData([]);
-    }
-  }, [states]);
 
   // Handle click outside dropdown
   useEffect(() => {
@@ -106,13 +87,14 @@ const StatesManager: React.FC = () => {
   // Filter states
   const filteredStates = useMemo(
     () =>
-      tableData.filter((state) =>
-        state.label.toLowerCase().includes(filterValue.toLowerCase())
+      states.filter((state) =>
+        state.state.toLowerCase().includes(filterValue.toLowerCase())
       ),
-    [tableData, filterValue]
+    [states, filterValue]
   );
 
-   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  // Handle Excel file upload
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
@@ -123,24 +105,27 @@ const StatesManager: React.FC = () => {
             const workbook = XLSX.read(data, { type: "binary" });
             const sheetName = workbook.SheetNames[0];
             const sheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json<StateData>(sheet, {
-              header: ["state", "status"], // Explicitly map column headers
+            const jsonData = XLSX.utils.sheet_to_json<State>(sheet, {
+              header: ["state", "status"],
               range: 1, // Skip header row if it exists
             });
-            // Ensure status is boolean
-            const normalizedData = jsonData.map((row) => ({
-              state: row.state || "",
-              status: row.status === true, // Convert to boolean
-            }));
             // Filter out invalid rows (empty state)
-            // const validData = normalizedData.filter((row) => row.state.trim());
-            // setTableData(validData);
+            const validData = jsonData.filter(
+              (row) => row.state?.trim() && ["active", "inactive"].includes(row.status)
+            );
+            // Update Redux store (placeholder for API call)
+            // dispatch(setStates(validData));
+            toast.success("States uploaded successfully!");
           }
         } catch (error) {
           console.error("Error reading Excel file:", error);
+          toast.error("Failed to process Excel file");
         }
       };
-      reader.onerror = (error) => console.error("FileReader error:", error);
+      reader.onerror = (error) => {
+        console.error("FileReader error:", error);
+        toast.error("Error reading file");
+      };
       reader.readAsBinaryString(file);
     }
   };
@@ -152,8 +137,8 @@ const StatesManager: React.FC = () => {
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedStates = filteredStates.slice(startIndex, endIndex);
 
-  const toggleMenu = (value: number) => {
-    setActiveMenu(activeMenu === value ? null : value);
+  const toggleMenu = (index: number) => {
+    setActiveMenu(activeMenu === index ? null : index);
   };
 
   const handleFilter = (value: string) => {
@@ -209,8 +194,6 @@ const StatesManager: React.FC = () => {
     return pages;
   };
 
-
-
   // Form handlers
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
@@ -219,7 +202,10 @@ const StatesManager: React.FC = () => {
   };
 
   const handleStatusChange = (checked: boolean) => {
-    setFormData((prev) => ({ ...prev, status: checked }));
+    setFormData((prev) => ({
+      ...prev,
+      status: checked ? "active" : "inactive",
+    }));
   };
 
   const validateForm = (): boolean => {
@@ -235,24 +221,23 @@ const StatesManager: React.FC = () => {
     e.preventDefault();
     if (validateForm()) {
       const newState: State = {
-        value: tableData.length + 1, // Temporary ID; replace with API response
-        label: formData.state,
+        state: formData.state,
         status: formData.status,
       };
-      setTableData((prev) => [...prev, newState]);
+      // Update Redux store (placeholder for API call)
+      // dispatch(setStates([...states, newState]));
       toast.success("State added successfully!");
-      setFormData({ state: "", status: false });
+      setFormData({ state: "", status: "inactive" });
       setFormErrors({});
       setIsAddModalOpen(false);
       console.log("Add State:", newState); // Replace with addState thunk
     }
   };
 
-
   const handleEditClick = (state: State) => {
     setStateToEdit(state);
     setFormData({
-      state: state.label,
+      state: state.state,
       status: state.status,
     });
     setIsEditModalOpen(true);
@@ -262,16 +247,16 @@ const StatesManager: React.FC = () => {
   const handleEditSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validateForm() && stateToEdit) {
-      setTableData((prev) =>
-        prev.map((state) =>
-          state.value === stateToEdit.value
-            ? { ...state, label: formData.state, status: formData.status }
-            : state
-        )
+      const updatedStates = states.map((s) =>
+        s.state === stateToEdit.state
+          ? { state: formData.state, status: formData.status }
+          : s
       );
+      // Update Redux store (placeholder for API call)
+      dispatch(editPlace(updatedStates));
       toast.success(`State ${formData.state} updated successfully!`);
-      console.log("Edit State:", { ...stateToEdit, label: formData.state, status: formData.status }); // Replace with editState thunk
-      setFormData({ state: "", status: false });
+      console.log("Edit State:", { state: formData.state, status: formData.status });
+      setFormData({ state: "", status: "inactive" });
       setFormErrors({});
       setIsEditModalOpen(false);
       setStateToEdit(null);
@@ -286,26 +271,25 @@ const StatesManager: React.FC = () => {
 
   const confirmDelete = () => {
     if (stateToDelete) {
-      setTableData((prev) =>
-        prev.filter((state) => state.value !== stateToDelete.value)
-      );
-      toast.success(`State ${stateToDelete.label} deleted successfully!`);
-      console.log("Delete State:", stateToDelete); // Replace with deleteState thunk
+      const updatedStates = states.filter((s) => s.state !== stateToDelete.state);
+      // Update Redux store (placeholder for API call)
+      // dispatch(setStates(updatedStates));
+      toast.success(`State ${stateToDelete.state} deleted successfully!`);
+      console.log("Delete State:", stateToDelete);
       setIsDeleteModalOpen(false);
       setStateToDelete(null);
     }
   };
 
   const handleToggleStatus = (state: State) => {
-    if (!state.status) {
+    if (state.status === "inactive") {
       // Directly activate if setting to Active
-      setTableData((prev) =>
-        prev.map((s) =>
-          s.value === state.value ? { ...s, status: true } : s
-        )
+      const updatedStates = states.map((s) =>
+        s.state === state.state ? { ...s, status: "active" } : s
       );
-      toast.success(`State ${state.label} set to Active!`);
-      console.log("Toggle Status:", { ...state, status: true }); // Replace with toggleStateStatus thunk
+      // dispatch(setStates(updatedStates));
+      toast.success(`State ${state.state} set to Active!`);
+      console.log("Toggle Status:", { ...state, status: "active" });
     } else {
       // Show confirmation for setting to Inactive
       setStateToToggle(state);
@@ -316,27 +300,46 @@ const StatesManager: React.FC = () => {
 
   const confirmToggleStatus = () => {
     if (stateToToggle) {
-      setTableData((prev) =>
-        prev.map((s) =>
-          s.value === stateToToggle.value ? { ...s, status: false } : s
-        )
+      const updatedStates = states.map((s) =>
+        s.state === stateToToggle.state ? { ...s, status: "inactive" } : s
       );
-      toast.success(`State ${stateToToggle.label} set to Inactive!`);
-      console.log("Toggle Status:", { ...stateToToggle, status: false }); // Replace with toggleStateStatus thunk
+       dispatch(editPlace(updatedStates));
+      toast.success(`State ${stateToToggle.state} set to Inactive!`);
+      console.log("Toggle Status:", { ...stateToToggle, status: "inactive" });
       setIsToggleModalOpen(false);
       setStateToToggle(null);
     }
   };
 
+  // Loading and Error UI
+  if (statesLoading) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+        <ComponentCard title="States Manager">
+          <div className="text-center text-gray-500 dark:text-gray-400">
+            Loading states...
+          </div>
+        </ComponentCard>
+      </div>
+    );
+  }
 
-
-  
+  if (statesError) {
+    return (
+      <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+        <ComponentCard title="States Manager">
+          <div className="text-center text-red-500 dark:text-red-400">
+            Error: {statesError}
+          </div>
+        </ComponentCard>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <ComponentCard title="States Manager">
-
-        <div className="mt-6">
+        {/* <div className="mt-6">
           <Label htmlFor="excelUpload">Upload Excel File</Label>
           <input
             type="file"
@@ -346,9 +349,9 @@ const StatesManager: React.FC = () => {
             className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-gray-800 dark:file:text-gray-300 dark:hover:file:bg-gray-700"
           />
           <p className="mt-2 text-sm text-gray-500">
-            Excel file should contain columns: state, status (true/false)
+            Excel file should contain columns: state, status (active/inactive)
           </p>
-        </div>
+        </div> */}
         {/* Search Input and Add State Button */}
         <div className="flex justify-between mb-4">
           <Input
@@ -377,13 +380,13 @@ const StatesManager: React.FC = () => {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Value
+                      Sl. No.
                     </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Label
+                      State
                     </TableCell>
                     <TableCell
                       isHeader
@@ -400,28 +403,28 @@ const StatesManager: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedStates.map((state) => (
-                    <TableRow key={state.value}>
+                  {paginatedStates.map((state, index) => (
+                    <TableRow key={state.state || `state-${startIndex + index}`}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {state.value}
+                        {startIndex + index + 1}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
                         <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                          {state.label}
+                          {state.state}
                         </span>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {state.status ? "Active" : "Inactive"}
+                        {state.status === "active" ? "Active" : "Inactive"}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => toggleMenu(state.value)}
+                          onClick={() => toggleMenu(index)}
                         >
                           <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
                         </Button>
-                        {activeMenu === state.value && (
+                        {activeMenu === index && (
                           <div
                             ref={dropdownRef}
                             className="absolute mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-50"
@@ -443,7 +446,7 @@ const StatesManager: React.FC = () => {
                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 onClick={() => handleToggleStatus(state)}
                               >
-                                {state.status ? "Set Inactive" : "Set Active"}
+                                {state.status === "active" ? "Set Inactive" : "Set Active"}
                               </button>
                             </div>
                           </div>
@@ -552,8 +555,8 @@ const StatesManager: React.FC = () => {
                   <div className="min-h-[80px]">
                     <Label>Status</Label>
                     <Switch
-                      label={formData.status ? "Active" : "Inactive"}
-                      defaultChecked={formData.status}
+                      label={formData.status === "active" ? "Active" : "Inactive"}
+                      defaultChecked={formData.status === "active"}
                       onChange={handleStatusChange}
                     />
                   </div>
@@ -562,14 +565,13 @@ const StatesManager: React.FC = () => {
                 {/* Submit Button */}
                 <div className="flex justify-between">
                   <Button
-                    
                     onClick={() => setIsAddModalOpen(false)}
                     className="px-6 py-2 bg-gray-500 text-white rounded-lg hover:bg-gray-600 transition-colors duration-200"
                   >
                     Cancel
                   </Button>
                   <Button
-
+                  
                     className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
                   >
                     Submit
@@ -591,7 +593,7 @@ const StatesManager: React.FC = () => {
                 <button
                   onClick={() => {
                     setIsEditModalOpen(false);
-                    setFormData({ state: "", status: false });
+                    setFormData({ state: "", status: "inactive" });
                     setFormErrors({});
                     setStateToEdit(null);
                   }}
@@ -625,8 +627,8 @@ const StatesManager: React.FC = () => {
                   <div className="min-h-[80px]">
                     <Label>Status</Label>
                     <Switch
-                      label={formData.status ? "Active" : "Inactive"}
-                      defaultChecked={formData.status}
+                      label={formData.status === "active" ? "Active" : "Inactive"}
+                      defaultChecked={formData.status === "active"}
                       onChange={handleStatusChange}
                     />
                   </div>
@@ -635,10 +637,9 @@ const StatesManager: React.FC = () => {
                 {/* Submit Button */}
                 <div className="flex justify-between">
                   <Button
-                 
                     onClick={() => {
                       setIsEditModalOpen(false);
-                      setFormData({ state: "", status: false });
+                      setFormData({ state: "", status: "inactive" });
                       setFormErrors({});
                       setStateToEdit(null);
                     }}
@@ -647,7 +648,7 @@ const StatesManager: React.FC = () => {
                     Cancel
                   </Button>
                   <Button
-              
+                  
                     className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
                   >
                     Submit
@@ -661,7 +662,7 @@ const StatesManager: React.FC = () => {
         {/* Delete Confirmation Modal */}
         <ConfirmDeleteModal
           isOpen={isDeleteModalOpen}
-          propertyName={stateToDelete?.label || ""}
+          propertyName={stateToDelete?.state || ""}
           onConfirm={confirmDelete}
           onCancel={() => {
             setIsDeleteModalOpen(false);
@@ -672,8 +673,8 @@ const StatesManager: React.FC = () => {
         {/* Toggle Status Confirmation Modal */}
         <ActiveStatusModal
           isOpen={isToggleModalOpen}
-          propertyName={stateToToggle?.label || ""}
-          action="Suspend" // Always Suspend for setting Inactive
+          propertyName={stateToToggle?.state || ""}
+          action="Suspend"
           onConfirm={confirmToggleStatus}
           onCancel={() => {
             setIsToggleModalOpen(false);

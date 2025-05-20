@@ -71,6 +71,15 @@ interface Subscription {
   invoice_number: string | null; // Nullable field
   city:string,
 }
+interface InvoiceResponse {
+  id: number;
+  invoice_number: string;
+  user_id: number;
+  payment_status: string;
+  subscription_status: string;
+  created_at: string;
+  invoice_url: string;
+}
 
 const PaymentStatusScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -133,12 +142,30 @@ const PaymentStatusScreen: React.FC = () => {
 
 
 
-  const handleInvoice = useCallback((sub: Subscription) => {
+const handleInvoice = useCallback(async (sub: Subscription) => {
+    if (!sub.invoice_number) {
+      console.log("No invoice number available for this subscription");
+      setDropdownOpen(null);
+      return;
+    }
 
-    navigate("/invoice", { state: { subscription: sub } });
-  }, [navigate]);
-  
-  
+    try {
+      const response = await axios.get<InvoiceResponse[]>(
+        `https://api.meetowner.in/payments/getInvoiceByID?invoice_number=${sub.invoice_number}`
+      );
+      const invoices = response.data;
+      if (invoices.length > 0 && invoices[0].invoice_url) {
+        window.open(invoices[0].invoice_url, "_blank");
+        
+      } else {
+        console.log("No invoice URL found");
+      }
+    } catch (error) {
+      console.error("Error fetching invoice:", error);
+     
+    }
+    setDropdownOpen(null);
+  }, []);
 
   const handleApprove = useCallback(
     (

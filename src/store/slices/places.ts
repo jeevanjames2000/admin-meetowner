@@ -177,15 +177,17 @@ export const deletePlace = createAsyncThunk(
 export const editPlace = createAsyncThunk(
   "places/editPlace",
   async (payload: EditPlacePayload, { rejectWithValue }) => {
+    console.log("payload: ", payload);
     try {
-      const { oldState, oldCity, oldLocality, newState, newCity, newLocality } = payload;
-      const response = await axiosInstance.post(`/api/v1/editPlace`, {
+      const { oldState, oldCity, oldLocality, newState, newCity, newLocality,status } = payload;
+      const response = await axiosInstance.post(`/api/v1/editPlacesss`, {
         oldState,
         oldCity,
         oldLocality,
         newState,
         newCity,
         newLocality,
+        status
       });
       return response.data;
     } catch (error) {
