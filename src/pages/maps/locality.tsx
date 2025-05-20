@@ -6,14 +6,17 @@ import Input from "../../components/form/input/InputField";
 import * as XLSX from "xlsx";
 import { toast } from "react-hot-toast";
 import { fetchAllStates, fetchAllCities, insertPlace, PlacesState } from "../../store/slices/places";
+
 interface LocationData {
   locality: string;
   city: string;
   state: string;
 }
+
 interface RootState {
   places: PlacesState;
 }
+
 const LocationManager: React.FC = () => {
   const dispatch = useDispatch();
   const {
@@ -26,6 +29,7 @@ const LocationManager: React.FC = () => {
     insertLoading,
     insertError,
   } = useSelector((state: RootState) => state.places);
+
   const [formData, setFormData] = useState<LocationData>({
     locality: "",
     city: "",
@@ -34,53 +38,68 @@ const LocationManager: React.FC = () => {
   const [tableData, setTableData] = useState<LocationData[]>([]);
   const [isStateDropdownOpen, setIsStateDropdownOpen] = useState<boolean>(false);
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
-  const [filteredStates, setFilteredStates] = useState<string[]>([]);
-  const [filteredCities, setFilteredCities] = useState<string[]>([]);
+  const [stateSearchTerm, setStateSearchTerm] = useState<string>("");
+  const [citySearchTerm, setCitySearchTerm] = useState<string>("");
+
   useEffect(() => {
     dispatch(fetchAllStates());
     dispatch(fetchAllCities());
   }, [dispatch]);
+
   useEffect(() => {
-  }, [states]);
+    setFilteredStates(
+      states
+        .map((state) => state.name)
+        .filter((name) =>
+          name.toLowerCase().includes(stateSearchTerm.toLowerCase())
+        )
+    );
+  }, [stateSearchTerm, states]);
+
   useEffect(() => {
-  }, [cities]);
-  useEffect(() => {
-  }, [statesLoading, citiesLoading, insertLoading]);
-  useEffect(() => {
-    if (states.length > 0) {
-      const stateNames = states.map((state) => state.name);
-      const filtered = stateNames.filter((name) =>
-        name.toLowerCase().includes(formData.state.toLowerCase())
-      );
-      setFilteredStates(filtered);
-    } else {
-      setFilteredStates([]);
-    }
-  }, [formData.state, states]);
-  useEffect(() => {
-    if (cities.length > 0) {
-      const cityNames = cities.map((city) => city.name);
-      const filtered = cityNames.filter((name) =>
-        name.toLowerCase().includes(formData.city.toLowerCase())
-      );
-      setFilteredCities(filtered);
-    } else {
-      setFilteredCities([]);
-    }
-  }, [formData.city, cities]);
+    setFilteredCities(
+      cities
+        .map((city) => city.name)
+        .filter((name) =>
+          name.toLowerCase().includes(citySearchTerm.toLowerCase())
+        )
+    );
+  }, [citySearchTerm, cities]);
+
+  const [filteredStates, setFilteredStates] = useState<string[]>([]);
+  const [filteredCities, setFilteredCities] = useState<string[]>([]);
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
+    if (name === "state") {
+      setStateSearchTerm(value);
+    } else if (name === "city") {
+      setCitySearchTerm(value);
+    }
   };
+
   const handleSelectSuggestion = (field: keyof LocationData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }));
     if (field === "state") {
+      setStateSearchTerm(value);
       setIsStateDropdownOpen(false);
       setFormData((prev) => ({ ...prev, city: "" }));
+      setCitySearchTerm("");
     } else if (field === "city") {
+      setCitySearchTerm(value);
       setIsCityDropdownOpen(false);
     }
   };
+
+  const toggleStateDropdown = () => {
+    setIsStateDropdownOpen((prev) => !prev);
+  };
+
+  const toggleCityDropdown = () => {
+    setIsCityDropdownOpen((prev) => !prev);
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const { state, city, locality } = formData;
@@ -94,6 +113,8 @@ const LocationManager: React.FC = () => {
         toast.success("Place added successfully!");
         setTableData((prev) => [...prev, formData]);
         setFormData({ locality: "", city: "", state: "" });
+        setStateSearchTerm("");
+        setCitySearchTerm("");
         setIsStateDropdownOpen(false);
         setIsCityDropdownOpen(false);
         dispatch(fetchAllStates());
@@ -107,6 +128,7 @@ const LocationManager: React.FC = () => {
       toast.error("Failed to add place");
     }
   };
+
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -168,97 +190,146 @@ const LocationManager: React.FC = () => {
       reader.readAsBinaryString(file);
     }
   };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <ComponentCard title="Location Manager">
-        {}
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-            {}
-            <div className="relative">
-              <Label htmlFor="state">State</Label>
-              <Input
-                type="text"
-                id="state"
-                name="state"
-                value={formData.state}
-                onChange={handleInputChange}
-                onFocus={() => {
-                  setIsStateDropdownOpen(true);
-                }}
-                onBlur={() => {
-                  setIsStateDropdownOpen(false);
-                }}
-                className="dark:bg-dark-900"
-                placeholder="Type or select a state"
-                disabled={insertLoading || statesLoading}
-              />
-              {isStateDropdownOpen && filteredStates.length > 0 ? (
-                <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {filteredStates.map((state) => (
-                    <li
-                      key={state}
-                      onMouseDown={() => {
-                        handleSelectSuggestion("state", state);
-                      }}
-                      className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                    >
-                      {state}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                isStateDropdownOpen && <p className="text-sm text-gray-500">No states available</p>
-              )}
-              {statesError && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {statesError}
-                </p>
-              )}
+            {/* State Dropdown */}
+<div className="mb-6 max-w-xs state-dropdown">
+  <Label htmlFor="state-search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+    Select State
+  </Label>
+  <div className="relative">
+    <Input
+      id="state-search"
+      type="text"
+      name="state"
+      value={formData.state}
+      onChange={handleInputChange}
+      onClick={() => setIsStateDropdownOpen(true)} // Open dropdown on input click
+      onFocus={() => setIsStateDropdownOpen(true)} // Open dropdown on focus for accessibility
+      placeholder="Search for a state..."
+      className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+      disabled={insertLoading || statesLoading}
+    />
+    <button
+      type="button"
+      onClick={toggleStateDropdown}
+      className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+      disabled={insertLoading || statesLoading}
+    >
+      <svg
+        className={`w-4 h-4 transform ${isStateDropdownOpen ? "rotate-180" : ""}`}
+        fill="none"
+        stroke="currentColor"
+        viewBox="0 0 24 24"
+        xmlns="http://www.w3.org/2000/svg"
+      >
+        <path
+          strokeLinecap="round"
+          strokeLinejoin="round"
+          strokeWidth="2"
+          d="M19 9l-7 7-7-7"
+        />
+      </svg>
+    </button>
+    {isStateDropdownOpen && (
+      <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+        {filteredStates.length > 0 ? (
+          filteredStates.map((state) => (
+            <li
+              key={state}
+              onClick={() => handleSelectSuggestion("state", state)}
+              className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+            >
+              {state}
+            </li>
+          ))
+        ) : (
+          <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+            No states found
+          </li>
+        )}
+      </ul>
+    )}
+    {statesError && (
+      <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+        {statesError}
+      </p>
+    )}
+  </div>
+</div>
+
+            {/* City Dropdown */}
+            <div className="mb-6 max-w-xs city-dropdown">
+              <Label htmlFor="city-search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+                Select City
+              </Label>
+              <div className="relative">
+                <Input
+                  id="city-search"
+                  type="text"
+                  name="city"
+                  value={formData.city}
+                  onChange={handleInputChange}
+                  onClick={() => setIsCityDropdownOpen(true)} // Open dropdown on input click
+                  onFocus={() => setIsCityDropdownOpen(true)} // Open dropdown on focus for accessibility
+                  placeholder="Search for a city..."
+                  className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+                  disabled={insertLoading || citiesLoading}
+                />
+                <button
+                  type="button"
+                  onClick={toggleCityDropdown}
+                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                  disabled={insertLoading || citiesLoading}
+                >
+                  <svg
+                    className={`w-4 h-4 transform ${isCityDropdownOpen ? "rotate-180" : ""}`}
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                    xmlns="http://www.w3.org/2000/svg"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M19 9l-7 7-7-7"
+                    />
+                  </svg>
+                </button>
+                {isCityDropdownOpen && (
+                  <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                    {filteredCities.length > 0 ? (
+                      filteredCities.map((city) => (
+                        <li
+                          key={city}
+                          onClick={() => handleSelectSuggestion("city", city)}
+                          className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                        >
+                          {city}
+                        </li>
+                      ))
+                    ) : (
+                      <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                        No cities found
+                      </li>
+                    )}
+                  </ul>
+                )}
+                {citiesError && (
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {citiesError}
+                  </p>
+                )}
+              </div>
             </div>
-            {}
-            <div className="relative">
-              <Label htmlFor="city">City</Label>
-              <Input
-                type="text"
-                id="city"
-                name="city"
-                value={formData.city}
-                onChange={handleInputChange}
-                onFocus={() => {
-                  setIsCityDropdownOpen(true);
-                }}
-                onBlur={() => {
-                  setIsCityDropdownOpen(false);
-                }}
-                className="dark:bg-dark-900"
-                placeholder="Type or select a city"
-                disabled={insertLoading || citiesLoading}
-              />
-              {isCityDropdownOpen && filteredCities.length > 0 ? (
-                <ul className="absolute z-10 mt-1 w-full bg-white dark:bg-dark-800 border border-gray-300 dark:border-gray-600 rounded-md shadow-lg max-h-60 overflow-auto">
-                  {filteredCities.map((city) => (
-                    <li
-                      key={city}
-                      onMouseDown={() => {
-                        handleSelectSuggestion("city", city);
-                      }}
-                      className="px-4 py-2 text-sm text-gray-900 dark:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                    >
-                      {city}
-                    </li>
-                  ))}
-                </ul>
-              ) : (
-                isCityDropdownOpen && <p className="text-sm text-gray-500">No cities available</p>
-              )}
-              {citiesError && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                  {citiesError}
-                </p>
-              )}
-            </div>
-            {}
+          
+
+            {/* Locality Input */}
             <div>
               <Label htmlFor="locality">Locality</Label>
               <Input
@@ -273,7 +344,7 @@ const LocationManager: React.FC = () => {
               />
             </div>
           </div>
-          {}
+
           <div className="flex justify-end">
             <button
               type="submit"
@@ -283,14 +354,14 @@ const LocationManager: React.FC = () => {
               {insertLoading ? "Adding..." : "Add Location"}
             </button>
           </div>
-          {}
+
           {insertError && (
             <p className="text-sm text-red-600 dark:text-red-400">
               {insertError}
             </p>
           )}
         </form>
-        {}
+
         <div className="mt-6">
           <Label htmlFor="excelUpload">Upload Excel File</Label>
           <input
@@ -305,7 +376,7 @@ const LocationManager: React.FC = () => {
             Excel file should contain columns: locality, city, state
           </p>
         </div>
-        {}
+
         {tableData.length > 0 && (
           <div className="mt-6">
             <div className="overflow-x-auto">
@@ -346,4 +417,5 @@ const LocationManager: React.FC = () => {
     </div>
   );
 };
+
 export default LocationManager;

@@ -1,14 +1,16 @@
 import React, { useState, useEffect, useRef, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import type { AppDispatch, RootState } from "../../store";
+
+
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import { MoreVertical, X } from "lucide-react";
 import Button from "../../components/ui/button/Button";
-import { fetchAllPlaces, PlacesState, deletePlace, editPlace } from "../../store/slices/places";
+import { fetchAllPlaces,  deletePlace, editPlace } from "../../store/slices/places";
 import { toast } from "react-hot-toast";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+import { AppDispatch, RootState } from "../../store/store";
 interface Place {
   id: number;
   state: string;
