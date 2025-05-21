@@ -82,26 +82,26 @@ interface InsertRulesPayload {
   rules: { name: string; included: boolean }[];
 }
 
-interface EditRulePayload {
-  id: string;
-  rule_name: string;
-  included: boolean;
+export interface EditRulePayload {
+  rules: {
+    id: string;
+    rule_name: string;
+    included: boolean;
+  }[];
 }
 
-interface EditPackagePayload {
-  id: string;
-  name: string;
-  duration_days: number;
-  price: string;
-  is_popular: boolean;
-  button_text: string;
-  actual_amount: string;
-  gst: string;
-  sgst: string;
-  gst_percentage: string;
-  gst_number: string;
-  rera_number: string;
-  package_for: string;
+export interface EditPackagePayload {
+  packageNameId?: number; // Optional
+  name?: string; // Optional
+  price?: number; // Optional
+  duration_days?: number; // Optional
+  button_text?: string; // Optional
+  actual_amount:number;
+  gst:number,
+  sgst:number,
+  gst_percentage:number;
+  gst_number:string;
+  rera_number:string;
 }
 
 // Async thunk for fetching all packages
@@ -149,21 +149,43 @@ export const insertRules = createAsyncThunk(
 
 // Async thunk for editing a rule
 export const editRule = createAsyncThunk(
-  "package/editRule",
+  'package/editRule',
   async (payload: EditRulePayload, { rejectWithValue }) => {
     try {
-      const { id, ...rest } = payload;
-      const promise = axiosInstance.post<SuccessResponse>(`/packages/v1/editRule?rule_id=${id}`, rest);
+      // Send only required fields for rule editing
+     
+      const promise = axiosInstance.post<SuccessResponse>(`/packages/v1/editRule`, payload);
       toast.promise(promise, {
-        loading: "Updating rule...",
-        success: "Rule updated successfully!",
-        error: "Failed to update rule",
+        loading: 'Updating rule...',
+        success: 'Rule updated successfully!',
+        error: 'Failed to update rule',
       });
       const response = await promise;
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
-      const errorMessage = axiosError.response?.data?.message || "Failed to update rule";
+      const errorMessage = axiosError.response?.data?.message || 'Failed to update rule';
+      return rejectWithValue(errorMessage);
+    }
+  }
+)
+
+export const editPackage = createAsyncThunk(
+  'package/editPackage',
+  async (payload: EditPackagePayload, { rejectWithValue }) => {
+    try {
+      // Send only specified fields for package editing
+      const promise = axiosInstance.post<SuccessResponse>(`/packages/v1/editRule`, payload);
+      toast.promise(promise, {
+        loading: 'Updating package...',
+        success: 'Package updated successfully!',
+        error: 'Failed to update package',
+      });
+      const response = await promise;
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || 'Failed to update package';
       return rejectWithValue(errorMessage);
     }
   }
@@ -190,30 +212,7 @@ export const deleteRule = createAsyncThunk(
   }
 );
 
-// Async thunk for editing a package
-export const editPackage = createAsyncThunk(
-  "package/editPackage",
-  async (payload: EditPackagePayload, { rejectWithValue }) => {
-    try {
-      const { id, ...rest } = payload;
-      const promise = axiosInstance.put<SuccessResponse>(
-        `/packages/v1/editPackage?package_id=${id}`,
-        rest
-      );
-      toast.promise(promise, {
-        loading: "Updating package...",
-        success: "Package updated successfully!",
-        error: "Failed to update package",
-      });
-      const response = await promise;
-      return response.data;
-    } catch (error) {
-      const axiosError = error as AxiosError<ErrorResponse>;
-      const errorMessage = axiosError.response?.data?.message || "Failed to update package";
-      return rejectWithValue(errorMessage);
-    }
-  }
-);
+
 
 const packageSlice = createSlice({
   name: "package",
@@ -290,21 +289,8 @@ const packageSlice = createSlice({
       .addCase(deleteRule.rejected, (state, action) => {
         state.deleteLoading = false;
         state.deleteError = action.payload as string;
-      })
-      // Edit Package
-      .addCase(editPackage.pending, (state) => {
-        state.editPackageLoading = true;
-        state.editPackageError = null;
-        state.editPackageSuccess = null;
-      })
-      .addCase(editPackage.fulfilled, (state, action) => {
-        state.editPackageLoading = false;
-        state.editPackageSuccess = action.payload.message;
-      })
-      .addCase(editPackage.rejected, (state, action) => {
-        state.editPackageLoading = false;
-        state.editPackageError = action.payload as string;
       });
+     
   },
 });
 

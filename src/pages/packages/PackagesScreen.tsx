@@ -9,11 +9,12 @@ import {
   insertRules,
   editRule,
   deleteRule,
-  editPackage,
+
   clearMessages,
+  editPackage,
 } from "../../store/slices/packagesSlice";
 import { useParams } from "react-router";
-import { fetchUsersByType } from "../../store/slices/users";
+
 import { toast } from "react-hot-toast";
 
 // Define the type for a rule
@@ -38,7 +39,7 @@ interface Package {
   rera_number: string;
   package_for: string;
   rules: Rule[];
-  packageFor?: string; // "All" or "Custom"
+  packageFor?: string;
   customNumber?: string | null;
 }
 
@@ -53,26 +54,27 @@ export interface InsertRulesPayload {
   rules: { name: string; included: boolean }[];
 }
 
+
 export interface EditRulePayload {
-  id: string;
-  rule_name: string;
-  included: boolean;
+  rules: {
+    id: string;
+    rule_name: string;
+    included: boolean;
+  }[];
 }
 
 export interface EditPackagePayload {
-  id: string;
-  name: string;
-  duration_days: number;
-  price: string;
-  is_popular: boolean;
-  button_text: string;
-  actual_amount: string;
-  gst: string;
-  sgst: string;
-  gst_percentage: string;
-  gst_number: string;
-  rera_number: string;
-  package_for: string;
+  packageNameId: number; // Optional
+  name: string; // Optional
+  price?: number; // Optional
+  duration_days?: number; // Optional
+  button_text?: string; // Optional
+  actual_amount:number;
+  gst:number,
+  sgst:number,
+  gst_percentage:number;
+  gst_number:string;
+  rera_number:string;
 }
 
 interface Option {
@@ -119,10 +121,10 @@ interface EditPackageProps {
   pkg: Package;
   onSave: (updatedPackage: Package) => void;
   onCancel: () => void;
-  users: User[];
+  city:string
 }
 
-const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users }) => {
+const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel,city }) => {
   const dispatch = useDispatch<AppDispatch>();
   const {
     insertSuccess,
@@ -137,32 +139,22 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
 
   const [formData, setFormData] = useState<Package>({
     ...pkg,
-    packageFor: pkg.packageFor || "All",
-    customNumber: pkg.customNumber || null,
-    actual_amount: pkg.actual_amount || "0.00",
-    gst: pkg.gst || "0.00",
-    sgst: pkg.sgst || "0.00",
-    gst_percentage: pkg.gst_percentage || "18.00",
-    gst_number: pkg.gst_number || "",
-    rera_number: pkg.rera_number || "",
+    packageFor: pkg.packageFor,
+    customNumber: pkg.customNumber,
+    actual_amount: pkg.actual_amount,
+    gst: pkg.gst,
+    sgst: pkg.sgst ,
+    gst_percentage: pkg.gst_percentage,
+    gst_number: pkg.gst_number,
+    rera_number: pkg.rera_number,
   });
-  const [userSearchTerm, setUserSearchTerm] = useState<string>("");
-  const [isUserDropdownOpen, setIsUserDropdownOpen] = useState<boolean>(false);
+  
+ 
+  const [originalRules] = useState<Rule[]>(pkg.rules); 
+  const [originalPackage] = useState<Package>(pkg);
 
-  // Prefill userSearchTerm if customNumber corresponds to a user
-  useEffect(() => {
-    if (formData.customNumber && formData.packageFor === "Custom") {
-      const selectedUser = users.find((user) => user.id.toString() === formData.customNumber);
-      if (selectedUser) {
-        const displayText = [selectedUser.name, selectedUser.mobile]
-          .filter(Boolean)
-          .join(" (") + (selectedUser.mobile ? ")" : "");
-        setUserSearchTerm(displayText || "");
-      }
-    } else {
-      setUserSearchTerm("");
-    }
-  }, [formData.customNumber, formData.packageFor, users]);
+  
+  
 
   // Show toasts for API responses
   useEffect(() => {
@@ -184,6 +176,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
     }
     if (deleteSuccess) {
       toast.success(deleteSuccess);
+       dispatch(fetchAllPackages({ package_for: formData.package_for, city: city }));
       dispatch(clearMessages());
     }
     if (deleteError) {
@@ -213,63 +206,13 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
   ]);
 
   // Filter users with null checks
-  const filteredUserOptions = users.filter((user) =>
-    (user.name?.toLowerCase()?.includes(userSearchTerm.toLowerCase() || "") ||
-      user.mobile?.toLowerCase()?.includes(userSearchTerm.toLowerCase() || "")) ??
-    false
-  );
-
+ 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     const cleanValue = name === "price" || name === "actual_amount" ? value.replace("/-", "").trim() : value;
     setFormData((prev) => ({ ...prev, [name]: cleanValue }));
   };
 
-  const handlePackageForChange = (e: ChangeEvent<HTMLSelectElement>) => {
-    const packageFor = e.target.value;
-    setFormData((prev) => ({
-      ...prev,
-      packageFor,
-      customNumber: packageFor === "All" ? null : prev.customNumber,
-      package_for: packageFor === "All" ? "" : prev.package_for,
-    }));
-    setUserSearchTerm("");
-    setIsUserDropdownOpen(false);
-  };
-
-  const handleUserSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
-    setUserSearchTerm(e.target.value);
-    setIsUserDropdownOpen(true);
-  };
-
-  const handleUserSelect = (user: User) => {
-    setFormData((prev) => ({
-      ...prev,
-      customNumber: user.id.toString(),
-      package_for: user.user_type.toString(),
-    }));
-    const displayText = [user.name, user.mobile].filter(Boolean).join(" (") + (user.mobile ? ")" : "");
-    setUserSearchTerm(displayText || "");
-    setIsUserDropdownOpen(false);
-  };
-
-  const toggleUserDropdown = () => {
-    setIsUserDropdownOpen((prev) => !prev);
-  };
-
-  const handleUserClickOutside = (e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (!target.closest(".user-dropdown")) {
-      setIsUserDropdownOpen(false);
-    }
-  };
-
-  useEffect(() => {
-    document.addEventListener("click", handleUserClickOutside);
-    return () => {
-      document.removeEventListener("click", handleUserClickOutside);
-    };
-  }, []);
 
   const handleRuleChange = (
     index: number,
@@ -296,6 +239,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
     if (rule.id) {
       // Delete existing rule
       dispatch(deleteRule(rule.id));
+      console.log("Delete rule payload",{id:rule.id});
     }
     setFormData((prev) => ({
       ...prev,
@@ -309,29 +253,8 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-
-    // Handle package update
-    const packagePayload: EditPackagePayload = {
-      id: formData.id,
-      name: formData.name,
-      duration_days: formData.duration_days,
-      price: formData.price,
-      is_popular: formData.is_popular,
-      button_text: formData.button_text,
-      actual_amount: formData.actual_amount,
-      gst: formData.gst,
-      sgst: formData.sgst,
-      gst_percentage: formData.gst_percentage,
-      gst_number: formData.gst_number,
-      rera_number: formData.rera_number,
-      package_for: formData.packageFor === "Custom" ? formData.package_for : "",
-    };
-    await dispatch(editPackage(packagePayload));
-
-    // Handle rules
-    const newRules = formData.rules.filter((rule) => !rule.id); // New rules to insert
-    const existingRules = formData.rules.filter((rule) => rule.id); // Rules to update
-
+    const newRules = formData.rules.filter((rule) => !rule.id); 
+     const existingRules = formData.rules.filter((rule) => rule.id);
     // Insert new rules
     if (newRules.length > 0) {
       const insertPayload: InsertRulesPayload = {
@@ -341,22 +264,68 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
         rules: newRules.map((rule) => ({ name: rule.name, included: rule.included })),
       };
       await dispatch(insertRules(insertPayload));
+      console.log("Insert rules",insertPayload);
     }
 
-    // Update existing rules
-    for (const rule of existingRules) {
-      if (rule.id) {
-        const editPayload: EditRulePayload = {
-          id: rule.id.toString(),
-          rule_name: rule.name,
-          included: rule.included,
-        };
-        await dispatch(editRule(editPayload));
-      }
+    //Edit rules
+     const editedRules = existingRules
+      .filter((rule) => {
+        if (rule.id) {
+          const originalRule = originalRules.find((orig) => orig.id === rule.id);
+          return (
+            originalRule &&
+            (rule.name !== originalRule.name || rule.included !== originalRule.included)
+          );
+        }
+        return false;
+      })
+      .map((rule) => ({
+        id: rule.id!.toString(),
+        rule_name: rule.name,
+        included: rule.included,
+      }));
+
+    // Dispatch editRule with all edited rules in a list
+    if (editedRules.length > 0) {
+      const editRulePayload: EditRulePayload = {
+        rules: editedRules,
+      };
+      await dispatch(editRule(editRulePayload));
+      console.log('Edit rule payload', editRulePayload);
     }
 
-    // Refetch packages after all operations
-    dispatch(fetchAllPackages({ package_for: formData.package_for, city: "" }));
+      if (
+      formData.name !== originalPackage.name ||
+      formData.price !== originalPackage.price ||
+      formData.duration_days !== originalPackage.duration_days ||
+      formData.button_text !== originalPackage.button_text || 
+      formData.actual_amount ! == originalPackage.actual_amount || 
+      formData.gst !== originalPackage.gst || 
+      formData.sgst !== originalPackage.sgst || 
+      formData.gst_percentage !== originalPackage.gst_percentage || 
+      formData.gst_number !== originalPackage.gst_number || 
+      formData.rera_number !== originalPackage.rera_number 
+    ) {
+      const editPackagePayload: EditPackagePayload = {
+        packageNameId: parseInt(formData.id),
+        name: formData.name,
+        duration_days: formData.duration_days,
+        price: parseInt(formData.price),
+        button_text: formData.button_text,
+        actual_amount:parseInt( formData.actual_amount),
+        gst: parseInt(formData.gst),
+        sgst: parseInt(formData.sgst),
+        gst_percentage: parseInt(formData.gst_percentage),
+        gst_number: formData.gst_number,
+        rera_number: formData.rera_number,
+        
+      };
+      await dispatch(editPackage(editPackagePayload));
+      console.log('Edit package payload', editPackagePayload);
+    }
+
+    dispatch(fetchAllPackages({ package_for: formData.package_for, city: city }));
+    console.log("Fetch All Packages Payload:", { package_for: formData.package_for, city: city });
     onSave(formData);
   };
 
@@ -371,76 +340,16 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel, users 
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Package For
             </label>
-            <select
+            <input
+             type="text"
               name="packageFor"
               value={formData.packageFor}
-              onChange={handlePackageForChange}
+               readOnly={true}
               className="mt-1 block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
-            >
-              <option value="All">All</option>
-              <option value="Custom">Custom</option>
-            </select>
+            />
+             
           </div>
-          {formData.packageFor === "Custom" && (
-            <div className="mb-6 w-full user-dropdown">
-              <label
-                htmlFor="user-search"
-                className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
-              >
-                Select User
-              </label>
-              <div className="relative">
-                <input
-                  id="user-search"
-                  type="text"
-                  value={userSearchTerm}
-                  onChange={handleUserSearchChange}
-                  onClick={toggleUserDropdown}
-                  placeholder="Search for a user..."
-                  className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
-                />
-                <button
-                  type="button"
-                  onClick={toggleUserDropdown}
-                  className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
-                >
-                  <svg
-                    className={`w-4 h-4 transform ${isUserDropdownOpen ? "rotate-180" : ""}`}
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M19 9l-7 7-7-7"
-                    />
-                  </svg>
-                </button>
-                {isUserDropdownOpen && (
-                  <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
-                    {filteredUserOptions.length > 0 ? (
-                      filteredUserOptions.map((user) => (
-                        <li
-                          key={user.id}
-                          onClick={() => handleUserSelect(user)}
-                          className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                        >
-                          {[user.name, user.mobile].filter(Boolean).join(" (") + (user.mobile ? ")" : "") || "Unknown User"}
-                        </li>
-                      ))
-                    ) : (
-                      <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
-                        No users found
-                      </li>
-                    )}
-                  </ul>
-                )}
-              </div>
-            </div>
-          )}
+         
           <div>
             <label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
               Package Name
@@ -655,17 +564,11 @@ const PackagesScreen: React.FC = () => {
   const [isDropdownOpen, setIsDropdownOpen] = useState<boolean>(false);
   const { cities } = useSelector((state: RootState) => state.property);
   const { packages, loading, error } = useSelector((state: RootState) => state.package);
-  const { users } = useSelector((state: RootState) => state.users);
+  
 
   const hasSetInitialCity = useRef(false);
 
-  const userTypeIdMap: { [key: string]: number } = {
-    User: 2,
-    Builder: 3,
-    Agent: 4,
-    Owner: 5,
-    "Channel Partner": 6,
-  };
+  
 
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
@@ -695,18 +598,13 @@ const PackagesScreen: React.FC = () => {
       if (status === "channel_partner") {
         normalizedStatus = "Channel Partner";
       }
-
-      const userTypeId = userTypeIdMap[normalizedStatus];
-      if (userTypeId) {
-        const packagesFilters: PackageFilters = {
+      const packagesFilters: PackageFilters = {
           package_for: status,
           city: selectedCity,
-        };
-        dispatch(fetchAllPackages(packagesFilters));
-        dispatch(fetchUsersByType({ user_type: userTypeId }));
-      } else {
-        console.warn(`Invalid user type: ${status}`);
-      }
+      };
+      dispatch(fetchAllPackages(packagesFilters));
+       
+      
     }
     return () => {
       dispatch(clearPackages());
@@ -721,8 +619,8 @@ const PackagesScreen: React.FC = () => {
     ...pkg,
     button_text: pkg.button_text || (pkg.name === "Free Listing" ? "Subscribed" : "Upgrade Now"),
     is_popular: pkg.is_popular || pkg.name === "Prime",
-    packageFor: pkg.package_for ? "Custom" : "All",
-    customNumber: pkg.package_for ? pkg.package_for : null,
+    packageFor: pkg.package_for,
+    customNumber: pkg.id,
   }));
 
   const formatPrice = (price: string): string => {
@@ -946,7 +844,8 @@ const PackagesScreen: React.FC = () => {
           pkg={editingPackage}
           onSave={handleSavePackage}
           onCancel={handleCancelEdit}
-          users={users}
+         
+          city = {selectedCity}
         />
       )}
     </div>
