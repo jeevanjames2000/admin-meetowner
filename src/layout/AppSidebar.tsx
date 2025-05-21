@@ -179,6 +179,7 @@ const navItems: NavItem[] = [
       { name: "Channel Partners", path: "/packages/channel_partner", pro: false },
       { name: "Owners", path: "/packages/owner", pro: false },
       { name: "Users", path: "/packages/user", pro: false },
+      {name: "Custom Packages", path: "/custompackages", pro: false },
      
     ],
   },

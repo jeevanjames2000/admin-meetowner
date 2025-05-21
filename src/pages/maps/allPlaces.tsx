@@ -133,14 +133,31 @@ const AllPlaces: React.FC = () => {
 
   // Handle click outside for action menu
   useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
+    const handleClickOutsideMenu = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
         setActiveMenu(null);
       }
     };
-    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutsideMenu);
     return () => {
-      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("mousedown", handleClickOutsideMenu);
+    };
+  }, []);
+
+  // Handle click outside for state and city dropdowns
+  useEffect(() => {
+    const handleClickOutsideDropdowns = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".state-dropdown")) {
+        setIsStateDropdownOpen(false);
+      }
+      if (!target.closest(".city-dropdown")) {
+        setIsCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutsideDropdowns);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutsideDropdowns);
     };
   }, []);
 
@@ -334,7 +351,7 @@ const AllPlaces: React.FC = () => {
         {/* Filters */}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <div className="max-w-xs state-dropdown">
-           
+          
             <div className="relative">
               <input
                 id="state-search"
@@ -384,7 +401,7 @@ const AllPlaces: React.FC = () => {
           </div>
 
           <div className="max-w-xs city-dropdown">
-            
+          
             <div className="relative">
               <input
                 id="city-search"
@@ -518,7 +535,7 @@ const AllPlaces: React.FC = () => {
                   ) : (
                     <TableRow>
                       <TableCell
-                        
+                        colSpan={7}
                         className="px-5 py-8 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                       >
                         No Places Found!

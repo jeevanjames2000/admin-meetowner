@@ -11,7 +11,7 @@ interface LocationData {
   locality: string;
   city: string;
   state: string;
-  status:string;
+  status: string;
 }
 
 interface RootState {
@@ -30,20 +30,18 @@ const LocationManager: React.FC = () => {
     insertLoading,
     insertError,
   } = useSelector((state: RootState) => state.places);
-   
 
   const [formData, setFormData] = useState<LocationData>({
     locality: "",
     city: "",
     state: "",
-    status: "inactive", 
+    status: "inactive",
   });
   const [tableData, setTableData] = useState<LocationData[]>([]);
   const [isStateDropdownOpen, setIsStateDropdownOpen] = useState<boolean>(false);
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
   const [stateSearchTerm, setStateSearchTerm] = useState<string>("");
   const [citySearchTerm, setCitySearchTerm] = useState<string>("");
-  
 
   useEffect(() => {
     dispatch(fetchAllStates());
@@ -104,11 +102,29 @@ const LocationManager: React.FC = () => {
     setIsCityDropdownOpen((prev) => !prev);
   };
 
+  // Handle clicks outside dropdowns to close them
+  const handleClickOutside = (e: MouseEvent) => {
+    const target = e.target as HTMLElement;
+    if (!target.closest(".state-dropdown")) {
+      setIsStateDropdownOpen(false);
+    }
+    if (!target.closest(".city-dropdown")) {
+      setIsCityDropdownOpen(false);
+    }
+  };
+
+  useEffect(() => {
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const { state, city, locality,status  } = formData;
+    const { state, city, locality, status } = formData;
     if (!state || !city || !locality || !status) {
-      toast.error("State, City, Locality and status are required");
+      toast.error("State, City, Locality, and Status are required");
       return;
     }
     try {
@@ -116,7 +132,7 @@ const LocationManager: React.FC = () => {
       if (insertPlace.fulfilled.match(resultAction)) {
         toast.success("Place added successfully!");
         setTableData((prev) => [...prev, formData]);
-        setFormData({ locality: "", city: "", state: "",status:"inactive" });
+        setFormData({ locality: "", city: "", state: "", status: "inactive" });
         setStateSearchTerm("");
         setCitySearchTerm("");
         setIsStateDropdownOpen(false);
@@ -133,59 +149,59 @@ const LocationManager: React.FC = () => {
     }
   };
 
- const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
+  const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
       const reader = new FileReader();
       reader.onload = async (event) => {
-        // try {
-        //   const data = event.target?.result;
-        //   if (data) {
-        //     const workbook = XLSX.read(data, { type: "binary" });
-        //     const sheetName = workbook.SheetNames[0];
-        //     const sheet = workbook.Sheets[sheetName];
-        //     const jsonData = XLSX.utils.sheet_to_json<LocationData>(sheet, {
-        //       header: ["locality", "city", "state", "status"], // Updated to include status
-        //       range: 1,
-        //     });
-        //     const insertPromises = jsonData.map(async (row) => {
-        //       if (!row.state || !row.city || !row.locality || !row.status) {
-        //         toast.error(
-        //           `Skipping row: State, City, Locality, and Status are required - ${JSON.stringify(row)}`
-        //         );
-        //         return null;
-        //       }
-        //       try {
-        //         // const resultAction = await dispatch(insertPlace(row));
-        //         if (insertPlace.fulfilled.match(resultAction)) {
-        //           return row;
-        //         } else {
-        //           const errorMessage =
-        //             (resultAction.payload as any)?.message || "Failed to add place";
-        //           toast.error(`Failed to add place: ${JSON.stringify(row)} - ${errorMessage}`);
-        //           return null;
-        //         }
-        //       } catch (err) {
-        //         toast.error(`Failed to add place: ${JSON.stringify(row)}`);
-        //         return null;
-        //       }
-        //     });
-        //     const insertedRows = (await Promise.all(insertPromises)).filter(
-        //       (row): row is LocationData => row !== null
-        //     );
-        //     if (insertedRows.length > 0) {
-        //       setTableData((prev) => [...prev, ...insertedRows]);
-        //       toast.success(`${insertedRows.length} places added successfully!`);
-        //       // dispatch(fetchAllStates());
-        //       // dispatch(fetchAllCities());
-        //     } else {
-        //       toast.error("No places were added from the Excel file.");
-        //     }
-        //   }
-        // } catch (error) {
-        //   console.error("Error reading Excel file:", error);
-        //   toast.error("Error reading Excel file");
-        // }
+        try {
+          const data = event.target?.result;
+          if (data) {
+            const workbook = XLSX.read(data, { type: "binary" });
+            const sheetName = workbook.SheetNames[0];
+            const sheet = workbook.Sheets[sheetName];
+            const jsonData = XLSX.utils.sheet_to_json<LocationData>(sheet, {
+              header: ["locality", "city", "state", "status"],
+              range: 1,
+            });
+            const insertPromises = jsonData.map(async (row) => {
+              if (!row.state || !row.city || !row.locality || !row.status) {
+                toast.error(
+                  `Skipping row: State, City, Locality, and Status are required - ${JSON.stringify(row)}`
+                );
+                return null;
+              }
+              try {
+                const resultAction = await dispatch(insertPlace(row));
+                if (insertPlace.fulfilled.match(resultAction)) {
+                  return row;
+                } else {
+                  const errorMessage =
+                    (resultAction.payload as any)?.message || "Failed to add place";
+                  toast.error(`Failed to add place: ${JSON.stringify(row)} - ${errorMessage}`);
+                  return null;
+                }
+              } catch (err) {
+                toast.error(`Failed to add place: ${JSON.stringify(row)}`);
+                return null;
+              }
+            });
+            const insertedRows = (await Promise.all(insertPromises)).filter(
+              (row): row is LocationData => row !== null
+            );
+            if (insertedRows.length > 0) {
+              setTableData((prev) => [...prev, ...insertedRows]);
+              toast.success(`${insertedRows.length} places added successfully!`);
+              dispatch(fetchAllStates());
+              dispatch(fetchAllCities());
+            } else {
+              toast.error("No places were added from the Excel file.");
+            }
+          }
+        } catch (error) {
+          console.error("Error reading Excel file:", error);
+          toast.error("Error reading Excel file");
+        }
       };
       reader.onerror = (error) => {
         console.error("FileReader error:", error);
@@ -200,7 +216,7 @@ const LocationManager: React.FC = () => {
       <ComponentCard title="Location Manager">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="mb-6 max-w-xs state-dropdown">
+            <div className="mb-6 max-w-xs state-dropdown">
               <Label htmlFor="state-search" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Select State
               </Label>
@@ -319,21 +335,21 @@ const LocationManager: React.FC = () => {
             </div>
 
             {/* Locality Input */}
-              <div>
-                <Label htmlFor="locality">Locality</Label>
-                <Input
-                  type="text"
-                  id="locality"
-                  name="locality"
-                  value={formData.locality}
-                  onChange={handleInputChange}
-                  className="dark:bg-dark-900"
-                  placeholder="Enter locality"
-                  disabled={insertLoading}
-                />
-              </div>
+            <div>
+              <Label htmlFor="locality">Locality</Label>
+              <Input
+                type="text"
+                id="locality"
+                name="locality"
+                value={formData.locality}
+                onChange={handleInputChange}
+                className="dark:bg-dark-900"
+                placeholder="Enter locality"
+                disabled={insertLoading}
+              />
+            </div>
 
-                <div className="mb-6 max-w-xs status-dropdown">
+            <div className="mb-6 max-w-xs status-dropdown">
               <Label htmlFor="status" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
                 Select Status
               </Label>
@@ -381,7 +397,7 @@ const LocationManager: React.FC = () => {
             disabled={insertLoading}
           />
           <p className="mt-2 text-sm text-gray-500">
-            Excel file should contain columns: locality, city, state
+            Excel file should contain columns: locality, city, state, status
           </p>
         </div>
 
@@ -400,6 +416,9 @@ const LocationManager: React.FC = () => {
                     <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
                       State
                     </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 dark:text-gray-300 uppercase tracking-wider">
+                      Status
+                    </th>
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200 dark:bg-dark-900 dark:divide-gray-700">
@@ -413,6 +432,9 @@ const LocationManager: React.FC = () => {
                       </td>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {row.state || "-"}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
+                        {row.status || "-"}
                       </td>
                     </tr>
                   ))}
