@@ -5,7 +5,7 @@ import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import * as XLSX from "xlsx";
 import { toast } from "react-hot-toast";
-import { fetchAllStates, fetchAllCities, insertPlace, PlacesState } from "../../store/slices/places";
+import { fetchAllStates, fetchAllCities, insertPlace, PlacesState, insertPlaceWithExcell } from "../../store/slices/places";
 
 interface LocationData {
   locality: string;
@@ -42,6 +42,8 @@ const LocationManager: React.FC = () => {
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
   const [stateSearchTerm, setStateSearchTerm] = useState<string>("");
   const [citySearchTerm, setCitySearchTerm] = useState<string>("");
+  const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  const [previewData, setPreviewData] = useState<LocationData[]>([]);
 
   useEffect(() => {
     dispatch(fetchAllStates());
@@ -149,68 +151,81 @@ const LocationManager: React.FC = () => {
     }
   };
 
+  
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onload = async (event) => {
-        try {
-          const data = event.target?.result;
-          if (data) {
-            const workbook = XLSX.read(data, { type: "binary" });
-            const sheetName = workbook.SheetNames[0];
-            const sheet = workbook.Sheets[sheetName];
-            const jsonData = XLSX.utils.sheet_to_json<LocationData>(sheet, {
-              header: ["locality", "city", "state", "status"],
-              range: 1,
-            });
-            const insertPromises = jsonData.map(async (row) => {
-              if (!row.state || !row.city || !row.locality || !row.status) {
-                toast.error(
-                  `Skipping row: State, City, Locality, and Status are required - ${JSON.stringify(row)}`
-                );
-                return null;
-              }
-              try {
-                const resultAction = await dispatch(insertPlace(row));
-                if (insertPlace.fulfilled.match(resultAction)) {
-                  return row;
-                } else {
-                  const errorMessage =
-                    (resultAction.payload as any)?.message || "Failed to add place";
-                  toast.error(`Failed to add place: ${JSON.stringify(row)} - ${errorMessage}`);
-                  return null;
-                }
-              } catch (err) {
-                toast.error(`Failed to add place: ${JSON.stringify(row)}`);
-                return null;
-              }
-            });
-            const insertedRows = (await Promise.all(insertPromises)).filter(
-              (row): row is LocationData => row !== null
-            );
-            if (insertedRows.length > 0) {
-              setTableData((prev) => [...prev, ...insertedRows]);
-              toast.success(`${insertedRows.length} places added successfully!`);
-              dispatch(fetchAllStates());
-              dispatch(fetchAllCities());
-            } else {
-              toast.error("No places were added from the Excel file.");
-            }
-          }
-        } catch (error) {
-          console.error("Error reading Excel file:", error);
-          toast.error("Error reading Excel file");
+    if (!file) return;
+  
+    setSelectedFile(file); // Save the file for later upload
+  
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      try {
+        const data = event.target?.result;
+        if (!data) return;
+  
+        const workbook = XLSX.read(data, { type: "binary" });
+        const sheetName = workbook.SheetNames[0];
+        const sheet = workbook.Sheets[sheetName];
+        const jsonData = XLSX.utils.sheet_to_json<LocationData>(sheet, {
+          header: ["locality", "city", "state"],
+          range: 1,
+        });
+  
+        const validRows = jsonData.filter(row => row.state && row.city && row.locality);
+        if (validRows.length === 0) {
+          toast.error("No valid rows found in Excel file");
+          return;
         }
-      };
-      reader.onerror = (error) => {
-        console.error("FileReader error:", error);
+  
+        setPreviewData(validRows); // Set to show in table
+      } catch (error) {
+        console.error("Error reading Excel file:", error);
         toast.error("Error reading Excel file");
-      };
-      reader.readAsBinaryString(file);
+      }
+    };
+  
+    reader.onerror = (error) => {
+      console.error("FileReader error:", error);
+      toast.error("Error reading Excel file");
+    };
+  
+    reader.readAsBinaryString(file);
+  };
+  const handleUploadLocations = async () => {
+    if (!selectedFile || previewData.length === 0) {
+      toast.error("Please upload a valid Excel file first");
+      return;
+    }
+  
+    const resultAction = await dispatch(insertPlaceWithExcell(selectedFile));
+    if (insertPlaceWithExcell.fulfilled.match(resultAction)) {
+      toast.success(resultAction.payload.message || "Places uploaded successfully!");
+      setTableData((prev) => [...prev, ...previewData]);
+      setSelectedFile(null);
+      setPreviewData([]);
+      dispatch(fetchAllStates());
+      dispatch(fetchAllCities());
+    } else {
+      const errorMessage = (resultAction.payload as any)?.message || "Failed to upload Excel";
+      toast.error(errorMessage);
     }
   };
-
+  
+  const handleDownloadTemplate = () => {
+    const worksheetData = [
+      {
+        state: "Andhra Pradesh",
+        city: "Visakhapatnam",
+        locality: "Gajuwaka",
+        status: "active",
+      },
+    ];
+    const worksheet = XLSX.utils.json_to_sheet(worksheetData);
+    const workbook = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
+    XLSX.writeFile(workbook, "location_template.xlsx");
+  };
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <ComponentCard title="Location Manager">
@@ -385,23 +400,42 @@ const LocationManager: React.FC = () => {
             </p>
           )}
         </form>
+        <div className="flex justify-between items-center gap-4 flex-wrap">
 
-        <div className="mt-6">
-          <Label htmlFor="excelUpload">Upload Excel File</Label>
-          <input
-            type="file"
-            id="excelUpload"
-            accept=".xlsx, .xls"
-            onChange={handleFileUpload}
-            className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-gray-800 dark:file:text-gray-300 dark:hover:file:bg-gray-700"
-            disabled={insertLoading}
-          />
-          <p className="mt-2 text-sm text-gray-500">
-            Excel file should contain columns: locality, city, state, status
-          </p>
-        </div>
+        <div>
+    <Label htmlFor="excelUpload">Upload Excel File</Label>
+    <input
+      type="file"
+      id="excelUpload"
+      accept=".xlsx, .xls"
+      onChange={handleFileUpload}
+      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-gray-800 dark:file:text-gray-300 dark:hover:file:bg-gray-700"
+      disabled={insertLoading}
+    />
+    <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+      <span>Excel file should contain columns: <strong>locality, city, state</strong></span>
+      <button
+        type="button"
+        onClick={handleDownloadTemplate}
+        className="px-3 py-1 bg-[#1D3A76] text-white text-sm rounded-md hover:bg-brand-600 transition-colors duration-200"
+      >
+        Download
+      </button>
+    </div>
+  </div>
+  <div>
+    <button
+      type="button"
+      onClick={handleUploadLocations}
+      className="px-6 py-2 h-10 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+    >
+      Upload Locations
+    </button>
+  </div>
+</div>
 
-        {tableData.length > 0 && (
+
+        {previewData.length > 0 && (
           <div className="mt-6">
             <div className="overflow-x-auto">
               <table className="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
@@ -422,7 +456,7 @@ const LocationManager: React.FC = () => {
                   </tr>
                 </thead>
                 <tbody className="bg-white divide-y divide-gray-200 dark:bg-dark-900 dark:divide-gray-700">
-                  {tableData.map((row, index) => (
+                  {previewData.map((row, index) => (
                     <tr key={index}>
                       <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900 dark:text-gray-100">
                         {row.locality || "-"}

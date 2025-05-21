@@ -7,7 +7,6 @@ interface Place {
   state: string;
   city: string;
   locality: string;
-  status:string;
   areas: string | null;
 }
 interface PlacesResponse {
@@ -50,6 +49,8 @@ export interface PlacesState {
   deleteError: string | null;
   insertLoading: boolean;
   insertError: string | null;
+  insertExcellLoading: boolean;
+  insertExcellError: string | null;
   states: StateData[];
   statesLoading: boolean;
   statesError: string | null;
@@ -60,14 +61,11 @@ export interface PlacesState {
 interface PlaceFilter {
   page: number;
   search: string;
-   state?: string; 
-  city?: string; 
 }
 interface DeletePlacePayload {
   state: string;
   city: string;
   locality: string;
-
 }
 interface EditPlacePayload {
   oldState: string;
@@ -76,13 +74,11 @@ interface EditPlacePayload {
   newState: string;
   newCity: string;
   newLocality: string;
-  status:string;
 }
 interface InsertPlacePayload {
   state: string;
   city: string;
   locality: string;
-  status:string;
 }
 export const fetchAllStates = createAsyncThunk(
   "places/fetchAllStates",
@@ -125,12 +121,11 @@ export const insertPlace = createAsyncThunk(
   "places/insertPlace",
   async (payload: InsertPlacePayload, { rejectWithValue }) => {
     try {
-      const { state, city, locality,status } = payload;
+      const { state, city, locality } = payload;
       const response = await axiosInstance.post(`/api/v1/insertPlaces`, {
         state,
         city,
         locality,
-        status
       });
       return response.data;
     } catch (error) {
@@ -141,24 +136,45 @@ export const insertPlace = createAsyncThunk(
     }
   }
 );
+export const insertPlaceWithExcell = createAsyncThunk(
+  "places/insertPlaceWithExcell",
+  async (file: File, { rejectWithValue }) => {
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const promise = axiosInstance.post(`/api/v1/uploadPlacesExcell`, formData, {
+        headers: {
+          "Content-Type": "multipart/form-data",
+        },
+      });
+      toast.promise(promise, {
+        loading: "Uploading...",
+        success: "Places uploaded successfully!",
+        error: "Failed to upload places",
+      });
+      const response = await promise;
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      return rejectWithValue(
+        axiosError.response?.data || { message: "Failed to upload Excel file" }
+      );
+    }
+  }
+);
 
 export const fetchAllPlaces = createAsyncThunk(
   "places/fetchAllPlaces",
   async (filter: PlaceFilter, { rejectWithValue }) => {
     try {
-      const { page, search,city,state} = filter;
-      const params = new URLSearchParams();
-      params.append("page", page.toString());
-      params.append("search", search);
-      if (state) params.append("state", state);
-      if (city) params.append("city", city);
-
-      const promise = axiosInstance.get<PlacesResponse>(`/api/v1/getAllPlaces?${params.toString()}`);
-      // toast.promise(promise, {
-      //   loading: "Fetching places...",
-      //   success: "Places fetched successfully!",
-      //   error: "Failed to fetch places",
-      // });
+      const { page, search } = filter;
+      const promise = axiosInstance.get<PlacesResponse>(`/api/v1/getAllPlaces?page=${page}&search=${encodeURIComponent(search)}`);
+      toast.promise(promise, {
+        loading: "Fetching places...",
+        success: "Places fetched successfully!",
+        error: "Failed to fetch places",
+      });
       const response = await promise;
       return response.data;
     } catch (error) {
@@ -169,7 +185,6 @@ export const fetchAllPlaces = createAsyncThunk(
     }
   }
 );
-
 export const deletePlace = createAsyncThunk(
   "places/deletePlace",
   async (payload: DeletePlacePayload, { rejectWithValue }) => {
@@ -192,9 +207,8 @@ export const deletePlace = createAsyncThunk(
 export const editPlace = createAsyncThunk(
   "places/editPlace",
   async (payload: EditPlacePayload, { rejectWithValue }) => {
-    console.log("payload: ", payload);
     try {
-      const { oldState, oldCity, oldLocality, newState, newCity, newLocality,status } = payload;
+      const { oldState, oldCity, oldLocality, newState, newCity, newLocality } = payload;
       const response = await axiosInstance.post(`/api/v1/editPlace`, {
         oldState,
         oldCity,
@@ -202,7 +216,6 @@ export const editPlace = createAsyncThunk(
         newState,
         newCity,
         newLocality,
-        status
       });
       return response.data;
     } catch (error) {
@@ -307,6 +320,18 @@ const placesSlice = createSlice({
       .addCase(insertPlace.rejected, (state, action) => {
         state.insertLoading = false;
         state.insertError = action.payload as string;
+      });
+      builder
+      .addCase(insertPlaceWithExcell.pending, (state) => {
+        state.insertExcellLoading = true;
+        state.insertExcellError = null;
+      })
+      .addCase(insertPlaceWithExcell.fulfilled, (state) => {
+        state.insertExcellLoading = false;
+      })
+      .addCase(insertPlaceWithExcell.rejected, (state, action) => {
+        state.insertExcellLoading = false;
+        state.insertExcellError = action.payload as string;
       });
     builder
       .addCase(fetchAllStates.pending, (state) => {
