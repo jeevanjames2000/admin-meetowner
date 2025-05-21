@@ -3,10 +3,11 @@ import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
 interface Place {
-  id: number;
+ id: number;
   state: string;
   city: string;
   locality: string;
+  status:string;
   areas: string | null;
 }
 interface PlacesResponse {
@@ -61,6 +62,8 @@ export interface PlacesState {
 interface PlaceFilter {
   page: number;
   search: string;
+   state?: string; 
+  city?: string; 
 }
 interface DeletePlacePayload {
   state: string;
@@ -74,11 +77,16 @@ interface EditPlacePayload {
   newState: string;
   newCity: string;
   newLocality: string;
+  status:string;
 }
 interface InsertPlacePayload {
   state: string;
   city: string;
   locality: string;
+  status:string;
+}
+interface FetchCitiesParams {
+  state?: string;
 }
 export const fetchAllStates = createAsyncThunk(
   "places/fetchAllStates",
@@ -99,14 +107,18 @@ export const fetchAllStates = createAsyncThunk(
 );
 export const fetchAllCities = createAsyncThunk(
   "places/fetchAllCities",
-  async (_, { rejectWithValue }) => {
+  async ({ state }: FetchCitiesParams = {}, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get<RawCityData[]>("/api/v1/getAllCities");
+      // Construct URL with optional state query parameter
+      const url = state
+        ? `/api/v1/getAllCities?state=${encodeURIComponent(state)}`
+        : "/api/v1/getAllCities";
+      const response = await axiosInstance.get<RawCityData[]>(url);
       const uniqueCities = Array.from(
         new Set(response.data.map((item) => item.city))
       ).map((city) => ({
         name: city,
-        state: "",
+        state: state || "",
       }));
       return uniqueCities;
     } catch (error) {
@@ -117,16 +129,24 @@ export const fetchAllCities = createAsyncThunk(
     }
   }
 );
+
 export const insertPlace = createAsyncThunk(
   "places/insertPlace",
   async (payload: InsertPlacePayload, { rejectWithValue }) => {
     try {
-      const { state, city, locality } = payload;
-      const response = await axiosInstance.post(`/api/v1/insertPlaces`, {
+      const { state, city, locality ,status} = payload;
+      const promise =  axiosInstance.post(`/api/v1/insertPlaces`, {
         state,
         city,
         locality,
+        status
       });
+       toast.promise(promise, {
+        loading: "Uploading...",
+        success: "Places Added successfully!",
+        error: "Failed to Add places",
+      });
+      const response = await promise;
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
@@ -136,6 +156,7 @@ export const insertPlace = createAsyncThunk(
     }
   }
 );
+
 export const insertPlaceWithExcell = createAsyncThunk(
   "places/insertPlaceWithExcell",
   async (file: File, { rejectWithValue }) => {
@@ -168,13 +189,19 @@ export const fetchAllPlaces = createAsyncThunk(
   "places/fetchAllPlaces",
   async (filter: PlaceFilter, { rejectWithValue }) => {
     try {
-      const { page, search } = filter;
-      const promise = axiosInstance.get<PlacesResponse>(`/api/v1/getAllPlaces?page=${page}&search=${encodeURIComponent(search)}`);
-      toast.promise(promise, {
-        loading: "Fetching places...",
-        success: "Places fetched successfully!",
-        error: "Failed to fetch places",
-      });
+      const { page, search,city,state} = filter;
+      const params = new URLSearchParams();
+      params.append("page", page.toString());
+      params.append("search", search);
+      if (state) params.append("state", state);
+      if (city) params.append("city", city);
+
+      const promise = axiosInstance.get<PlacesResponse>(`/api/v1/getAllPlaces?${params.toString()}`);
+      // toast.promise(promise, {
+      //   loading: "Fetching places...",
+      //   success: "Places fetched successfully!",
+      //   error: "Failed to fetch places",
+      // });
       const response = await promise;
       return response.data;
     } catch (error) {
@@ -185,17 +212,22 @@ export const fetchAllPlaces = createAsyncThunk(
     }
   }
 );
+
 export const deletePlace = createAsyncThunk(
   "places/deletePlace",
   async (payload: DeletePlacePayload, { rejectWithValue }) => {
     try {
       const { state, city, locality } = payload;
-      const response = await axiosInstance.post(`/api/v1/deletePlace`, {
+      const promise =  axiosInstance.post(`/api/v1/deletePlace`, {
         state,
         city,
         locality,
       });
-      return response.data;
+      toast.promise(promise, {
+        loading: "deleting...",
+        success: "Places deleted successfully!",
+        error: "Failed to deleted places",
+      });
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       return rejectWithValue(
@@ -207,16 +239,24 @@ export const deletePlace = createAsyncThunk(
 export const editPlace = createAsyncThunk(
   "places/editPlace",
   async (payload: EditPlacePayload, { rejectWithValue }) => {
+    console.log("payload: ", payload);
     try {
-      const { oldState, oldCity, oldLocality, newState, newCity, newLocality } = payload;
-      const response = await axiosInstance.post(`/api/v1/editPlace`, {
+      const { oldState, oldCity, oldLocality, newState, newCity, newLocality,status } = payload;
+      const promise =  axiosInstance.post(`/api/v1/editPlace`, {
         oldState,
         oldCity,
         oldLocality,
         newState,
         newCity,
         newLocality,
+        status
       });
+       toast.promise(promise, {
+        loading: "Uploading...",
+        success: "Place Edited successfully!",
+        error: "Failed to Edit place",
+      });
+      const response = await promise;
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
@@ -249,7 +289,7 @@ const placesSlice = createSlice({
     cities: [],
     citiesLoading: false,
     citiesError: null,
-  } as PlacesState,
+  } as unknown as PlacesState,
   reducers: {
     clearPlaces: (state) => {
       state.places = [];

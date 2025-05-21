@@ -230,7 +230,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel,city })
   const handleAddRule = () => {
     setFormData((prev) => ({
       ...prev,
-      rules: [...prev.rules, { name: "New Rule", included: false }],
+      rules: [...prev.rules, { name: "", included: false }],
     }));
   };
 
@@ -520,6 +520,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel,city })
                   onChange={(e) =>
                     handleRuleChange(index, "name", e.target.value)
                   }
+                   placeholder="Enter rule name"
                   className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
                 />
                 <button

@@ -9,7 +9,7 @@ import { fetchAllPlaces, deletePlace, editPlace, fetchAllStates, fetchAllCities 
 import { toast } from "react-hot-toast";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { AppDispatch, RootState } from "../../store/store";
-import Label from "../../components/form/Label";
+
 
 interface Place {
   id: number;
@@ -114,6 +114,15 @@ const AllPlaces: React.FC = () => {
     dispatch(fetchAllCities());
   }, [dispatch]);
 
+  useEffect(() => {
+    if (stateFilter) {
+      dispatch(fetchAllCities({ state: stateFilter }));
+    } else {
+      dispatch(fetchAllCities());
+    }
+  }, [dispatch, stateFilter]);
+
+
   // Memoized filter parameters
   const filterParams = useMemo(
     () => ({
@@ -173,9 +182,12 @@ const AllPlaces: React.FC = () => {
   const filteredCities = useMemo(
     () =>
       cities
-        .map((city) => city.name)
-        .filter((name) => name.toLowerCase().includes(citySearchTerm.toLowerCase())),
-    [citySearchTerm, cities]
+        .filter((city) => 
+          (!stateFilter || city.state === stateFilter) &&
+          city.name.toLowerCase().includes(citySearchTerm.toLowerCase())
+        )
+        .map((city) => city.name),
+    [citySearchTerm, cities, stateFilter]
   );
 
   const handleSelectSuggestion = (field: "state" | "city", value: string) => {
@@ -210,6 +222,7 @@ const AllPlaces: React.FC = () => {
     setIsStateDropdownOpen(false);
     setIsCityDropdownOpen(false);
     dispatch(fetchAllPlaces({ page: 1, search: "", state: "", city: "" }));
+    dispatch(fetchAllCities());
   };
 
   const handlePageChange = (page: number) => {
@@ -259,6 +272,7 @@ const AllPlaces: React.FC = () => {
 
     return pages;
   };
+
 
   const toggleMenu = (id: number) => {
     setActiveMenu(activeMenu === id ? null : id);
@@ -535,7 +549,7 @@ const AllPlaces: React.FC = () => {
                   ) : (
                     <TableRow>
                       <TableCell
-                        colSpan={7}
+                       
                         className="px-5 py-8 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                       >
                         No Places Found!

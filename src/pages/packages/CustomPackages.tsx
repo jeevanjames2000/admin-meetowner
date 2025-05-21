@@ -1,13 +1,13 @@
 import React, { useState, useEffect, ChangeEvent, FormEvent } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import Select from "../../components/form/Select"; // Adjust import path as needed
-import Input from "../../components/form/input/InputField"; // Adjust import path as needed
-import Label from "../../components/form/Label"; // Adjust import path as needed
-import ComponentCard from "../../components/common/ComponentCard"; // Adjust import path as needed
-import PageMeta from "../../components/common/PageMeta"; // Adjust import path as needed
-import { FaTrash } from "react-icons/fa";
-import { AppDispatch, RootState } from "../../store/store"; // Adjust import path as needed
-import { fetchUsersByType } from "../../store/slices/users"; // Adjust import path as needed
+import Select from "../../components/form/Select"; 
+import Input from "../../components/form/input/InputField"; 
+import Label from "../../components/form/Label"; 
+import ComponentCard from "../../components/common/ComponentCard"; 
+import PageMeta from "../../components/common/PageMeta"; 
+
+import { AppDispatch, RootState } from "../../store/store"; 
+import { fetchUsersByType } from "../../store/slices/users";
 
 // Interfaces
 interface Rule {
@@ -232,7 +232,7 @@ const CustomPackages: React.FC = () => {
   const handleAddRule = () => {
     setFormData((prev) => ({
       ...prev,
-      rules: [...prev.rules, { name: "New Rule", included: false }],
+      rules: [...prev.rules, { name: "", included: false }],
     }));
   };
 
@@ -631,10 +631,10 @@ const CustomPackages: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleRemoveRule(index)}
-                  className="p-2 bg-red-500 text-white rounded-full hover:bg-red-600 transition-colors duration-200"
+                  className="p-2 "
                   aria-label={`Remove rule ${rule.name}`}
                 >
-                  <FaTrash />
+                   ✕
                 </button>
               </div>
             ))}

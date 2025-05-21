@@ -47,6 +47,7 @@ const LocationManager: React.FC = () => {
 
   useEffect(() => {
     dispatch(fetchAllStates());
+    // Only fetch all cities without a state initially
     dispatch(fetchAllCities());
   }, [dispatch]);
 
@@ -63,12 +64,14 @@ const LocationManager: React.FC = () => {
   useEffect(() => {
     setFilteredCities(
       cities
-        .map((city) => city.name)
-        .filter((name) =>
-          name.toLowerCase().includes(citySearchTerm.toLowerCase())
+        .filter((city) => 
+          // Only include cities that match the selected state (if any) and search term
+          (!formData.state || city.state === formData.state) &&
+          city.name.toLowerCase().includes(citySearchTerm.toLowerCase())
         )
+        .map((city) => city.name)
     );
-  }, [citySearchTerm, cities]);
+  }, [citySearchTerm, cities, formData.state]);
 
   const [filteredStates, setFilteredStates] = useState<string[]>([]);
   const [filteredCities, setFilteredCities] = useState<string[]>([]);
@@ -88,8 +91,11 @@ const LocationManager: React.FC = () => {
     if (field === "state") {
       setStateSearchTerm(value);
       setIsStateDropdownOpen(false);
+      // Reset city and fetch cities for the selected state
       setFormData((prev) => ({ ...prev, city: "" }));
       setCitySearchTerm("");
+      setIsCityDropdownOpen(false);
+      dispatch(fetchAllCities({ state: value }));
     } else if (field === "city") {
       setCitySearchTerm(value);
       setIsCityDropdownOpen(false);
@@ -140,7 +146,7 @@ const LocationManager: React.FC = () => {
         setIsStateDropdownOpen(false);
         setIsCityDropdownOpen(false);
         dispatch(fetchAllStates());
-        dispatch(fetchAllCities());
+        dispatch(fetchAllCities()); // Fetch all cities without state filter after insert
       } else {
         const errorMessage =
           (resultAction.payload as any)?.message || "Failed to add place";
@@ -151,53 +157,53 @@ const LocationManager: React.FC = () => {
     }
   };
 
-  
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-  
-    setSelectedFile(file); // Save the file for later upload
-  
+
+    setSelectedFile(file);
+
     const reader = new FileReader();
     reader.onload = (event) => {
       try {
         const data = event.target?.result;
         if (!data) return;
-  
+
         const workbook = XLSX.read(data, { type: "binary" });
         const sheetName = workbook.SheetNames[0];
         const sheet = workbook.Sheets[sheetName];
         const jsonData = XLSX.utils.sheet_to_json<LocationData>(sheet, {
-          header: ["locality", "city", "state"],
+          header: ["locality", "city", "state","status"],
           range: 1,
         });
-  
+
         const validRows = jsonData.filter(row => row.state && row.city && row.locality);
         if (validRows.length === 0) {
           toast.error("No valid rows found in Excel file");
           return;
         }
-  
-        setPreviewData(validRows); // Set to show in table
+
+        setPreviewData(validRows);
       } catch (error) {
         console.error("Error reading Excel file:", error);
         toast.error("Error reading Excel file");
       }
     };
-  
+
     reader.onerror = (error) => {
       console.error("FileReader error:", error);
       toast.error("Error reading Excel file");
     };
-  
+
     reader.readAsBinaryString(file);
   };
+
   const handleUploadLocations = async () => {
     if (!selectedFile || previewData.length === 0) {
       toast.error("Please upload a valid Excel file first");
       return;
     }
-  
+
     const resultAction = await dispatch(insertPlaceWithExcell(selectedFile));
     if (insertPlaceWithExcell.fulfilled.match(resultAction)) {
       toast.success(resultAction.payload.message || "Places uploaded successfully!");
@@ -205,13 +211,13 @@ const LocationManager: React.FC = () => {
       setSelectedFile(null);
       setPreviewData([]);
       dispatch(fetchAllStates());
-      dispatch(fetchAllCities());
+      dispatch(fetchAllCities()); // Fetch all cities without state filter after upload
     } else {
       const errorMessage = (resultAction.payload as any)?.message || "Failed to upload Excel";
       toast.error(errorMessage);
     }
   };
-  
+
   const handleDownloadTemplate = () => {
     const worksheetData = [
       {
@@ -226,6 +232,7 @@ const LocationManager: React.FC = () => {
     XLSX.utils.book_append_sheet(workbook, worksheet, "Template");
     XLSX.writeFile(workbook, "location_template.xlsx");
   };
+
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <ComponentCard title="Location Manager">
@@ -305,13 +312,13 @@ const LocationManager: React.FC = () => {
                   onFocus={() => setIsCityDropdownOpen(true)}
                   placeholder="Search for a city..."
                   className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
-                  disabled={insertLoading || citiesLoading}
+                  disabled={insertLoading || citiesLoading || !formData.state}
                 />
                 <button
                   type="button"
                   onClick={toggleCityDropdown}
                   className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
-                  disabled={insertLoading || citiesLoading}
+                  disabled={insertLoading || citiesLoading || !formData.state}
                 >
                   <svg
                     className={`w-4 h-4 transform ${isCityDropdownOpen ? "rotate-180" : ""}`}
@@ -349,7 +356,6 @@ const LocationManager: React.FC = () => {
               </div>
             </div>
 
-            {/* Locality Input */}
             <div>
               <Label htmlFor="locality">Locality</Label>
               <Input
@@ -401,39 +407,37 @@ const LocationManager: React.FC = () => {
           )}
         </form>
         <div className="flex justify-between items-center gap-4 flex-wrap">
-
-        <div>
-    <Label htmlFor="excelUpload">Upload Excel File</Label>
-    <input
-      type="file"
-      id="excelUpload"
-      accept=".xlsx, .xls"
-      onChange={handleFileUpload}
-      className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-gray-800 dark:file:text-gray-300 dark:hover:file:bg-gray-700"
-      disabled={insertLoading}
-    />
-    <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
-      <span>Excel file should contain columns: <strong>locality, city, state</strong></span>
-      <button
-        type="button"
-        onClick={handleDownloadTemplate}
-        className="px-3 py-1 bg-[#1D3A76] text-white text-sm rounded-md hover:bg-brand-600 transition-colors duration-200"
-      >
-        Download
-      </button>
-    </div>
-  </div>
-  <div>
-    <button
-      type="button"
-      onClick={handleUploadLocations}
-      className="px-6 py-2 h-10 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-    >
-      Upload Locations
-    </button>
-  </div>
-</div>
-
+          <div>
+            <Label htmlFor="excelUpload">Upload Excel File</Label>
+            <input
+              type="file"
+              id="excelUpload"
+              accept=".xlsx, .xls"
+              onChange={handleFileUpload}
+              className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-lg file:border-0 file:text-sm file:font-semibold file:bg-gray-100 file:text-gray-700 hover:file:bg-gray-200 dark:file:bg-gray-800 dark:file:text-gray-300 dark:hover:file:bg-gray-700"
+              disabled={insertLoading}
+            />
+            <div className="mt-2 text-sm text-gray-500 flex items-center gap-2">
+              <span>Excel file should contain columns: <strong>locality, city, state</strong></span>
+              <button
+                type="button"
+                onClick={handleDownloadTemplate}
+                className="px-3 py-1 bg-[#1D3A76] text-white text-sm rounded-md hover:bg-brand-600 transition-colors duration-200"
+              >
+                Download
+              </button>
+            </div>
+          </div>
+          <div>
+            <button
+              type="button"
+              onClick={handleUploadLocations}
+              className="px-6 py-2 h-10 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Upload Locations
+            </button>
+          </div>
+        </div>
 
         {previewData.length > 0 && (
           <div className="mt-6">
