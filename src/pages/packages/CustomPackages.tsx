@@ -249,6 +249,15 @@ const CustomPackages: React.FC = () => {
     if (!formData.customNumber) newErrors.customNumber = "User selection is required";
     if (!formData.name) newErrors.name = "Package Name is required";
     if (!formData.price && (formData.name === "Custom" || formData.name === "Offline"))
+    if (!formData.actual_amount) newErrors.actual_amount = "Actual Amount is required";
+    if (!formData.gst) newErrors.gst = "GST is required";
+    if (!formData.sgst) newErrors.sgst = "SGST is required";
+    if(!formData.gst_percentage) newErrors.gst_percentage = "GST Percentage is required";
+    if (!formData.sgst_percentage) newErrors.sgst_percentage = "SGST Percentage is required";
+    if (!formData.gst_number) newErrors.gst_number = "GST Number is required";
+    if (!formData.rera_number) newErrors.rera_number = "RERA Number is required";
+    if (!formData.duration_days) newErrors.duration_days = "Duration Days is required";
+    if (!formData.button_text) newErrors.button_text = "Button Text is required";
       newErrors.price = "Price is required for Custom or Offline packages";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
