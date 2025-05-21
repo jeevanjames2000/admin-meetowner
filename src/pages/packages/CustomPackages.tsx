@@ -8,8 +8,6 @@ import PageMeta from "../../components/common/PageMeta";
 
 import { AppDispatch, RootState } from "../../store/store"; 
 import { fetchUsersByType } from "../../store/slices/users";
-
-// Interfaces
 interface Rule {
   id?: number;
   name: string;
@@ -63,8 +61,6 @@ const CustomPackages: React.FC = () => {
   const { users, loading: usersLoading, error: usersError } = useSelector(
     (state: RootState) => state.users
   );
-
-  // Define default rules
   const defaultRules: Rule[] = [
     { name: "Number of Listings 5", included: false },
     { name: "Response Rate 2X More", included: false },
@@ -98,7 +94,7 @@ const CustomPackages: React.FC = () => {
     gst_number: "",
     rera_number: "",
     package_for: "User",
-    rules: defaultRules, // Initialize with default rules
+    rules: defaultRules,
     packageFor: "User",
     customNumber: null,
   });
@@ -122,15 +118,11 @@ const CustomPackages: React.FC = () => {
     { value: "Custom", label: "Custom" },
     { value: "Offline", label: "Offline" },
   ];
-
-  // Predefined prices for non-custom/offline packages
   const packagePrices: { [key: string]: string } = {
     Basic: "6999",
     Prime: "24999",
     "Prime Plus": "49999",
   };
-
-  // Fetch users when packageFor changes
   useEffect(() => {
     const userTypeId = userTypeIdMap[formData.packageFor];
     if (userTypeId) {
@@ -139,8 +131,6 @@ const CustomPackages: React.FC = () => {
       console.warn(`Invalid user type: ${formData.packageFor}`);
     }
   }, [dispatch, formData.packageFor]);
-
-  // Filter users for dropdown based on search term
   const filteredUserOptions = users.filter(
     (user) =>
       (user.name?.toLowerCase()?.includes(userSearchTerm.toLowerCase()) ||
@@ -168,7 +158,7 @@ const CustomPackages: React.FC = () => {
       ...prev,
       packageFor: value,
       package_for: value,
-      customNumber: null, // Reset user selection
+      customNumber: null,
     }));
     setUserSearchTerm("");
     setIsUserDropdownOpen(false);
@@ -269,14 +259,11 @@ const CustomPackages: React.FC = () => {
 
     if (validateForm()) {
       try {
-        // Filter rules to include only those with included: true
         const includedRules = formData.rules.filter((rule) => rule.included);
         console.log("Form submitted:", {
           ...formData,
-          rules: includedRules, // Only include checked rules
+          rules: includedRules,
         });
-
-        // Reset form with default rules
         setFormData({
           id: "",
           name: "",
@@ -291,7 +278,7 @@ const CustomPackages: React.FC = () => {
           gst_number: "",
           rera_number: "",
           package_for: "User",
-          rules: defaultRules, // Reset to default rules
+          rules: defaultRules,
           packageFor: "User",
           customNumber: null,
         });
@@ -320,7 +307,7 @@ const CustomPackages: React.FC = () => {
       gst_number: "",
       rera_number: "",
       package_for: "User",
-      rules: defaultRules, // Reset to default rules
+      rules: defaultRules,
       packageFor: "User",
       customNumber: null,
     });
@@ -640,7 +627,7 @@ const CustomPackages: React.FC = () => {
                 <button
                   type="button"
                   onClick={() => handleRemoveRule(index)}
-                  className="p-2 "
+                  className="p-2 text-red-500 font-bold"
                   aria-label={`Remove rule ${rule.name}`}
                 >
                    ✕

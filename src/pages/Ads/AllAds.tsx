@@ -229,7 +229,7 @@ const AllAdsPage: React.FC = () => {
                 <Table>
                   <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                     <TableRow>
-                      {["ID", "Ad Title", "Description", "Location", "Order", "Status", "Actions"].map((header) => (
+                      {["ID", "Ad Page", "Ad Title", "Description", "Location", "Order", "Status", "Actions"].map((header) => (
                         <TableCell
                           key={header}
                           isHeader
@@ -262,6 +262,9 @@ const AllAdsPage: React.FC = () => {
                         <TableRow key={ad.id}>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                             {id}
+                          </TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {ad.ads_page}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                             {ad.ads_title}
