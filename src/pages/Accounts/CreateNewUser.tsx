@@ -16,8 +16,10 @@ interface FormData {
   email: string;
   name: string;
   userType: string;
- 
   city: string;
+  gst_number:string;
+  rera_number:string;
+  company_name:string;
 }
 
 interface SelectOption {
@@ -37,6 +39,9 @@ const CreateNewUser: React.FC = () => {
     name: "",
     userType: "",
     city: "",
+    gst_number:"",
+  rera_number:"",
+  company_name:""
   });
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [apiError, setApiError] = useState<string>("");
@@ -133,6 +138,9 @@ const CreateNewUser: React.FC = () => {
         mobile: formData.mobile,
         email: formData.email,
         city: parseInt(formData.city),
+        gst_number:formData.gst_number,
+        rera_number:formData.rera_number,
+        company_name:formData.company_name
       };
 
       console.log("Form Data Submitted:", payload);
@@ -144,6 +152,9 @@ const CreateNewUser: React.FC = () => {
         name: "",
         userType: "",
         city: "",
+        gst_number:"",
+  rera_number:"",
+  company_name:""
       });
       navigate(-1); // Navigate back to the previous page
     } catch (error) {
@@ -208,6 +219,42 @@ const CreateNewUser: React.FC = () => {
                 {errors.email}
               </p>
             )}
+          </div>
+          <div>
+            <Label htmlFor="gst_number">Gst Number</Label>
+            <Input
+              type="text"
+              id="gst_number"
+              name="gst_number"
+              value={formData.gst_number}
+              onChange={handleInputChange}
+              className="dark:bg-dark-900"
+              placeholder="Enter gst number"
+            />
+          </div>
+          <div>
+            <Label htmlFor="rera_number">Rera Number</Label>
+            <Input
+              type="text"
+              id="rera_number"
+              name="rera_number"
+              value={formData.rera_number}
+              onChange={handleInputChange}
+              className="dark:bg-dark-900"
+              placeholder="Enter rera number"
+            />
+          </div>
+          <div>
+            <Label htmlFor="company_name">Company Name</Label>
+            <Input
+              type="text"
+              id="company_name"
+              name="company_name"
+              value={formData.company_name}
+              onChange={handleInputChange}
+              className="dark:bg-dark-900"
+              placeholder="Enter company name"
+            />
           </div>
           <div>
             <Label htmlFor="userType">User Type</Label>

@@ -62,6 +62,9 @@ interface CreateUserPayload {
   mobile: string;
   email: string;
   city: number;
+  gst_number:string,
+  rera_number:string,
+  company_name:string
 }
 
 interface ErrorResponse {
@@ -149,6 +152,9 @@ export const createUser = createAsyncThunk(
         mobile: userData.mobile,
         email: userData.email,
         city: userData.city,
+        gst_number:userData.gst_number,
+        rera_number:userData.rera_number,
+        company_name:userData.company_name
       };
 
       const promise = axiosInstance.post<CreateUserResponse>(
