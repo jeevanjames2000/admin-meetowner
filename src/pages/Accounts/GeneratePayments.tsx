@@ -19,47 +19,39 @@ import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
 import axios from "axios";
 import DatePicker from "../../components/form/date-picker";
-
-// User type mapping
 const userTypeMap: { [key: number]: string } = {
- 
   2: "User",
   3: "Builder",
   4: "Agent",
   5: "Owner",
   6: "Channel Partner",
-
 };
-
 interface SelectOption {
   value: string;
   label: string;
 }
-
 interface FormData {
   user_id: string;
   amount: string;
   mobile: string;
   email: string;
   name: string;
-  city:string,
+  city: string;
   userType: string;
   package: string;
 }
-
-// Format date function
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toISOString().split("T")[0];
 };
-
 export default function GeneratePayments() {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { users, loading, error } = useSelector((state: RootState) => state.users);
-
-const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
+  const { users, loading, error } = useSelector(
+    (state: RootState) => state.users
+  );
+  const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
@@ -71,7 +63,7 @@ const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
     mobile: "",
     email: "",
     name: "",
-    city:"",
+    city: "",
     userType: "",
     package: "",
   });
@@ -80,114 +72,89 @@ const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [paymentLink, setPaymentLink] = useState<string>("");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-
   const itemsPerPage = 10;
-
-const packageOptions: SelectOption[] = [
-  { value: "Basic", label: "Basic (₹6999)" },
-  { value: "Prime", label: "Prime (₹24999)" },
-  { value: "Prime Plus", label: "Prime Plus (₹49999)" },
-  { value: "Custom", label: "Custom" },
-];
-
-  const packageAmounts: { [key: string]: number } = {
-    Basic: 6999,
-    Prime: 24999,
-    "Prime Plus": 49999,
-  };
-
+  const packageOptions: SelectOption[] = [
+    { value: "Basic", label: "Basic" },
+    { value: "Prime", label: "Prime" },
+    { value: "Prime Plus", label: "Prime Plus" },
+  ];
   useEffect(() => {
     dispatch(fetchAllUsers());
   }, [dispatch]);
-
- useEffect(() => {
-  setCurrentPage(1); 
-}, [selectedUserType, startDate, endDate]);
-
-
-
-
-const filteredUsers = useMemo(
-  () =>
-    users && Array.isArray(users)
-      ? users.filter((user) => {
-          const searchableFields = [
-            user.name,
-            user.mobile,
-            user.email,
-            user.city,
-            user.state,
-            user.address,
-            user.designation,
-          ];
-          const matchesSearch = searchableFields
-            .filter((field): field is string => field !== null && field !== undefined)
-            .map((field) => field.toLowerCase())
-            .some((field) => field.includes(filterValue.toLowerCase()));
-
-          const matchesUserType =
-            selectedUserType === null ||
-            selectedUserType === "" ||
-            userTypeMap[user.user_type] === selectedUserType;
-
-          // Date range filter
-          let matchesDate = true; // Default to true
-          if (startDate || endDate) {
-            if (!user.created_date) {
-              matchesDate = false; // Exclude null created_date when date filter is active
-              // Alternative: matchesDate = true; // Include null created_date as a special case
-            } else {
-              try {
-                const userDate = user.created_date.split("T")[0]; // Extract YYYY-MM-DD
-                matchesDate =
-                  (!startDate || userDate >= startDate) &&
-                  (!endDate || userDate <= endDate);
-              } catch {
-                matchesDate = false; // Exclude invalid dates
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [selectedUserType, startDate, endDate]);
+  const filteredUsers = useMemo(
+    () =>
+      users && Array.isArray(users)
+        ? users.filter((user) => {
+            const searchableFields = [
+              user.name,
+              user.mobile,
+              user.email,
+              user.city,
+              user.state,
+              user.address,
+              user.designation,
+            ];
+            const matchesSearch = searchableFields
+              .filter(
+                (field): field is string =>
+                  field !== null && field !== undefined
+              )
+              .map((field) => field.toLowerCase())
+              .some((field) => field.includes(filterValue.toLowerCase()));
+            const matchesUserType =
+              selectedUserType === null ||
+              selectedUserType === "" ||
+              userTypeMap[user.user_type] === selectedUserType;
+            let matchesDate = true;
+            if (startDate || endDate) {
+              if (!user.created_date) {
+                matchesDate = false;
+              } else {
+                try {
+                  const userDate = user.created_date.split("T")[0];
+                  matchesDate =
+                    (!startDate || userDate >= startDate) &&
+                    (!endDate || userDate <= endDate);
+                } catch {
+                  matchesDate = false;
+                }
               }
             }
-          }
-
-          return matchesSearch && matchesUserType && matchesDate;
-        })
-      : [],
-  [users, filterValue, selectedUserType, startDate, endDate]
-);
+            return matchesSearch && matchesUserType && matchesDate;
+          })
+        : [],
+    [users, filterValue, selectedUserType, startDate, endDate]
+  );
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
   const toggleMenu = (id: number) => {
     setActiveMenu(activeMenu === id ? null : id);
   };
-
   const handleCreate = () => {
     navigate("/accounts/create-new-user");
   };
-
   const handleFilter = (value: string) => {
-   setFilterValue(value);
+    setFilterValue(value);
     setCurrentPage(1);
   };
-
   const goToPage = (page: number) => {
     setCurrentPage(page);
   };
-
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
-
     if (totalPages <= totalVisiblePages + 2) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -195,32 +162,24 @@ const filteredUsers = useMemo(
     } else {
       let start = Math.max(2, currentPage - 2);
       let end = Math.min(totalPages - 1, currentPage + 2);
-
       if (currentPage <= 3) {
         start = 2;
         end = 5;
       }
-
       if (currentPage >= totalPages - 2) {
         start = totalPages - 4;
         end = totalPages - 1;
       }
-
       pages.push(1);
       if (start > 2) pages.push("...");
-
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-
       if (end < totalPages - 1) pages.push("...");
       if (totalPages > 1) pages.push(totalPages);
     }
-
     return pages;
   };
-
-
   const openPopup = (user: any) => {
     setSelectedUser(user);
     setFormData({
@@ -229,7 +188,7 @@ const filteredUsers = useMemo(
       mobile: user.mobile || "",
       email: user.email || "",
       name: user.name || "",
-      city:user.city || "",
+      city: user.city || "",
       userType: user.user_type.toString(),
       package: "",
     });
@@ -238,78 +197,97 @@ const filteredUsers = useMemo(
     setPaymentLink("");
     setShowPopup(true);
   };
-
   const closePopup = () => {
     setShowPopup(false);
     setSelectedUser(null);
     setActiveMenu(null);
   };
-
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
     setApiError("");
   };
-
-  const handleSelectChange = (name: keyof FormData) => (value: string) => {
-  setFormData((prev) => {
-    const newData = { ...prev, [name]: value };
-    if (name === "package") {
-      newData.amount = value === "Custom" ? "" : packageAmounts[value]?.toString() || "";
-    }
-    return newData;
-  });
-  setErrors((prev) => ({ ...prev, [name]: "" }));
-  setApiError("");
-};
-
+  const handleSelectChange =
+    (name: keyof FormData) => async (value: string) => {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        amount: value === "Custom" ? "" : "",
+      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+      setApiError("");
+      if (name === "package" && value !== "Custom") {
+        try {
+          const { city, userType } = formData;
+          if (!city || !userType) {
+            return setApiError(
+              "City and user type are required to fetch pricing"
+            );
+          }
+          const response = await axios.get(
+            `https://api.meetowner.in/packages/v1/getPackagePrice`,
+            {
+              params: {
+                package_for: userTypeMap[userType].toLowerCase(),
+                packageName: value.toLowerCase(),
+                city: city,
+              },
+            }
+          );
+          if (response.data?.price) {
+            setFormData((prev) => ({
+              ...prev,
+              amount: response.data.price.toString(),
+            }));
+          } else {
+            setApiError("Price not found for selected package and city");
+          }
+        } catch (err: any) {
+          console.error("Price fetch error:", err);
+          setApiError("Failed to fetch price from server");
+        }
+      }
+    };
   const validateForm = (): boolean => {
-  const newErrors: Partial<FormData> = {};
-
-  if (!formData.package) {
-    newErrors.package = "Package is required";
-  } else if (formData.package !== "Custom" && !packageAmounts[formData.package]) {
-    newErrors.package = "Invalid package selected";
-  }
-
-  if (formData.package === "Custom" && !formData.amount) {
-    newErrors.amount = "Amount is required for custom package";
-  } else if (formData.package === "Custom" && (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0)) {
-    newErrors.amount = "Please enter a valid positive amount";
-  }
-
-  if (!formData.mobile) {
-    newErrors.mobile = "Mobile number is required";
-  } else if (!/^\d{10}$/.test(formData.mobile)) {
-    newErrors.mobile = "Mobile number must be exactly 10 digits";
-  }
-
-  if (!formData.email) {
-    newErrors.email = "Email is required";
-  } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
-    newErrors.email = "Please enter a valid email address";
-  }
-   if (
+    const newErrors: Partial<FormData> = {};
+    if (!formData.package) {
+      newErrors.package = "Package is required";
+    }
+    if (formData.package === "Custom" && !formData.amount) {
+      newErrors.amount = "Amount is required for custom package";
+    } else if (
+      formData.package === "Custom" &&
+      (isNaN(Number(formData.amount)) || Number(formData.amount) <= 0)
+    ) {
+      newErrors.amount = "Please enter a valid positive amount";
+    }
+    if (!formData.mobile) {
+      newErrors.mobile = "Mobile number is required";
+    } else if (!/^\d{10}$/.test(formData.mobile)) {
+      newErrors.mobile = "Mobile number must be exactly 10 digits";
+    }
+    if (!formData.email) {
+      newErrors.email = "Email is required";
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      newErrors.email = "Please enter a valid email address";
+    }
+    if (
       (!selectedUser?.city || selectedUser?.city === "") &&
       !formData.city.trim()
     ) {
       newErrors.city = "City is required";
     }
-
-  setErrors(newErrors);
-  return Object.keys(newErrors).length === 0;
-};
-
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setApiError("");
     setPaymentLink("");
-
     if (!validateForm()) {
       return;
     }
-
     const payload = {
       amount: parseFloat(formData.amount),
       currency: "INR",
@@ -317,12 +295,11 @@ const filteredUsers = useMemo(
       name: formData.name,
       mobile: formData.mobile,
       email: formData.email,
-      city:formData.city,
+      city: formData.city,
       subscription_package: formData.package,
       customer_email: formData.email,
       customer_contact: formData.mobile,
     };
-
     try {
       const response = await axios.post(
         "https://api.meetowner.in/payments/createPaymentLink",
@@ -332,7 +309,6 @@ const filteredUsers = useMemo(
           timeout: 10000,
         }
       );
-
       if (response.data.success) {
         setPaymentLink(response.data.payment_link);
         alert("Payment link generated successfully!");
@@ -349,16 +325,14 @@ const filteredUsers = useMemo(
       );
     }
   };
-
   const userFilterOptions: SelectOption[] = [
-      { value: "", label: "All Users" }, // Empty value for "All Users"
-      ...Object.entries(userTypeMap).map(([key, value]) => ({
-        value: value,
-        label: value,
-      })),
+    { value: "", label: "All Users" },
+    ...Object.entries(userTypeMap).map(([key, value]) => ({
+      value: value,
+      label: value,
+    })),
   ];
-
-    const handleStartDateChange = (selectedDates: Date[]) => {
+  const handleStartDateChange = (selectedDates: Date[]) => {
     const dateObj = selectedDates[0];
     let date = "";
     if (dateObj) {
@@ -369,27 +343,24 @@ const filteredUsers = useMemo(
     }
     setStartDate(date || null);
   };
-
   const handleEndDateChange = (selectedDates: Date[]) => {
-      const dateObj = selectedDates[0];
-      let date = "";
-      if (dateObj) {
-        const year = dateObj.getFullYear();
-        const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-        const day = String(dateObj.getDate()).padStart(2, "0");
-        date = `${year}-${month}-${day}`;
-        if (startDate && date < startDate) {
-          alert("End date cannot be before start date");
-          return;
-        }
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+      if (startDate && date < startDate) {
+        alert("End date cannot be before start date");
+        return;
       }
-      setEndDate(date || null);
+    }
+    setEndDate(date || null);
   };
-
   if (loading) return <div>Loading users...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!users || users.length === 0) return <div>No users found.</div>;
-
   return (
     <div className="relative min-h-screen">
       <PageBreadcrumbList
@@ -397,11 +368,10 @@ const filteredUsers = useMemo(
         pagePlacHolder="Filter users by name, mobile, email, city, state, address, or designation"
         onFilter={handleFilter}
       />
-
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div className="w-full sm:w-43">
+        <div className="flex justify-between gap-3">
+          <div className="w-auto flex gap-3">
+            <div className="w-43">
               <Select
                 options={userFilterOptions}
                 placeholder="Select User Type"
@@ -431,35 +401,32 @@ const filteredUsers = useMemo(
                 setFilterValue("");
                 setCurrentPage(1);
               }}
-              className="px-4 py-2 w-full sm:w-auto"
+              className="px-4 py-2"
             >
               Clear Filters
             </Button>
           </div>
-        <button
-          type="submit"
-          className="px-6 py-2 bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed w-full sm:w-auto"
-          onClick={handleCreate}
-        >
-          Create new user
-        </button>
+          <button
+            type="submit"
+            className="px-6 py-2 bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleCreate}
+          >
+            Create new user
+          </button>
         </div>
-
-      {(selectedUserType || startDate || endDate || filterValue) && (
-        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-          Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
-        </div>
-      )}
-            
-  
+        {(selectedUserType || startDate || endDate || filterValue) && (
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to{" "}
+            {endDate || "Any"} | Search: {filterValue || "None"}
+          </div>
+        )}
         <ComponentCard title="All Users Table">
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full overflow-auto">
+            <div className="max-w-full ">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
-                
                   <TableRow>
-                     <TableCell
+                    <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
@@ -522,9 +489,9 @@ const filteredUsers = useMemo(
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedUsers.map((user,index) => (
+                  {paginatedUsers.map((user, index) => (
                     <TableRow key={user.id}>
-                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
@@ -551,7 +518,7 @@ const filteredUsers = useMemo(
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.city}
                       </TableCell>
-                     <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.subscription_status}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
@@ -607,14 +574,13 @@ const filteredUsers = useMemo(
               </Table>
             </div>
           </div>
-
           {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Showing {startIndex + 1} to {endIndex} of {totalItems} entries
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
-                {/* Previous Button */}
+                {}
                 <Button
                   variant={currentPage === 1 ? "outline" : "primary"}
                   size="sm"
@@ -623,8 +589,7 @@ const filteredUsers = useMemo(
                 >
                   Previous
                 </Button>
-
-                {/* Page Buttons */}
+                {}
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
                     <span
@@ -649,8 +614,7 @@ const filteredUsers = useMemo(
                     </Button>
                   )
                 )}
-
-                {/* Next Button */}
+                {}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"
@@ -664,8 +628,7 @@ const filteredUsers = useMemo(
           )}
         </ComponentCard>
       </div>
-
-      {/* Popup for generating payment link */}
+      {}
       {showPopup && (
         <div className="fixed inset-0 bg-white/30 backdrop-blur flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md relative">
@@ -674,7 +637,9 @@ const filteredUsers = useMemo(
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               {apiError && (
-                <p className="text-sm text-red-600 dark:text-red-400">{apiError}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {apiError}
+                </p>
               )}
               {paymentLink && (
                 <div className="text-sm text-green-600 dark:text-green-400">
@@ -712,17 +677,26 @@ const filteredUsers = useMemo(
                     id="amount"
                     name="amount"
                     value={formData.amount}
-                    onChange={formData.package === "Custom" ? handleInputChange : undefined}
-                   
+                    onChange={
+                      formData.package === "Custom"
+                        ? handleInputChange
+                        : undefined
+                    }
                     className={`dark:bg-dark-900 ${
-                      formData.package !== "Custom" ? "bg-gray-100 cursor-not-allowed" : ""
+                      formData.package !== "Custom"
+                        ? "bg-gray-100 cursor-not-allowed"
+                        : ""
                     }`}
                     placeholder={
-                      formData.package === "Custom" ? "Enter custom amount" : "Amount set by package"
+                      formData.package === "Custom"
+                        ? "Enter custom amount"
+                        : "Amount set by package"
                     }
                   />
                   {errors.amount && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.amount}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {errors.amount}
+                    </p>
                   )}
                 </div>
               )}
@@ -764,7 +738,7 @@ const filteredUsers = useMemo(
                   )}
                 </div>
               )}
-            {(!selectedUser?.city || selectedUser?.city === "") && (
+              {(!selectedUser?.city || selectedUser?.city === "") && (
                 <div>
                   <Label htmlFor="city">City</Label>
                   <Input
@@ -791,9 +765,7 @@ const filteredUsers = useMemo(
                 >
                   Cancel
                 </Button>
-                <Button
-                  className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700"
-                >
+                <Button className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700">
                   Generate Payment Link
                 </Button>
               </div>
