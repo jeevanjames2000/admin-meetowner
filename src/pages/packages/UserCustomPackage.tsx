@@ -519,20 +519,20 @@ const UserCustomPackage: React.FC = () => {
             {userCustomPackages.map((pkg) => (
               <div
                 key={pkg.package_id}
-                className="relative p-6 rounded-lg shadow-lg border bg-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
+                className="relative p-6 rounded-lg shadow-lg border bg-[#1D3A76] text-white dark:bg-gray-800 border-gray-200 dark:border-gray-700"
               >
                 <div className="text-center mb-4">
-                  <h3 className="text-lg font-bold text-gray-800 dark:text-white">
+                  <h3 className="text-lg font-bold text-white dark:text-white">
                     {pkg.name}
                   </h3>
                 </div>
                 <div className="text-center mb-2">
-                  <p className="text-sm text-gray-500 dark:text-gray-400">
+                  <p className="text-sm text-white dark:text-gray-400">
                     {pkg.duration_days} Days
                   </p>
                 </div>
                 <div className="text-center mb-4">
-                  <p className="text-2xl font-semibold text-gray-800 dark:text-white">
+                  <p className="text-2xl font-semibold text-white dark:text-white">
                     {formatPrice(pkg.price)}
                   </p>
                 </div>
@@ -570,7 +570,7 @@ const UserCustomPackage: React.FC = () => {
                           />
                         </svg>
                       )}
-                      <span className="text-sm text-gray-800 dark:text-white">
+                      <span className="text-sm text-white dark:text-white">
                         {rule.rule_name || "Unnamed Rule"} 
                       </span>
                     </li>
