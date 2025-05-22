@@ -3,7 +3,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import { MoreVertical, X } from "lucide-react";
 import Button from "../../components/ui/button/Button";
@@ -31,6 +31,7 @@ interface Ad {
   display_cities?: string;
   ads_order?: string;
   created_date?: string;
+  
   status?: number;
 }
 
@@ -153,7 +154,7 @@ const AllAdsPage: React.FC = () => {
             const searchQuery = debouncedSearchQuery.toLowerCase();
             const matchesSearch =
               (ad.property_name && ad.property_name.toLowerCase().includes(searchQuery)) ||
-              (ad.google_address && ad.google_address.toLowerCase().includes(searchQuery)) ||
+              (ad.display_cities && ad.display_cities.toLowerCase().includes(searchQuery)) ||
               (ad.property_type && ad.property_type.toLowerCase().includes(searchQuery));
 
             // Date range filter
@@ -230,7 +231,7 @@ const AllAdsPage: React.FC = () => {
     if (ad) {
       setSelectedAd(ad);
       setNewPropertyName(ad.property_name || "");
-      setNewPropertyType(ad.property_type || "");
+      setNewPropertyType(ad.property_in || "");
       setNewGoogleAddress(ad.google_address || "");
       setEditModalOpen(true);
     }
