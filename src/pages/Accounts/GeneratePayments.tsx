@@ -208,47 +208,49 @@ export default function GeneratePayments() {
     setErrors((prev) => ({ ...prev, [name]: "" }));
     setApiError("");
   };
-  const handleSelectChange =
-    (name: keyof FormData) => async (value: string) => {
-      setFormData((prev) => ({
-        ...prev,
-        [name]: value,
-        amount: value === "Custom" ? "" : "",
-      }));
-      setErrors((prev) => ({ ...prev, [name]: "" }));
-      setApiError("");
-      if (name === "package" && value !== "Custom") {
-        try {
-          const { city, userType } = formData;
-          if (!city || !userType) {
-            return setApiError(
-              "City and user type are required to fetch pricing"
-            );
-          }
-          const response = await axios.get(
-            `https://api.meetowner.in/packages/v1/getPackagePrice`,
-            {
-              params: {
-                package_for: userTypeMap[userType].toLowerCase(),
-                packageName: value.toLowerCase(),
-                city: city,
-              },
-            }
-          );
-          if (response.data?.price) {
-            setFormData((prev) => ({
-              ...prev,
-              amount: response.data.price.toString(),
-            }));
-          } else {
-            setApiError("Price not found for selected package and city");
-          }
-        } catch (err: any) {
-          console.error("Price fetch error:", err);
-          setApiError("Failed to fetch price from server");
-        }
+ const handleSelectChange = (name: keyof FormData) => async (value: string) => {
+  setFormData((prev) => ({
+    ...prev,
+    [name]: value,
+    amount: value === "Custom" ? "" : "",
+  }));
+  setErrors((prev) => ({ ...prev, [name]: "" }));
+  setApiError("");
+  if (name === "package" && value !== "Custom") {
+    try {
+      const { city, userType } = formData;
+      if (!city || !userType) {
+        return setApiError("City and user type are required to fetch pricing");
       }
-    };
+
+      // Transform userType to match API expectation
+      const apiUserType = userTypeMap[userType].toLowerCase().replace(" ", "_");
+
+      const response = await axios.get(
+        `https://api.meetowner.in/packages/v1/getPackagePrice`,
+        {
+          params: {
+            package_for: apiUserType, // Use transformed userType
+            packageName: value.toLowerCase(), // Handle packageName like "Prime Plus"
+            city: city,
+          },
+        }
+      );
+      if (response.data?.price) {
+        setFormData((prev) => ({
+          ...prev,
+          amount: response.data.price.toString(),
+        }));
+      } else {
+        setApiError("Price not found for selected package and city");
+      }
+    } catch (err: any) {
+      console.error("Price fetch error:", err);
+      setApiError("Failed to fetch price from server");
+    }
+  }
+};
+
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
     if (!formData.package) {
@@ -422,7 +424,7 @@ export default function GeneratePayments() {
         )}
         <ComponentCard title="All Users Table">
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full ">
+            <div className="max-w-full overflow-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
