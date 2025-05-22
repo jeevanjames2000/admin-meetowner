@@ -19,6 +19,7 @@ import toast from "react-hot-toast";
 import ConfirmDeleteModal from "../../common/ConfirmDeleteModal";
 import Select from "../../form/Select";
 import DatePicker from "../../form/date-picker";
+import AssignEmployeeModal from "../AssignEmployeeModal";
 
 
 
@@ -34,7 +35,6 @@ const userTypeMap: { [key: number]: string } = {
   8: "Telecaller",
   9: "Marketing Executive",
   10: "Customer Support",
-  11: "Customer Service",
 };
 
 const paymentStatusOptions: { value: string; label: string }[] = [
@@ -73,6 +73,8 @@ export default function BasicTableOne() {
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [paymentStatus, setPaymentStatus] = useState<string>("");
+   const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
+  const [userToAssign, setUserToAssign] = useState<{ id: number; name: string } | null>(null);
 
 
 
@@ -125,6 +127,12 @@ export default function BasicTableOne() {
   const handleDeleteClick = (user: { id: number; name: string }) => {
     setUserToDelete({ id: user.id, name: user.name });
     setIsDeleteModalOpen(true);
+    setActiveMenu(null);
+  };
+
+   const handleAssignClick = (user: { id: number; name: string }) => {
+    setUserToAssign({ id: user.id, name: user.name });
+    setIsAssignModalOpen(true);
     setActiveMenu(null);
   };
 
@@ -301,49 +309,46 @@ export default function BasicTableOne() {
         onFilter={handleFilter}
       />
     
-         <div className="flex justify-between gap-3 py-2">
-              <div className="w-auto flex gap-3">
-                <div className="w-auto">
-               {[2, 3, 4, 5, 6].includes(parseInt(userType || "0")) && (
-                  <div className="w-auto">
-                    <Select
-                      options={paymentStatusOptions}
-                      placeholder="Select Payment Status"
-                      onChange={(value: string) => setPaymentStatus(value)}
-                      value={paymentStatus}
-                      className="dark:bg-dark-900"
-                    />
-                  </div>
-                )}
-                </div>
-                <DatePicker
-                    id="startDate"
-                    placeholder="Select start date"
-                    onChange={handleStartDateChange}
-                    defaultDate={startDate ? new Date(startDate) : undefined}
-                  />
-                <DatePicker
-                    id="endDate"
-                    placeholder="Select end date"
-                    onChange={handleEndDateChange}
-                    defaultDate={endDate ? new Date(endDate) : undefined}
-
-                  />
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      setPaymentStatus(""); // Reset to empty for placeholder
-                      setStartDate(null);
-                      setEndDate(null);
-                      setFilterValue("");
-                      setCurrentPage(1);
-                    }}
-                    className="px-4 py-2"
-                  >
-                    Clear Filters
-                  </Button>
-              </div>
-            </div>
+        <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
+      <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+        {[2, 3, 4, 5, 6].includes(parseInt(userType || "0")) && (
+          <div className="w-full sm:w-43">
+            <Select
+              options={paymentStatusOptions}
+              placeholder="Select Payment Status"
+              onChange={(value: string) => setPaymentStatus(value)}
+              value={paymentStatus}
+              className="dark:bg-dark-900"
+            />
+          </div>
+        )}
+        <DatePicker
+          id="startDate"
+          placeholder="Select start date"
+          onChange={handleStartDateChange}
+          defaultDate={startDate ? new Date(startDate) : undefined}
+        />
+        <DatePicker
+          id="endDate"
+          placeholder="Select end date"
+          onChange={handleEndDateChange}
+          defaultDate={endDate ? new Date(endDate) : undefined}
+        />
+        <Button
+          variant="outline"
+          onClick={() => {
+            setPaymentStatus(""); // Reset to empty for placeholder
+            setStartDate(null);
+            setEndDate(null);
+            setFilterValue("");
+            setCurrentPage(1);
+          }}
+          className="px-4 py-2 w-full sm:w-auto"
+        >
+          Clear Filters
+        </Button>
+      </div>
+    </div>
     
        
         {(paymentStatus || startDate || endDate || filterValue) && (
@@ -364,7 +369,7 @@ export default function BasicTableOne() {
       <div className="space-y-6">
         <ComponentCard title={`${categoryLabel} Table`}>
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full ">
+            <div className="max-w-full overflow-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
@@ -560,6 +565,12 @@ export default function BasicTableOne() {
                               >
                                 {user.status === 0 ? "Suspend" : "Activate"}
                               </button>
+                               <button
+                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                 onClick={() => handleAssignClick(user)}
+                              >
+                                Assign Employee
+                              </button>
                             </div>
                           </div>
                         )}
@@ -612,7 +623,6 @@ export default function BasicTableOne() {
                     </Button>
                   )
                 )}
-
                 {/* Next Button */}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
@@ -637,9 +647,15 @@ export default function BasicTableOne() {
             }}
           />
 
-         
+           <AssignEmployeeModal
+            isOpen={isAssignModalOpen}
+            onClose={() => {
+              setIsAssignModalOpen(false);
+              setUserToAssign(null);
+            }}
+            userToAssign={userToAssign}
+          />
 
-         
         </ComponentCard>
       </div>
     </div>

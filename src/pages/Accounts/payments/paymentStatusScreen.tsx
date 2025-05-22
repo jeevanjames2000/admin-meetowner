@@ -417,45 +417,46 @@ const userFilterOptions: SelectOption[] = [
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        <div className="w-auto flex gap-3">
-                <div className="w-43">
-                <Select
-                  options={userFilterOptions}
-                  placeholder="Select User Type"
-                  onChange={(value: string) => setSelectedUserType(value || null)}
-                  value={selectedUserType || ""}
-                  className="dark:bg-dark-900"
-                  
-                />
-                </div>
-                <DatePicker
-                    id="startDate"
-                    placeholder="Select start date"
-                    onChange={handleStartDateChange}
-                    defaultDate={startDate ? new Date(startDate) : undefined}
-                  />
-                <DatePicker
-                    id="endDate"
-                    placeholder="Select end date"
-                    onChange={handleEndDateChange}
-                    defaultDate={endDate ? new Date(endDate) : undefined}
+        <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <div className="w-full sm:w-43">
+              <Select
+                options={userFilterOptions}
+                placeholder="Select User Type"
+                onChange={(value: string) => setSelectedUserType(value || null)}
+                value={selectedUserType || ""}
+                className="dark:bg-dark-900"
+              />
+            </div>
+            <DatePicker
+              id="startDate"
+              placeholder="Select start date"
+              onChange={handleStartDateChange}
+              defaultDate={startDate ? new Date(startDate) : undefined}
+            />
+            <DatePicker
+              id="endDate"
+              placeholder="Select end date"
+              onChange={handleEndDateChange}
+              defaultDate={endDate ? new Date(endDate) : undefined}
+            />
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSelectedUserType(null);
+                setStartDate(null);
+                setEndDate(null);
+                setFilterValue("");
+                setCurrentPage(1);
+              }}
+              className="px-4 py-2 w-full sm:w-auto"
+            >
+              Clear Filters
+            </Button>
+          </div>
+        </div>
 
-                  />
-                  <Button
-                  variant="outline"
-                  onClick={() => {
-                    setSelectedUserType(null);
-                    setStartDate(null);
-                    setEndDate(null);
-                    setFilterValue("");
-                    setCurrentPage(1);
-                  }}
-                  className="px-4 py-2"
-                >
-                  Clear Filters
-                </Button>
-              </div>
-                 {(selectedUserType || startDate || endDate || filterValue) && (
+    {(selectedUserType || startDate || endDate || filterValue) && (
         <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
           Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
         </div>

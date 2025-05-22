@@ -5,18 +5,34 @@ import axiosInstance from "../../utils/axiosInstance";
 
 interface Employee {
   id?: number;
+  user_type: number;
   name: string;
   mobile: string;
+  alt_mobile?: string | null;
   email: string;
-  designation: string;
   password?: string;
-  city: string;
-  pincode: string;
-  state: string;
-  user_type: number;
-  created_by: string;
-  created_userID: number;
+  photo?: string | null;
   status?: number;
+  created_date?: string | null;
+  created_time?: string | null;
+  updated_date?: string | null;
+  updated_time?: string | null;
+  state?: string | null;
+  city?: string | null;
+  location?: string | null;
+  address?: string | null;
+  pincode?: string | null;
+  from_app?: string | null;
+  gst_number?: string | null;
+  rera_number?: string | null;
+  uploaded_from_seller_panel?: string | null;
+  designation?: string | null;
+  subscription_package?: string | null;
+  subscription_start_date?: string | null;
+  subscription_expiry_date?: string | null;
+  subscription_status?: string | null;
+  created_by?: string | null;
+  created_userID?: number | null;
 }
 
 interface EmployeeResponse {

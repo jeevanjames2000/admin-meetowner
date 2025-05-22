@@ -18,6 +18,7 @@ import propertyDetailsByUserSlice from './slices/propertyDetailsbyUser';
 import carrerSlice from './slices/careerSlice';
 import shortsSlice from './slices/shortsSlice';
 import locationsSlice from './slices/locationsSlice';
+import employeeUsersSlice from './slices/employeeUsers';
 
 const preloadedState = {
     auth : initializeAuthState()
@@ -29,6 +30,7 @@ const store =  configureStore({
         auth:authentication,
         listings: listingReducer,
         users:usersReducers,
+        employeeUsers:employeeUsersSlice,
         leads:leadsReducers,
         employee:employeeReducer,
         upload:uploadReducer,

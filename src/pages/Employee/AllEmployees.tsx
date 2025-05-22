@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useMemo } from "react";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import {
@@ -8,25 +8,34 @@ import {
   TableHeader,
   TableRow,
 } from "../../components/ui/table";
-import Button from "../../components/ui/button/Button"; // Add Button import
+import Button from "../../components/ui/button/Button";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
 import { fetchAllEmployees, deleteEmployee, clearMessages, updateEmployee } from "../../store/slices/employee";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 import { useNavigate } from "react-router";
+import Select from "../../components/form/Select";
+import DatePicker from "../../components/form/date-picker";
 
-interface Option {
+interface SelectOption {
   value: string;
-  text: string;
+  label: string;
 }
 
-const designationOptions: Option[] = [
- 
-  { value: "7", text: "Manager" },
-  { value: "8", text: "TeleCaller" },
-  { value: "9", text: "Marketing Executive" },
-  { value: "10", text: "Customer Support" },
-  { value: "11", text: "Customer Service" },
+const userTypeIdMap: { [key: string]: number } = {
+  Manager: 7,
+  TeleCaller: 8,
+  "Marketing Executive": 9,
+  "Customer Support": 10,
+  "Customer Service": 11,
+};
+
+const designationOptions: SelectOption[] = [
+  { value: "", label: "All Designations" },
+  ...Object.entries(userTypeIdMap).map(([label, value]) => ({
+    value: label,
+    label,
+  })),
 ];
 
 const AllEmployees: React.FC = () => {
@@ -35,28 +44,39 @@ const AllEmployees: React.FC = () => {
   const { employees, fetchLoading, fetchError, deleteError, deleteSuccess, updateSuccess, updateError } = useSelector(
     (state: RootState) => state.employee
   );
-  
+
   const [isLoading, setIsLoading] = useState(true);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const dropdownRefs = useRef<Map<number, HTMLDivElement>>(new Map());
   const [filterValue, setFilterValue] = useState<string>("");
+  const [selectedDesignation, setSelectedDesignation] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
 
-  const transformedEmployees = employees.map(emp => ({
-    id: emp.id!,
-    name: emp.name,
-    mobile: emp.mobile,
-    email: emp.email,
-    designation: designationOptions.find(opt => opt.value === emp.designation)?.text || emp.designation || '',
-    city: [emp.city],
-    state: [emp.state],
-    status: emp.status,
-    pincode: emp.pincode,
-    created_by: emp.created_by , // Ensure this field exists in your employee data
-    created_userID: emp.created_userID, 
-  }));
- 
+  const transformedEmployees = useMemo(() => {
+    return employees.map(emp => {
+      const designationText = Object.entries(userTypeIdMap).find(
+        ([, id]) => id.toString() === emp.designation
+      )?.[0] || emp.designation || '';
+      return {
+        id: emp.id!,
+        name: emp.name,
+        mobile: emp.mobile,
+        email: emp.email,
+        designation: designationText,
+        designationValue: designationText, // Store the designation text for filtering (e.g., "Manager")
+        city: [emp.city].filter(Boolean),
+        state: [emp.state].filter(Boolean),
+        status: emp.status,
+        pincode: emp.pincode,
+        created_by: emp.created_by,
+        created_userID: emp.created_userID,
+        created_date: emp.created_date, // Ensure this field exists in your employee data
+      };
+    });
+  }, [employees]);
 
   useEffect(() => {
     setIsLoading(true);
@@ -93,16 +113,49 @@ const AllEmployees: React.FC = () => {
     };
   }, []);
 
-  // Search filter
-  const filteredEmployees = transformedEmployees.filter((employee) =>
-    [
-      employee.name || "",
-      employee.mobile || "",
-      employee.designation || "",
-      employee.city.join(",") || "",
-      employee.state.join(",") || "",
-    ].some((field) => field.toLowerCase().includes(filterValue.toLowerCase()))
-  );
+  // Reset currentPage when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterValue, selectedDesignation, startDate, endDate]);
+
+  // Filter employees
+  const filteredEmployees = useMemo(() => {
+    return transformedEmployees.filter((employee) => {
+      // Search filter
+      const matchesSearch = [
+        employee.name || "",
+        employee.mobile || "",
+        employee.designation || "",
+        employee.city.join(",") || "",
+        employee.state.join(",") || "",
+      ].some((field) => field.toLowerCase().includes(filterValue.toLowerCase()));
+
+      // Designation filter
+      const matchesDesignation =
+        selectedDesignation === null ||
+        selectedDesignation === "" ||
+        employee.designationValue === selectedDesignation;
+
+      // Date range filter
+      let matchesDate = true;
+      if (startDate || endDate) {
+        if (!employee.created_date) {
+          matchesDate = false; // Exclude employees with null created_date
+        } else {
+          try {
+            const employeeDate = employee.created_date.split("T")[0]; // Extract YYYY-MM-DD
+            matchesDate =
+              (!startDate || employeeDate >= startDate) &&
+              (!endDate || employeeDate <= endDate);
+          } catch {
+            matchesDate = false; // Exclude invalid dates
+          }
+        }
+      }
+
+      return matchesSearch && matchesDesignation && matchesDate;
+    });
+  }, [transformedEmployees, filterValue, selectedDesignation, startDate, endDate]);
 
   // Pagination logic
   const totalItems = filteredEmployees.length;
@@ -131,33 +184,36 @@ const AllEmployees: React.FC = () => {
   };
 
   const getPaginationItems = () => {
-    const pages = [];
-    const totalVisiblePages = 7;
-    let startPage = 1;
-    let endPage = totalPages;
-
-    if (totalPages > totalVisiblePages) {
-      const halfVisible = Math.floor(totalVisiblePages / 2);
-      startPage = Math.max(1, currentPage - halfVisible);
-      endPage = Math.min(totalPages, currentPage + halfVisible);
-
-      if (currentPage - halfVisible < 1) {
-        endPage = totalVisiblePages;
+    const pages: (number | string)[] = [];
+    const totalVisiblePages = 5; // Aligned with GeneratePayments
+    if (totalPages <= totalVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
       }
-      if (currentPage + halfVisible > totalPages) {
-        startPage = totalPages - totalVisiblePages + 1;
+    } else {
+      let start = Math.max(2, currentPage - 2);
+      let end = Math.min(totalPages - 1, currentPage + 2);
+
+      if (currentPage <= 3) {
+        start = 2;
+        end = 5;
       }
+
+      if (currentPage >= totalPages - 2) {
+        start = totalPages - 4;
+        end = totalPages - 1;
+      }
+
+      pages.push(1);
+      if (start > 2) pages.push("...");
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages - 1) pages.push("...");
+      if (totalPages > 1) pages.push(totalPages);
     }
-
-    if (startPage > 1) pages.push(1);
-    if (startPage > 2) pages.push("...");
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    if (endPage < totalPages - 1) pages.push("...");
-    if (endPage < totalPages) pages.push(totalPages);
 
     return pages;
   };
@@ -184,7 +240,7 @@ const AllEmployees: React.FC = () => {
       status: employee.status === 0 ? 2 : 0,
       city: employee.city[0],
       state: employee.state[0],
-      user_type: designationOptions.find(opt => opt.text === employee.designation)?.value || "7",
+      user_type: userTypeIdMap[employee.designation] || "7", // Use userTypeIdMap
       created_by: localStorage.getItem("name"),
       created_userID: parseInt(localStorage.getItem("userId")!),
     };
@@ -198,10 +254,57 @@ const AllEmployees: React.FC = () => {
     setDropdownOpen(null);
   };
 
+  const handleStartDateChange = (selectedDates: Date[]) => {
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+    }
+    setStartDate(date || null);
+  };
+
+  const handleEndDateChange = (selectedDates: Date[]) => {
+    const dateObj = selectedDates[0];
+    let date = "";
+    if (dateObj) {
+      const year = dateObj.getFullYear();
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
+      date = `${year}-${month}-${day}`;
+      if (startDate && date < startDate) {
+        alert("End date cannot be before start date");
+        return;
+      }
+    }
+    setEndDate(date || null);
+  };
+
+  const formatDate = (dateString: string | null): string => {
+  if (!dateString) return "N/A"; // Handle null or undefined
+  try {
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return "Invalid Date"; // Handle invalid dates
+    return date.toISOString().split("T")[0];
+  } catch {
+    return "Invalid Date"; // Handle parsing errors
+  }
+};
+
+  const handleClearFilters = () => {
+    setFilterValue("");
+    setSelectedDesignation(null);
+    setStartDate(null);
+    setEndDate(null);
+    setCurrentPage(1);
+  };
+
   if (isLoading || fetchLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8 flex justify-center items-center">
-        <div className="text-2xl font-boldРусский text-gray-800 dark:text-white">Loading...</div>
+        <div className="text-2xl font-bold text-gray-800 dark:text-white">Loading...</div>
       </div>
     );
   }
@@ -227,12 +330,55 @@ const AllEmployees: React.FC = () => {
   return (
     <div className="relative min-h-screen">
       <PageMeta title="Meet Owner All Employees" />
-      <PageBreadcrumbList 
-        pageTitle="All Employees" 
+      <PageBreadcrumbList
+        pageTitle="All Employees"
         pagePlacHolder="Search employees by name, mobile, designation, city, or state"
         onFilter={handleFilter}
       />
       <div className="space-y-6">
+        {/* Filters */}
+        <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
+          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+            <div className="w-full sm:w-43"> {/* Aligned with GeneratePayments */}
+              <Select
+                options={designationOptions}
+                placeholder="Select Designation"
+                onChange={(value: string) => setSelectedDesignation(value || null)}
+                value={selectedDesignation || ""}
+                className="dark:bg-dark-900"
+              />
+            </div>
+            <DatePicker
+              id="startDate"
+              placeholder="Select start date"
+              onChange={handleStartDateChange}
+              defaultDate={startDate ? new Date(startDate) : undefined}
+            />
+            <DatePicker
+              id="endDate"
+              placeholder="Select end date"
+              onChange={handleEndDateChange}
+              defaultDate={endDate ? new Date(endDate) : undefined}
+            />
+            <Button
+              variant="outline"
+              onClick={handleClearFilters}
+              className="px-4 py-2 w-full sm:w-auto"
+            >
+              Clear Filters
+            </Button>
+          </div>
+        </div>
+
+        {/* Filter Summary */}
+        {(filterValue || selectedDesignation || startDate || endDate) && (
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Filters: {selectedDesignation || "All"} | 
+            Date: {startDate || "Any"} to {endDate || "Any"} | 
+            Search: {filterValue || "None"}
+          </div>
+        )}
+
         {deleteSuccess && (
           <div className="p-3 bg-green-100 text-green-700 rounded-md">
             {deleteSuccess}
@@ -253,9 +399,10 @@ const AllEmployees: React.FC = () => {
             {updateError}
           </div>
         )}
+        
         <ComponentCard title="All Employees">
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full ">
+            <div className="max-w-full overflow-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
@@ -263,10 +410,9 @@ const AllEmployees: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Name</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Mobile</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email ID</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Designation</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">City</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">State</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Pincode</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Since </TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
                   </TableRow>
@@ -276,24 +422,29 @@ const AllEmployees: React.FC = () => {
                     <TableRow key={employee.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.id}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
+                        <div>
+
+                       
                         <span className="text-black dark:text-gray-400 cursor-default">
                           {employee.name}
                         </span>
+                         <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                              {employee.designation}
+                            </span>
+                         </div>
                         <div className="absolute z-10 w-64 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 left-0 top-full mt-1 hidden group-hover:block">
                           <div className="text-sm text-gray-800 dark:text-gray-200">
                             <p className="font-semibold">Created By: <span className="font-normal">{employee.created_by}</span></p>
-                           
                           </div>
-                          {/* Triangle pointer */}
                           <div className="absolute top-[-6px] left-10 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white dark:border-b-gray-800" />
                         </div>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.mobile}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.email}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.designation}</TableCell>
+                     
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.city.join(",")}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.state.join(",")}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.pincode}</TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{formatDate(employee.created_date!)}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
                           employee.status === 0 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" :
@@ -366,14 +517,14 @@ const AllEmployees: React.FC = () => {
 
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
-                    <span key={index} className="px-3 py-1 text-gray-500 dark:text-gray-400">...</span>
+                    <span key={`ellipsis-${index}`} className="px-3 py-1 text-gray-500 dark:text-gray-400">...</span>
                   ) : (
                     <Button
                       key={page}
-                      variant="outline"
+                      variant={page === currentPage ? "primary" : "outline"}
                       size="sm"
                       onClick={() => goToPage(page as number)}
-                      isActive={page === currentPage}
+                      className={page === currentPage ? "bg-[#1D3A76] text-white" : "text-gray-500"}
                     >
                       {page}
                     </Button>

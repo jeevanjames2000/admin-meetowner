@@ -7,7 +7,7 @@ import PhoneInput from "../../components/form/group-input/PhoneInput";
 import { EyeCloseIcon, EyeIcon, EnvelopeIcon } from "../../icons";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
-import { getCities, getStates } from "../../store/slices/propertyDetails";
+import { fetchAllStates, fetchAllCities } from "../../store/slices/places";
 import { createEmployee, clearMessages } from "../../store/slices/employee";
 
 // Define interfaces for form data and errors
@@ -41,14 +41,19 @@ interface Option {
 export default function CreateEmployee() {
   const [showPassword, setShowPassword] = useState(false);
   const dispatch = useDispatch<AppDispatch>();
-  const { cities, states } = useSelector((state: RootState) => state.property);
-  const { createLoading, createError, createSuccess } = useSelector((state: RootState) => state.employee);
+  const { cities, states } = useSelector((state: RootState) => state.places);
+  const { createLoading, createError, createSuccess } = useSelector(
+    (state: RootState) => state.employee
+  );
   const pageUserType = useSelector((state: RootState) => state.auth.user?.user_type);
 
+  // Fetch states on component mount
   useEffect(() => {
-    dispatch(getCities());
-    dispatch(getStates());
+    dispatch(fetchAllStates());
   }, [dispatch]);
+
+  // Fetch cities whenever the selected state changes
+  
 
   useEffect(() => {
     if (createSuccess) {
@@ -88,24 +93,26 @@ export default function CreateEmployee() {
     { value: "8", text: "TeleCaller" },
     { value: "9", text: "Marketing Executive" },
     { value: "10", text: "Customer Support" },
-    { value: "11", text: "Customer Service" },
+    { value: "11", text: "Client Support" },
+    {value : "12", text:'Accountant'}
   ];
 
   // Filter out "Manager" if pageUserType === 7
-  const designationOptions: Option[] = pageUserType === 7
-    ? allDesignationOptions.filter(option => option.value !== "7")
-    : allDesignationOptions;
+  const designationOptions: Option[] =
+    pageUserType === 7
+      ? allDesignationOptions.filter((option) => option.value !== "7")
+      : allDesignationOptions;
 
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
-      value: city.value,
-      text: city.label,
+      value: city.name,
+      text: city.name,
     })) || [];
 
   const stateOptions: Option[] =
     states?.map((state: any) => ({
-      value: state.value,
-      text: state.label,
+      value: state.name,
+      text: state.name,
     })) || [];
 
   const countries = [{ code: "IN", label: "+91" }];
@@ -122,11 +129,32 @@ export default function CreateEmployee() {
   const handleMultiSelectChange =
     (field: "designation" | "city" | "state") =>
     (values: string[]) => {
-      setFormData({ ...formData, [field]: values });
+      setFormData((prev) => {
+        const newFormData = { ...prev, [field]: values };
+        // Reset city when state changes
+        if (field === "state") {
+          newFormData.city = [];
+        }
+        return newFormData;
+      });
       if (errors[field]) {
         setErrors({ ...errors, [field]: undefined });
       }
     };
+    useEffect(() => {
+    if (formData.state.length > 0) {
+      const selectedStateId = formData.state[0];
+      const selectedStateName = stateOptions.find(
+        (option) => option.value === selectedStateId
+      )?.text;
+      if (selectedStateName) {
+        dispatch(fetchAllCities({ state: selectedStateName }));
+      }
+    } else {
+      // Clear cities when no state is selected
+      dispatch(fetchAllCities());
+    }
+  }, [formData.state, dispatch]);
 
   const validateForm = () => {
     let newErrors: Errors = {};
@@ -264,6 +292,7 @@ export default function CreateEmployee() {
             defaultSelected={formData.designation}
             onChange={handleMultiSelectChange("designation")}
             disabled={createLoading}
+            singleSelect={true} // Enforce single selection
           />
           {errors.designation && (
             <p className="text-red-500 text-sm mt-1">{errors.designation}</p>
@@ -300,10 +329,26 @@ export default function CreateEmployee() {
 
         <div className="relative mb-10 min-h-[80px]">
           <MultiSelect
+            label="State"
+            options={stateOptions}
+            defaultSelected={formData.state}
+            onChange={handleMultiSelectChange("state")}
+            disabled={createLoading}
+            singleSelect={true} // Enforce single selection
+          />
+          {errors.state && (
+            <p className="text-red-500 text-sm mt-1">{errors.state}</p>
+          )}
+        </div>
+
+        <div className="relative mb-10 min-h-[80px]">
+          <MultiSelect
             label="City"
             options={cityOptions}
+            defaultSelected={formData.city}
             onChange={handleMultiSelectChange("city")}
-            disabled={createLoading}
+            disabled={createLoading || formData.state.length === 0}
+            singleSelect={true} // Enforce single selection
           />
           {errors.city && (
             <p className="text-red-500 text-sm mt-1">{errors.city}</p>
@@ -322,19 +367,6 @@ export default function CreateEmployee() {
           />
           {errors.pincode && (
             <p className="text-red-500 text-sm mt-1">{errors.pincode}</p>
-          )}
-        </div>
-
-        <div className="relative mb-10 min-h-[80px]">
-          <MultiSelect
-            label="State"
-            options={stateOptions}
-            defaultSelected={formData.state}
-            onChange={handleMultiSelectChange("state")}
-            disabled={createLoading}
-          />
-          {errors.state && (
-            <p className="text-red-500 text-sm mt-1">{errors.state}</p>
           )}
         </div>
 

@@ -63,6 +63,8 @@ import { Invoice } from "./pages/Accounts/Invoice";
 import ServerStatusCheck from "./hooks/ServerStatusCheck";
 import ExpiryPayments from "./pages/Accounts/ExpiryPayments";
 import CustomPackages from "./pages/packages/CustomPackages";
+import AllCustomPackages from "./pages/packages/AllCustomPackages";
+import UserCustomPackage from "./pages/packages/UserCustomPackage";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -561,6 +563,26 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <CustomPackages />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/allcustompackages"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AllCustomPackages />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="/packages/custom/:userId"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <UserCustomPackage />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

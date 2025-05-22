@@ -476,7 +476,7 @@ const AllPlaces: React.FC = () => {
 
         <ComponentCard title="All Places">
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full">
+            <div className="max-w-full overflow-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>

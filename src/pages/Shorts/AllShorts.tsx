@@ -281,8 +281,8 @@ const AllShorts: React.FC = () => {
         pagePlacHolder="Filter shorts by property name, ID, or type"
         onFilter={handleFilter}
       />
-      <div className="flex justify-between gap-3 py-2">
-        <div className="w-auto flex gap-3">
+      <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
           <DatePicker
             id="startDate"
             placeholder="Select start date"
@@ -303,7 +303,7 @@ const AllShorts: React.FC = () => {
               setEndDate(null);
               setCurrentPage(1);
             }}
-            className="px-4 py-2"
+            className="px-4 py-2 w-full sm:w-auto"
           >
             Clear Filters
           </Button>
@@ -317,7 +317,7 @@ const AllShorts: React.FC = () => {
       <div className="space-y-6">
         <ComponentCard title="All Shorts">
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full">
+            <div className="max-w-full overflow-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>

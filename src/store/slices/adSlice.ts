@@ -2,6 +2,8 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
+
+
 interface Ad {
   id: number;
   ads_page: string;

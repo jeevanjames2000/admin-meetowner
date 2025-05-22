@@ -257,8 +257,9 @@ const ExpiryPayments: React.FC = () => {
       />
       <div className="space-y-6">
         {/* Filters */}
-        <div className="w-auto flex gap-3">
-          <div className="w-43">
+        <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <div className="w-full sm:w-43">
             <Select
               options={userFilterOptions}
               placeholder="Select User Type"
@@ -287,14 +288,13 @@ const ExpiryPayments: React.FC = () => {
               setEndDate(null);
               setFilterValue("");
               setCurrentPage(1);
-              setDateError(null);
             }}
-            className="px-4 py-2"
+            className="px-4 py-2 w-full sm:w-auto"
           >
             Clear Filters
           </Button>
         </div>
-
+      </div>
         {/* Display date error if present */}
         {dateError && (
           <div className="text-sm text-red-500 mb-2">{dateError}</div>

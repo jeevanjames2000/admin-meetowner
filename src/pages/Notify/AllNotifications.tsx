@@ -223,35 +223,35 @@ const AllNotifications: React.FC = () => {
           onFilter={handleSearch}
          
         />
-        <div className="flex justify-between gap-3 py-2">
-          <div className="w-auto flex gap-3">
-            <DatePicker
-              id="startDate"
-              placeholder="Select start date"
-              onChange={handleStartDateChange}
-              defaultDate={startDate ? new Date(startDate) : undefined}
-            />
-            <DatePicker
-              id="endDate"
-              placeholder="Select end date"
-              onChange={handleEndDateChange}
-              defaultDate={endDate ? new Date(endDate) : undefined}
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchQuery("");
-                setDebouncedSearchQuery("");
-                setStartDate(null);
-                setEndDate(null);
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2"
-            >
-              Clear Filters
-            </Button>
-          </div>
+       <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
+        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
+          <DatePicker
+            id="startDate"
+            placeholder="Select start date"
+            onChange={handleStartDateChange}
+            defaultDate={startDate ? new Date(startDate) : undefined}
+          />
+          <DatePicker
+            id="endDate"
+            placeholder="Select end date"
+            onChange={handleEndDateChange}
+            defaultDate={endDate ? new Date(endDate) : undefined}
+          />
+          <Button
+            variant="outline"
+            onClick={() => {
+              setSearchQuery("");
+              setDebouncedSearchQuery("");
+              setStartDate(null);
+              setEndDate(null);
+              setCurrentPage(1);
+            }}
+            className="px-4 py-2 w-full sm:w-auto"
+          >
+            Clear Filters
+          </Button>
         </div>
+      </div>
         {(searchQuery || startDate || endDate) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
             Filters: Search: {searchQuery || "None"} | Date: {startDate || "Any"} to {endDate || "Any"}
