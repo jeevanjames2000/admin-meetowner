@@ -17,9 +17,10 @@ import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
 import { clearMessages, deleteEmployee, } from "../../../store/slices/employee";
 import toast from "react-hot-toast";
 import ConfirmDeleteModal from "../../common/ConfirmDeleteModal";
-import Select from "../../form/Select";
+
 import DatePicker from "../../form/date-picker";
-import AssignEmployeeModal from "../AssignEmployeeModal";
+
+import { fetchEmployeeUsersByType } from "../../../store/slices/employeeUsers";
 import { formatDate } from "../../../hooks/FormatDate";
 
 
@@ -27,33 +28,27 @@ import { formatDate } from "../../../hooks/FormatDate";
 // User type mapping
 const userTypeMap: { [key: number]: string } = {
   1: "Admin",
-  2: "User",
-  3: "Builder",
-  4: "Agent",
-  5: "Owner",
-  6: "Channel Partner",
+ 
   7: "Manager",
   8: "Telecaller",
   9: "Marketing Executive",
   10: "Customer Support",
 };
 
-const paymentStatusOptions: { value: string; label: string }[] = [
-  { value: "All", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
-];
+
 
 // Format date function
-export default function BasicTableOne() {
+
+
+export default function BasicTableEmployees() {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { users, loading, error } = useSelector((state: RootState) => state.users);
+  const { users, loading, error } = useSelector((state: RootState) => state.employeeUsers);
   const { deleteError, deleteSuccess, } = useSelector(
     (state: RootState) => state.employee
   );
-  const pageuserType = useSelector((state: RootState) => state.auth.user?.user_type);
+ 
 
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
@@ -62,9 +57,7 @@ export default function BasicTableOne() {
   const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<string>("");
-   const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
-  const [userToAssign, setUserToAssign] = useState<{ id: number; name: string,user_type:number } | null>(null);
+  
 
 
 
@@ -74,27 +67,18 @@ export default function BasicTableOne() {
   const userType = queryParams.get("userType");
   const categoryLabel = userTypeMap[parseInt(userType || "0")] || "User";
 
-  // Define specific user types for GST and RERA numbers
-  const specificUserTypes = [3, 4, 5, 6]; // Builder, Agent, Owner, Channel Partner
-  const showGstNumber = userType && specificUserTypes.includes(parseInt(userType));
-  const showReraNumber = userType && specificUserTypes.includes(parseInt(userType));
-
-  const AssignEmployessUserTypes = [2,3,4,5,6];
-  const showAssign = userType && AssignEmployessUserTypes.includes(parseInt(userType));
-
-  // Condition to show Mobile and Email columns
-  const showMobileAndEmail = pageuserType === 7 && userType !== null && parseInt(userType) === 2;
+ 
 
 
   useEffect(() => {
     if (userType) {
-      dispatch(fetchUsersByType({ user_type: parseInt(userType) }));
+      dispatch(fetchEmployeeUsersByType({ user_type: parseInt(userType) }));
     }
   }, [dispatch, userType]);
   
   useEffect(() => {
   setCurrentPage(1); // Reset to page 1 when filters change
-}, [paymentStatus, startDate, endDate]);
+}, [startDate, endDate]);
 
   useEffect(() => {
     if (deleteSuccess) {
@@ -114,7 +98,7 @@ export default function BasicTableOne() {
   }, [deleteSuccess, deleteError,  dispatch, userType]);
 
   const handleEditUser = (user: any) => {
-    // navigate("/edit-user-details", { state: { user } });
+    navigate("/edit-user-details", { state: { user } });
   };
 
   const handleDeleteClick = (user: { id: number; name: string }) => {
@@ -123,12 +107,7 @@ export default function BasicTableOne() {
     setActiveMenu(null);
   };
 
-   const handleAssignClick = (user: { id: number; name: string,user_type:number }) => {
-    setUserToAssign({ id: user.id, name: user.name,user_type:user.user_type });
-    setIsAssignModalOpen(true);
-    setActiveMenu(null);
-  };
-
+ 
   const confirmDelete = () => {
     if (userToDelete) {
       dispatch(deleteEmployee(userToDelete.id));
@@ -143,26 +122,14 @@ export default function BasicTableOne() {
       ? users.filter((user) => {
           const searchableFields = [
             user.name,
-            ...(showMobileAndEmail ? [] : [user.mobile, user.email]),
+            user.mobile,
             user.city,
             user.state,
-            user.address,
-            user.pincode,
-            user.gst_number,
-            user.rera_number,
           ];
           const matchesSearch = searchableFields
             .filter((field): field is string => field !== null && field !== undefined)
             .map((field) => field.toLowerCase())
             .some((field) => field.includes(filterValue.toLowerCase()));
-
-          // Payment status filter
-          const matchesPaymentStatus =
-            paymentStatus === "" || // Treat empty as "All"
-            paymentStatus === "All" ||
-            (paymentStatus === "active" && user.subscription_status === "active") ||
-            (paymentStatus === "inactive" &&
-              (user.subscription_status === "inactive" || user.subscription_status === null));
 
           // Date range filter
           let matchesDate = true;
@@ -181,10 +148,10 @@ export default function BasicTableOne() {
             }
           }
 
-          return matchesSearch && matchesPaymentStatus && matchesDate;
+          return matchesSearch  && matchesDate;
         })
       : [],
-  [users, filterValue, paymentStatus, startDate, endDate, showMobileAndEmail]
+  [users, filterValue, startDate, endDate,]
 );
 
 
@@ -207,14 +174,7 @@ export default function BasicTableOne() {
 
   
 
- const handleUserClick = (userId: number, userType: number, name: string, userActivity: any[]) => {
-  if (userType === 2) {
-    navigate('/buyers-activities', { state: { userActivity, userId, name } });
-  }
-  if ([3, 4, 5, 6].includes(userType)) {
-    navigate(`/user/propertyDetails?userId=${userId}&name=${encodeURIComponent(name)}`);
-  }
-};
+
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
@@ -306,17 +266,7 @@ export default function BasicTableOne() {
     
         <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
       <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-        {[2, 3, 4, 5, 6].includes(parseInt(userType || "0")) && (
-          <div className="w-full sm:w-43">
-            <Select
-              options={paymentStatusOptions}
-              placeholder="Select Payment Status"
-              onChange={(value: string) => setPaymentStatus(value)}
-              value={paymentStatus}
-              className="dark:bg-dark-900"
-            />
-          </div>
-        )}
+      
         <DatePicker
           id="startDate"
           placeholder="Select start date"
@@ -332,7 +282,7 @@ export default function BasicTableOne() {
         <Button
           variant="outline"
           onClick={() => {
-            setPaymentStatus(""); // Reset to empty for placeholder
+         
             setStartDate(null);
             setEndDate(null);
             setFilterValue("");
@@ -346,9 +296,9 @@ export default function BasicTableOne() {
     </div>
     
        
-        {(paymentStatus || startDate || endDate || filterValue) && (
+        {(  startDate || endDate || filterValue) && (
         <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-          Filters: {paymentStatus || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
+          Filters: {"All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
         </div>
       )}
 
@@ -386,7 +336,7 @@ export default function BasicTableOne() {
                     >
                       Name
                     </TableCell>
-                    {!showMobileAndEmail && (
+                   
                       <>
                         <TableCell
                           isHeader
@@ -395,8 +345,13 @@ export default function BasicTableOne() {
                           Mobile
                         </TableCell>
                       </>
-                    )}
                   
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Address
+                    </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -409,28 +364,7 @@ export default function BasicTableOne() {
                     >
                       State
                     </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Paynment Status
-                    </TableCell>
-                    {showGstNumber && (
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        GST Number
-                      </TableCell>
-                    )}
-                    {showReraNumber && (
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        RERA Number
-                      </TableCell>
-                    )}
+                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -463,7 +397,7 @@ export default function BasicTableOne() {
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
                         <div
                           className="flex items-center gap-3"
-                          onClick={() => handleUserClick(user.id, user.user_type, user.name, user.userActivity)}
+                        
                         >
                           <div>
                             <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
@@ -475,13 +409,12 @@ export default function BasicTableOne() {
                           </div>
                         </div>
                       </TableCell>
-                      {!showMobileAndEmail && (
+                     
                         <>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                             {user.mobile}
                           </TableCell>
-                        </>
-                      )}
+                        </> 
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.address}
                       </TableCell>
@@ -491,22 +424,9 @@ export default function BasicTableOne() {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.state}
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.subscription_status}
-                      </TableCell>
-                      {showGstNumber && (
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {user.gst_number || "N/A"}
+                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {formatDate(user.created_date!)}
                         </TableCell>
-                      )}
-                      {showReraNumber && (
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {user.rera_number || "N/A"}
-                        </TableCell>
-                      )}
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {formatDate(user.created_date)}
-                      </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         <span
                           className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
@@ -555,16 +475,6 @@ export default function BasicTableOne() {
                               >
                                 {user.status === 0 ? "Suspend" : "Activate"}
                                  </button>
-                                {showAssign && (
-                                 
-                               <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                 onClick={() => handleAssignClick(user)}
-                              >
-                                Assign Employee
-                              </button>
-                                )}
-                              
                             </div>
                           </div>
                         )}
@@ -639,15 +549,6 @@ export default function BasicTableOne() {
               setIsDeleteModalOpen(false);
               setUserToDelete(null);
             }}
-          />
-
-           <AssignEmployeeModal
-            isOpen={isAssignModalOpen}
-            onClose={() => {
-              setIsAssignModalOpen(false);
-              setUserToAssign(null);
-            }}
-            userToAssign={userToAssign}
           />
 
         </ComponentCard>

@@ -11,22 +11,12 @@ import { fetchAllCareers, deleteCareer } from "../../store/slices/careerSlice";
 import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal"; // Adjust path as needed
 import { toast } from "react-hot-toast";
 import { clearMessages } from "../../store/slices/employee";
+import { formatDate } from "@fullcalendar/core/index.js";
 
 const itemsPerPage = 10; // Define items per page
 
 
-const formatDate = (dateString: string) => {
-  try {
-    const date = new Date(dateString);
-    return date.toLocaleDateString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-    });
-  } catch {
-    return "Invalid Date";
-  }
-};
+;
 
 const CareersPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();

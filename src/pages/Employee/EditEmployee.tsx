@@ -84,8 +84,7 @@ const EditEmployee: React.FC = () => {
   };
 
   const handleSave = (e: React.FormEvent) => {
-    const createdBy = localStorage.getItem("name") as string;
-    const createdUserIdRaw = localStorage.getItem("userId");
+   
     const designationText = typeof selectedEmployee.designation === "string"
       ? selectedEmployee.designation
       : Array.isArray(selectedEmployee.designation) && selectedEmployee.designation.length > 0
@@ -114,8 +113,8 @@ const EditEmployee: React.FC = () => {
             : "",
         user_type: parseInt(designationValue || "0"),
         status: selectedEmployee.status,
-        created_by: createdBy,
-        created_userID: parseInt(createdUserIdRaw || "0"),
+        created_by: "admin",
+        created_userID:  8,
       };
       console.log("Saving:", employeeToUpdate);
       dispatch(updateEmployee(employeeToUpdate));

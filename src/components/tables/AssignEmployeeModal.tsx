@@ -6,11 +6,12 @@ import { fetchEmployeeUsersByType, clearEmployeeUsers } from "../../store/slices
 import Button from "../ui/button/Button";
 import Label from "../form/Label";
 import Select from "../form/Select";
+import { assignEmployee } from "../../store/slices/employee";
 
 interface AssignEmployeeModalProps {
   isOpen: boolean;
   onClose: () => void;
-  userToAssign: { id: number; name: string } | null;
+  userToAssign: { id: number; name: string ,user_type:number} | null;
 }
 
 interface FormData {
@@ -28,7 +29,8 @@ const userTypeIdMap: { [key: string]: number } = {
   Telecaller: 8,
   "Marketing Executive": 9,
   "Customer Support": 10,
-  "Customer Service": 11,
+  // "Client Service": 11,
+  // "Accountant":12
 };
 
 export default function AssignEmployeeModal({
@@ -39,6 +41,9 @@ export default function AssignEmployeeModal({
   const dispatch = useDispatch<AppDispatch>();
   const { users, loading: usersLoading, error: usersError } = useSelector(
     (state: RootState) => state.employeeUsers
+  );
+   const { assignLoading, assignError, assignSuccess } = useSelector(
+    (state: RootState) => state.employee
   );
 
   const [formData, setFormData] = useState<FormData>({
@@ -112,15 +117,31 @@ export default function AssignEmployeeModal({
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm() && userToAssign) {
-      console.log("User to assign ID:", userToAssign.id);
-      console.log("Selected employee ID:", formData.selectedUser);
-      console.log("Selected package type:", formData.packageFor);
-      // Add your assignEmployee dispatch here when ready
-      // dispatch(assignEmployee({ userId: userToAssign.id, employeeId: parseInt(formData.selectedUser) }));
-    }
+      const selectedEmployee = users.find((user)=> user.id.toString() === formData.selectedUser);
+      if(!selectedEmployee){
+        return;
+      }
+      const assignData = {
+        user_id:userToAssign.id,
+        user_name:userToAssign.name !== null ? userToAssign.name :'N/A',
+        user_type:userToAssign.user_type,
+        employee_id:selectedEmployee.id,
+        employee_name:selectedEmployee.name,
+        employee_type:selectedEmployee.user_type,
+      };
+      try {
+        const result = await dispatch(assignEmployee(assignData)).unwrap();
+       
+        onClose(); // Close modal on success
+      } catch (error) {
+       console.log(error)
+      }
+      console.log(assignData);
+  }
+
   };
 
   if (!isOpen) return null;
@@ -143,6 +164,12 @@ export default function AssignEmployeeModal({
 
         {usersError && (
           <p className="text-red-500 text-sm mb-4">{usersError}</p>
+        )}
+        {assignError && (
+          <p className="text-red-500 text-sm mb-4">{assignError}</p>
+        )}
+          {assignSuccess && (
+          <p className="text-gray-500 text-sm mb-4">{assignSuccess}</p>
         )}
 
         <form onSubmit={handleSubmit} className="space-y-4">

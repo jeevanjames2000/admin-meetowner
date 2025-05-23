@@ -11,18 +11,10 @@ import { fetchNotificationHistory, clearNotify } from "../../store/slices/notify
 import { toast } from "react-hot-toast";
 import { NotifyState } from "../../store/slices/notifySlice";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
+import { formatDate } from "../../hooks/FormatDate";
 
 // Format date function
-const formatDate = (dateString: string | null): string => {
-  if (!dateString) return "N/A";
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "Invalid Date";
-    return date.toISOString().split("T")[0];
-  } catch {
-    return "Invalid Date";
-  }
-};
+
 
 const AllNotifications: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();

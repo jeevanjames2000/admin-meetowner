@@ -16,6 +16,9 @@ import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 import { useNavigate } from "react-router";
 import Select from "../../components/form/Select";
 import DatePicker from "../../components/form/date-picker";
+import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal";
+import ActiveStatusModal from "../../components/common/ActiveStatusModel";
+
 
 interface SelectOption {
   value: string;
@@ -53,6 +56,10 @@ const AllEmployees: React.FC = () => {
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
+  const [employeeToDelete, setEmployeeToDelete] = useState<{ id: number; name: string } | null>(null);
+  const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
+  const [employeeToUpdateStatus, setEmployeeToUpdateStatus] = useState<{ employee: any; action: "Active" | "Suspend" } | null>(null);
   const itemsPerPage = 10;
 
   const transformedEmployees = useMemo(() => {
@@ -66,30 +73,29 @@ const AllEmployees: React.FC = () => {
         mobile: emp.mobile,
         email: emp.email,
         designation: designationText,
-        designationValue: designationText, // Store the designation text for filtering (e.g., "Manager")
+        designationValue: designationText,
         city: [emp.city].filter(Boolean),
         state: [emp.state].filter(Boolean),
         status: emp.status,
         pincode: emp.pincode,
         created_by: emp.created_by,
         created_userID: emp.created_userID,
-        created_date: emp.created_date, // Ensure this field exists in your employee data
+        created_date: emp.created_date,
+        assigned_users: emp.assigned_users || [],
       };
     });
   }, [employees]);
 
   useEffect(() => {
     setIsLoading(true);
-    const userId = parseInt(localStorage.getItem("userId")!);
-    dispatch(fetchAllEmployees(userId)).finally(() => {
+    dispatch(fetchAllEmployees()).finally(() => {
       setIsLoading(false);
     });
   }, [dispatch]);
 
   useEffect(() => {
     if (deleteSuccess || updateSuccess) {
-      const userId = parseInt(localStorage.getItem("userId")!);
-      dispatch(fetchAllEmployees(userId)).then(() => {
+      dispatch(fetchAllEmployees()).then(() => {
         dispatch(clearMessages());
       });
     }
@@ -113,15 +119,12 @@ const AllEmployees: React.FC = () => {
     };
   }, []);
 
-  // Reset currentPage when filters change
   useEffect(() => {
     setCurrentPage(1);
   }, [filterValue, selectedDesignation, startDate, endDate]);
 
-  // Filter employees
   const filteredEmployees = useMemo(() => {
     return transformedEmployees.filter((employee) => {
-      // Search filter
       const matchesSearch = [
         employee.name || "",
         employee.mobile || "",
@@ -130,25 +133,23 @@ const AllEmployees: React.FC = () => {
         employee.state.join(",") || "",
       ].some((field) => field.toLowerCase().includes(filterValue.toLowerCase()));
 
-      // Designation filter
       const matchesDesignation =
         selectedDesignation === null ||
         selectedDesignation === "" ||
         employee.designationValue === selectedDesignation;
 
-      // Date range filter
       let matchesDate = true;
       if (startDate || endDate) {
         if (!employee.created_date) {
-          matchesDate = false; // Exclude employees with null created_date
+          matchesDate = false;
         } else {
           try {
-            const employeeDate = employee.created_date.split("T")[0]; // Extract YYYY-MM-DD
+            const employeeDate = employee.created_date.split("T")[0];
             matchesDate =
               (!startDate || employeeDate >= startDate) &&
               (!endDate || employeeDate <= endDate);
           } catch {
-            matchesDate = false; // Exclude invalid dates
+            matchesDate = false;
           }
         }
       }
@@ -157,7 +158,6 @@ const AllEmployees: React.FC = () => {
     });
   }, [transformedEmployees, filterValue, selectedDesignation, startDate, endDate]);
 
-  // Pagination logic
   const totalItems = filteredEmployees.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -185,7 +185,7 @@ const AllEmployees: React.FC = () => {
 
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
-    const totalVisiblePages = 5; // Aligned with GeneratePayments
+    const totalVisiblePages = 5;
     if (totalPages <= totalVisiblePages + 2) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -223,35 +223,55 @@ const AllEmployees: React.FC = () => {
     setDropdownOpen(null);
   };
 
-  const handleDelete = (employeeId: number) => {
-    dispatch(deleteEmployee(employeeId)).then((action) => {
-      if (deleteEmployee.fulfilled.match(action)) {
-        console.log("Delete successful, employeeId:", employeeId);
-      } else if (deleteEmployee.rejected.match(action)) {
-        console.log("Delete failed:", deleteError);
-      }
-    });
+  const handleDeleteClick = (employee: { id: number; name: string }) => {
+    setEmployeeToDelete({ id: employee.id, name: employee.name });
+    setIsDeleteModalOpen(true);
     setDropdownOpen(null);
   };
 
-  const handleStatusChange = (employee: any) => {
-    const updatedEmployee = {
-      ...employee,
-      status: employee.status === 0 ? 2 : 0,
-      city: employee.city[0],
-      state: employee.state[0],
-      user_type: userTypeIdMap[employee.designation] || "7", // Use userTypeIdMap
-      created_by: localStorage.getItem("name"),
-      created_userID: parseInt(localStorage.getItem("userId")!),
-    };
-    dispatch(updateEmployee(updatedEmployee)).then((action) => {
-      if (updateEmployee.fulfilled.match(action)) {
-        console.log("Status update successful, employeeId:", employee.id);
-      } else if (updateEmployee.rejected.match(action)) {
-        console.log("Status update failed:", updateError);
-      }
-    });
+  const confirmDelete = () => {
+    if (employeeToDelete) {
+      dispatch(deleteEmployee(employeeToDelete.id)).then((action) => {
+        if (deleteEmployee.fulfilled.match(action)) {
+          console.log("Delete successful, employeeId:", employeeToDelete.id);
+        } else if (deleteEmployee.rejected.match(action)) {
+          console.log("Delete failed:", deleteError);
+        }
+      });
+    }
+    setIsDeleteModalOpen(false);
+    setEmployeeToDelete(null);
+  };
+
+  const handleStatusChangeClick = (employee: any) => {
+    const action = employee.status === 0 ? "Suspend" : "Active";
+    setEmployeeToUpdateStatus({ employee, action });
+    setIsStatusModalOpen(true);
     setDropdownOpen(null);
+  };
+
+  const confirmStatusChange = () => {
+    if (employeeToUpdateStatus) {
+      const { employee } = employeeToUpdateStatus;
+      const updatedEmployee = {
+        ...employee,
+        status: employee.status === 0 ? 2 : 0,
+        city: employee.city[0] || "",
+        state: employee.state[0] || "",
+        user_type: userTypeIdMap[employee.designation] || 7,
+        created_by: employee.created_by || "admin",
+        created_userID: employee.created_userID || 8,
+      };
+      dispatch(updateEmployee(updatedEmployee)).then((action) => {
+        if (updateEmployee.fulfilled.match(action)) {
+          console.log("Status update successful, employeeId:", employee.id);
+        } else if (updateEmployee.rejected.match(action)) {
+          console.log("Status update failed:", updateError);
+        }
+      });
+    }
+    setIsStatusModalOpen(false);
+    setEmployeeToUpdateStatus(null);
   };
 
   const handleStartDateChange = (selectedDates: Date[]) => {
@@ -283,15 +303,20 @@ const AllEmployees: React.FC = () => {
   };
 
   const formatDate = (dateString: string | null): string => {
-  if (!dateString) return "N/A"; // Handle null or undefined
-  try {
-    const date = new Date(dateString);
-    if (isNaN(date.getTime())) return "Invalid Date"; // Handle invalid dates
-    return date.toISOString().split("T")[0];
-  } catch {
-    return "Invalid Date"; // Handle parsing errors
-  }
-};
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "Invalid Date";
+      return date.toISOString().split("T")[0];
+    } catch {
+      return "Invalid Date";
+    }
+  };
+
+  const handleEmployeeClick = (id: number) => {
+    navigate(`/assignedemployees/${id}`);
+    setDropdownOpen(null);
+  };
 
   const handleClearFilters = () => {
     setFilterValue("");
@@ -336,10 +361,9 @@ const AllEmployees: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        {/* Filters */}
         <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
           <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div className="w-full sm:w-43"> {/* Aligned with GeneratePayments */}
+            <div className="w-full sm:w-43">
               <Select
                 options={designationOptions}
                 placeholder="Select Designation"
@@ -370,7 +394,6 @@ const AllEmployees: React.FC = () => {
           </div>
         </div>
 
-        {/* Filter Summary */}
         {(filterValue || selectedDesignation || startDate || endDate) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
             Filters: {selectedDesignation || "All"} | 
@@ -412,7 +435,7 @@ const AllEmployees: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email ID</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">City</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">State</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Since </TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Since</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
                   </TableRow>
@@ -422,26 +445,17 @@ const AllEmployees: React.FC = () => {
                     <TableRow key={employee.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.id}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
-                        <div>
-
-                       
-                        <span className="text-black dark:text-gray-400 cursor-default">
-                          {employee.name}
-                        </span>
-                         <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                              {employee.designation}
-                            </span>
-                         </div>
-                        <div className="absolute z-10 w-64 p-2 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 left-0 top-full mt-1 hidden group-hover:block">
-                          <div className="text-sm text-gray-800 dark:text-gray-200">
-                            <p className="font-semibold">Created By: <span className="font-normal">{employee.created_by}</span></p>
-                          </div>
-                          <div className="absolute top-[-6px] left-10 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white dark:border-b-gray-800" />
+                        <div onClick={() => handleEmployeeClick(employee.id)}>
+                          <span className="text-black dark:text-gray-400 cursor-default">
+                            {employee.name}
+                          </span>
+                          <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                            {employee.designation}
+                          </span>
                         </div>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.mobile}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.email}</TableCell>
-                     
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.city.join(",")}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.state.join(",")}</TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{formatDate(employee.created_date!)}</TableCell>
@@ -477,13 +491,13 @@ const AllEmployees: React.FC = () => {
                                   Edit
                                 </button>
                                 <button
-                                  onClick={() => handleDelete(employee.id)}
+                                  onClick={() => handleDeleteClick(employee)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                                 >
                                   Delete
                                 </button>
                                 <button
-                                  onClick={() => handleStatusChange(employee)}
+                                  onClick={() => handleStatusChangeClick(employee)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
                                 >
                                   {employee.status === 0 ? "Suspend" : "Activate"}
@@ -542,6 +556,27 @@ const AllEmployees: React.FC = () => {
               </div>
             </div>
           )}
+
+          <ConfirmDeleteModal
+            isOpen={isDeleteModalOpen}
+            propertyName={employeeToDelete?.name || ""}
+            onConfirm={confirmDelete}
+            onCancel={() => {
+              setIsDeleteModalOpen(false);
+              setEmployeeToDelete(null);
+            }}
+          />
+
+          <ActiveStatusModal
+            isOpen={isStatusModalOpen}
+            propertyName={employeeToUpdateStatus?.employee.name || ""}
+            action={employeeToUpdateStatus?.action || "Active"}
+            onConfirm={confirmStatusChange}
+            onCancel={() => {
+              setIsStatusModalOpen(false);
+              setEmployeeToUpdateStatus(null);
+            }}
+          />
         </ComponentCard>
       </div>
     </div>

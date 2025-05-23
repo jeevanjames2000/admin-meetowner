@@ -517,22 +517,22 @@ const userFilterOptions: SelectOption[] = [
                     >
                       Package
                     </TableCell>
-                    {(status?.toLowerCase() !== "cancelled" ) && (
+                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Start Date
                     </TableCell>
-                    )}
-                    {(status?.toLowerCase() !== "cancelled" ) && (
+                  
+                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Expiry Date
                     </TableCell>
-                     )}
+                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -618,16 +618,16 @@ const userFilterOptions: SelectOption[] = [
                         {formatPackageName(sub.subscription_package === 'prime_plus' ? 'Prime Plus' : sub.subscription_package)}
                       </span>
                     </TableCell>
-                    {(status?.toLowerCase() !== "cancelled" ) && (
+                  
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(sub.subscription_start_date)}
                       </TableCell>
-                    )}
-                     {(status?.toLowerCase() !== "cancelled" ) && (
+                 
+                    
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(sub.subscription_expiry_date)}
                       </TableCell>
-                     )}
+                  
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {sub.subscription_status}
                       </TableCell>

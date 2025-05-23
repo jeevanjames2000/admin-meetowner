@@ -8,6 +8,7 @@ import PageMeta from "../../components/common/PageMeta";
 import { AppDispatch, RootState } from "../../store/store";
 import { fetchUsersByType } from "../../store/slices/users";
 import { clearMessages, insertCustomPackageWithRules } from "../../store/slices/packagesSlice";
+import { fetchAllStates, fetchAllCities } from "../../store/slices/places";
 
 interface Rule {
   id?: number;
@@ -32,6 +33,8 @@ interface Package {
   rules: Rule[];
   packageFor: string;
   customNumber: string | null;
+  state: string; // New field
+  city: string; // New field
 }
 
 interface User {
@@ -55,6 +58,7 @@ interface Errors {
   rera_number?: string;
   duration_days?: string;
   button_text?: string;
+  city?: string; // New error field
 }
 
 const CustomPackages: React.FC = () => {
@@ -65,6 +69,14 @@ const CustomPackages: React.FC = () => {
   const { insertLoading, insertSuccess, insertError } = useSelector(
     (state: RootState) => state.package
   );
+  const {
+    states,
+    statesLoading,
+    statesError,
+    cities,
+    citiesLoading,
+    citiesError,
+  } = useSelector((state: RootState) => state.places);
 
   const defaultRules: Rule[] = [
     { name: "Number of Listings 5", included: false },
@@ -102,9 +114,17 @@ const CustomPackages: React.FC = () => {
     rules: defaultRules,
     packageFor: "User",
     customNumber: null,
+    state: "",
+    city: "",
   });
   const [userSearchTerm, setUserSearchTerm] = useState<string>("");
   const [isUserDropdownOpen, setIsUserDropdownOpen] = useState<boolean>(false);
+  const [stateSearchTerm, setStateSearchTerm] = useState<string>("");
+  const [citySearchTerm, setCitySearchTerm] = useState<string>("");
+  const [isStateDropdownOpen, setIsStateDropdownOpen] = useState<boolean>(false);
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
+  const [filteredStates, setFilteredStates] = useState<string[]>([]);
+  const [filteredCities, setFilteredCities] = useState<string[]>([]);
   const [errors, setErrors] = useState<Errors>({});
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
@@ -129,8 +149,9 @@ const CustomPackages: React.FC = () => {
     "Prime Plus": "49999",
   };
 
-  // Fetch users based on selected packageFor
+  // Fetch states and users
   useEffect(() => {
+    dispatch(fetchAllStates());
     const userTypeId = userTypeIdMap[formData.packageFor];
     if (userTypeId) {
       dispatch(fetchUsersByType({ user_type: userTypeId }));
@@ -139,10 +160,33 @@ const CustomPackages: React.FC = () => {
     }
   }, [dispatch, formData.packageFor]);
 
+  // Filter states
+  useEffect(() => {
+    setFilteredStates(
+      states
+        .map((state) => state.name)
+        .filter((name) =>
+          name.toLowerCase().includes(stateSearchTerm.toLowerCase())
+        )
+    );
+  }, [stateSearchTerm, states]);
+
+  // Filter cities
+  useEffect(() => {
+    setFilteredCities(
+      cities
+        .filter(
+          (city) =>
+            (!formData.state || city.state === formData.state) &&
+            city.name.toLowerCase().includes(citySearchTerm.toLowerCase())
+        )
+        .map((city) => city.name)
+    );
+  }, [citySearchTerm, cities, formData.state]);
+
   // Handle API success/error feedback
   useEffect(() => {
     if (insertSuccess) {
-      // Reset form on success
       setFormData({
         id: "",
         name: "",
@@ -160,9 +204,15 @@ const CustomPackages: React.FC = () => {
         rules: defaultRules,
         packageFor: "User",
         customNumber: null,
+        state: "",
+        city: "",
       });
       setUserSearchTerm("");
+      setStateSearchTerm("");
+      setCitySearchTerm("");
       setIsUserDropdownOpen(false);
+      setIsStateDropdownOpen(false);
+      setIsCityDropdownOpen(false);
       setErrors({});
       dispatch(clearMessages());
     }
@@ -170,6 +220,26 @@ const CustomPackages: React.FC = () => {
       dispatch(clearMessages());
     }
   }, [insertSuccess, insertError, dispatch]);
+
+  // Handle click outside to close dropdowns
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      if (!target.closest(".user-dropdown")) {
+        setIsUserDropdownOpen(false);
+      }
+      if (!target.closest(".state-dropdown")) {
+        setIsStateDropdownOpen(false);
+      }
+      if (!target.closest(".city-dropdown")) {
+        setIsCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
 
   const filteredUserOptions = users.filter(
     (user) =>
@@ -191,12 +261,10 @@ const CustomPackages: React.FC = () => {
         "duration_days",
       ].includes(name)
     ) {
-      // Allow decimal values for price, actual_amount, gst, sgst
       const decimalFields = ["price", "actual_amount", "gst", "sgst"];
       const regex = decimalFields.includes(name)
-        ? /^\d*\.?\d*$/ // Allow numbers with optional decimal point
-        : /^\d*$/; // Only integers for duration_days, gst_percentage, sgst_percentage
-
+        ? /^\d*\.?\d*$/
+        : /^\d*$/;
       if (value === "" || regex.test(value)) {
         setFormData((prev) => ({
           ...prev,
@@ -208,6 +276,27 @@ const CustomPackages: React.FC = () => {
       setFormData((prev) => ({ ...prev, [name]: value }));
       setErrors((prev) => ({ ...prev, [name]: undefined }));
     }
+    if (name === "state") {
+      setStateSearchTerm(value);
+    } else if (name === "city") {
+      setCitySearchTerm(value);
+    }
+  };
+
+  const handleSelectSuggestion = (field: "state" | "city", value: string) => {
+    setFormData((prev) => ({ ...prev, [field]: value }));
+    if (field === "state") {
+      setStateSearchTerm(value);
+      setIsStateDropdownOpen(false);
+      setFormData((prev) => ({ ...prev, city: "" }));
+      setCitySearchTerm("");
+      setIsCityDropdownOpen(false);
+      dispatch(fetchAllCities({ state: value }));
+    } else if (field === "city") {
+      setCitySearchTerm(value);
+      setIsCityDropdownOpen(false);
+    }
+    setErrors((prev) => ({ ...prev, [field]: undefined }));
   };
 
   const handlePackageForChange = (value: string) => {
@@ -255,19 +344,13 @@ const CustomPackages: React.FC = () => {
     setIsUserDropdownOpen((prev) => !prev);
   };
 
-  const handleUserClickOutside = (e: MouseEvent) => {
-    const target = e.target as HTMLElement;
-    if (!target.closest(".user-dropdown")) {
-      setIsUserDropdownOpen(false);
-    }
+  const toggleStateDropdown = () => {
+    setIsStateDropdownOpen((prev) => !prev);
   };
 
-  useEffect(() => {
-    document.addEventListener("click", handleUserClickOutside);
-    return () => {
-      document.removeEventListener("click", handleUserClickOutside);
-    };
-  }, []);
+  const toggleCityDropdown = () => {
+    setIsCityDropdownOpen((prev) => !prev);
+  };
 
   const handleRuleChange = (index: number, field: "name" | "included", value: string | boolean) => {
     setFormData((prev) => ({
@@ -307,6 +390,7 @@ const CustomPackages: React.FC = () => {
     if (!formData.duration_days || isNaN(parseInt(formData.duration_days)))
       newErrors.duration_days = "Duration Days is required and must be a valid number";
     if (!formData.button_text) newErrors.button_text = "Button Text is required";
+    if (!formData.city) newErrors.city = "City is required";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -320,20 +404,20 @@ const CustomPackages: React.FC = () => {
         const includedRules = formData.rules.filter((rule) => rule.included);
         const createdUserIdRaw = localStorage.getItem("userId");
 
-        // Construct the payload for insertCustomPackageWithRules
         const payload = {
-          name: "Custom",
+          name: formData.name, // Use selected package name
           user_id: parseInt(formData.customNumber!), // customNumber is guaranteed by validation
-          price: parseFloat(formData.price) || 0, // Use parseFloat for decimal values
+          price: parseFloat(formData.price) || 0,
           duration_days: parseInt(formData.duration_days) || 0,
           package_for: formData.package_for.toLowerCase(),
           button_text: formData.button_text,
-          actual_amount: parseFloat(formData.actual_amount) || 0, // Use parseFloat
-          gst: parseFloat(formData.gst) || 0, // Use parseFloat
-          sgst: parseFloat(formData.sgst) || 0, // Use parseFloat
+          actual_amount: parseFloat(formData.actual_amount) || 0,
+          gst: parseFloat(formData.gst) || 0,
+          sgst: parseFloat(formData.sgst) || 0,
           gst_percentage: parseInt(formData.gst_percentage) || 0,
           gst_number: formData.gst_number,
           rera_number: formData.rera_number,
+          city: formData.city, // Add city to payload
           rules: includedRules.map((rule) => ({
             name: rule.name,
             included: rule.included,
@@ -341,9 +425,8 @@ const CustomPackages: React.FC = () => {
           created_by: createdUserIdRaw ? parseInt(createdUserIdRaw) : 1,
         };
 
-        // Dispatch the API call
         await dispatch(insertCustomPackageWithRules(payload)).unwrap();
-        console.log(payload);
+        console.log("Payload:", payload);
       } catch (error) {
         console.error("Failed to create package:", error);
       }
@@ -369,9 +452,15 @@ const CustomPackages: React.FC = () => {
       rules: defaultRules,
       packageFor: "User",
       customNumber: null,
+      state: "",
+      city: "",
     });
     setUserSearchTerm("");
+    setStateSearchTerm("");
+    setCitySearchTerm("");
     setIsUserDropdownOpen(false);
+    setIsStateDropdownOpen(false);
+    setIsCityDropdownOpen(false);
     setErrors({});
     dispatch(clearMessages());
   };
@@ -473,6 +562,119 @@ const CustomPackages: React.FC = () => {
             {errors.customNumber && (
               <p className="text-red-500 text-sm mt-1">{errors.customNumber}</p>
             )}
+          </div>
+
+          <div className="relative mb-10 min-h-[80px] state-dropdown">
+            <Label htmlFor="state-search">Select State</Label>
+            <div className="relative">
+              <input
+                id="state-search"
+                type="text"
+                name="state"
+                value={formData.state}
+                onChange={handleInputChange}
+                onClick={() => setIsStateDropdownOpen(true)}
+                onFocus={() => setIsStateDropdownOpen(true)}
+                placeholder="Search for a state..."
+                className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500"
+                disabled={insertLoading || statesLoading}
+              />
+              <button
+                type="button"
+                onClick={toggleStateDropdown}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                disabled={insertLoading || statesLoading}
+              >
+                <svg
+                  className={`w-4 h-4 transform ${isStateDropdownOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              {isStateDropdownOpen && filteredStates.length > 0 && (
+                <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                  {filteredStates.map((state) => (
+                    <li
+                      key={state}
+                      onClick={() => handleSelectSuggestion("state", state)}
+                      className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    >
+                      {state}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {statesError && (
+                <p className="text-red-500 text-sm mt-1">{statesError}</p>
+              )}
+            </div>
+          </div>
+
+          <div className="relative mb-10 min-h-[80px] city-dropdown">
+            <Label htmlFor="city-search">Select City</Label>
+            <div className="relative">
+              <input
+                id="city-search"
+                type="text"
+                name="city"
+                value={formData.city}
+                onChange={handleInputChange}
+                onClick={() => setIsCityDropdownOpen(true)}
+                onFocus={() => setIsCityDropdownOpen(true)}
+                placeholder="Search for a city..."
+                className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500"
+                disabled={insertLoading || citiesLoading || !formData.state}
+              />
+              <button
+                type="button"
+                onClick={toggleCityDropdown}
+                className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                disabled={insertLoading || citiesLoading || !formData.state}
+              >
+                <svg
+                  className={`w-4 h-4 transform ${isCityDropdownOpen ? "rotate-180" : ""}`}
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
+                </svg>
+              </button>
+              {isCityDropdownOpen && filteredCities.length > 0 && (
+                <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                  {filteredCities.map((city) => (
+                    <li
+                      key={city}
+                      onClick={() => handleSelectSuggestion("city", city)}
+                      className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    >
+                      {city}
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {errors.city && (
+                <p className="text-red-500 text-sm mt-1">{errors.city}</p>
+              )}
+              {citiesError && (
+                <p className="text-red-500 text-sm mt-1">{citiesError}</p>
+              )}
+            </div>
           </div>
 
           <div className="relative mb-10 min-h-[80px]">

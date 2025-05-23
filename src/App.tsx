@@ -62,13 +62,16 @@ import CreateShorts from "./pages/Shorts/CreateShorts";
 import { Invoice } from "./pages/Accounts/Invoice";
 import ServerStatusCheck from "./hooks/ServerStatusCheck";
 import ExpiryPayments from "./pages/Accounts/ExpiryPayments";
-import CustomPackages from "./pages/packages/CustomPackages";
+import CustomPackages from "./pages/packages/CreateCustomPackages";
 import AllCustomPackages from "./pages/packages/AllCustomPackages";
 import UserCustomPackage from "./pages/packages/UserCustomPackage";
+import BuyersActivities from "./components/tables/buyersActivities";
+import AssignEmployees from "./pages/Employee/AssignEmployees";
+import BasicTableEmployees from "./components/tables/BasicTables/BasicTableEmployess";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, token } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, token,user } = useSelector((state: RootState) => state.auth);
 
 
   const tokenExpired = isTokenExpired(token);
@@ -79,8 +82,10 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }
     return <Navigate to="/signin" replace />;
   }
+ 
 
   return children;
+
 };
 
 const ResidentialTypes = lazy(() => import("./pages/Residential/Buy/ResidentialTypes"));
@@ -129,6 +134,16 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
+                <Route
+                path="/basic-tables-employees"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <BasicTableEmployees />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
                <Route
                 path="/edit-user-details"
                 element={
@@ -155,6 +170,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <UserActivities />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                path="/buyers-activities"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <BuyersActivities />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
@@ -442,6 +467,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <AllEmployees />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+                <Route
+                path="/assignedemployees/:id"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AssignEmployees />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

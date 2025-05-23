@@ -186,9 +186,7 @@ export default function CreateEmployee() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      const userType = localStorage.getItem("userType");
-      const createdBy = localStorage.getItem("name");
-      const createdUserIdRaw = localStorage.getItem("userId");
+    
 
       // Map city ID to city name
       const selectedCityId = formData.city[0];
@@ -212,8 +210,8 @@ export default function CreateEmployee() {
         state: stateName,
         pincode: formData.pincode,
         user_type: parseInt(selectedDesignationId),
-        created_by: createdBy || "Unknown",
-        created_userID: createdUserIdRaw ? parseInt(createdUserIdRaw) : 1,
+        created_by: "admin",
+        created_userID:  8,
       };
 
       dispatch(createEmployee(employeeData));

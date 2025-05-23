@@ -13,32 +13,12 @@ import { useSidebar } from "../context/SidebarContext";
 import { FaAd, FaBell,FaBusinessTime,FaUserTie,FaHouseUser,FaRegUser ,FaMapMarkerAlt, FaVideo    } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
+import { filterNavItemsByUserType, NavItem } from "../hooks/navFilter";
 
 
 
-type NavItem = {
-  name: string;
-  icon?: React.ReactNode;
-  path?: string;
-  subItems?: {
-    name: string;
-    path?: string;
-    pro?: boolean;
-    new?: boolean;
-    data?: { property_in: string; property_for: string; status: number };
-    nestedItems?: {
-      name: string;
-      path?: string;
-      nestedItems?: {
-        name: string;
-        path: string;
-        data?: { property_in: string; property_for: string; status: number };
-      }[];
-    }[];
-  }[];
-};
 
-const navItems: NavItem[] = [
+export const navItems: NavItem[] = [
   {
     icon: <GridIcon />,
     name: "Dashboard",
@@ -217,7 +197,7 @@ const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
   const userType = useSelector((state: RootState) => state.auth.user?.user_type);
-  console.log(userType);
+  
 
   const [openSubmenu, setOpenSubmenu] = useState<{ type: "main"; index: number } | null>(null);
   const [openNestedSubmenu, setOpenNestedSubmenu] = useState<{ type: "main"; index: number; subIndex: number } | null>(null);
@@ -236,28 +216,8 @@ const AppSidebar: React.FC = () => {
     }));
   };
 
+  const filteredNavItems = filterNavItemsByUserType(navItems, userType);
  
-  const filteredNavItems = navItems
-    .filter(item => {
-      // if (userType === 3) return !["Accounts", "Employees", "Pages", "Maps", "Ads","Packages","Push Notifications"].includes(item.name); //Builders
-      // if (userType === 7) return !["Accounts", "Pages","Packages"].includes(item.name); // Manager
-      if (userType === 8) return !["Pages", "Maps", "Commercial Rent", "Commercial Buy", "Residential Rent", "Residential Buy", "Employees", "Lead Management", "Users","Ads","Packages","Push Notifications"].includes(item.name); // Telecaller
-      if (userType === 9) return !["Accounts", "Pages", "Maps", "Employees","Ads","Packages","Push Notifications"].includes(item.name); // Marketing Executive
-      if (userType === 10) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads","Packages","Push Notifications"].includes(item.name); // Customer Support
-      if (userType === 11) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users","Ads","Packages","Push Notifications"].includes(item.name); // Customer Service
-      return true;
-    })
-    .map(item => {
-      if (userType === 8 && item.name === "Accounts") {
-        return {
-          ...item,
-          subItems: filterAccountsSubItems(item.subItems),
-        };
-      }
-      return item;
-    });
-
-
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const nestedSubMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const deepNestedSubMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});

@@ -145,11 +145,11 @@ export const fetchExpiringSoonSubscriptions = createAsyncThunk<
         "/payments/getAllExpiringSoon"
       );
 
-      toast.promise(promise, {
-        loading: "Fetching expiring soon subscriptions...",
-        success: "Expiring soon subscriptions fetched successfully!",
-        error: "Failed to fetch expiring soon subscriptions",
-      });
+      // toast.promise(promise, {
+      //   loading: "Fetching expiring soon subscriptions...",
+      //   success: "Expiring soon subscriptions fetched successfully!",
+      //   error: "Failed to fetch expiring soon subscriptions",
+      // });
 
       const response = await promise;
       if (response.data.success && response.data.expiringSoon) {

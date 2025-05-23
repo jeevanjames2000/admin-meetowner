@@ -1,7 +1,39 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import axios, { AxiosError } from "axios";
+import  { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
+
+interface AssignedUser {
+  id: number;
+  user_type: number;
+  photo: string | null;
+  name: string;
+  mobile: string;
+  email: string;
+  city: string | null;
+  address: string | null;
+  subscription_package: string | null;
+  subscription_start_date: string | null;
+  subscription_expiry_date: string | null;
+  subscription_status: string | null;
+  assigned_emp_id: number;
+  assigned_emp_type: string;
+  assigned_emp_name: string;
+}
+
+interface AssignEmployeeRequest {
+  user_id: number;
+  employee_id: number;
+  employee_name: string;
+  employee_type: number;
+  user_name: string;
+  user_type: number;
+}
+
+interface AssignEmployeeResponse {
+  success: boolean;
+  message: string;
+}
 
 interface Employee {
   id?: number;
@@ -27,12 +59,12 @@ interface Employee {
   rera_number?: string | null;
   uploaded_from_seller_panel?: string | null;
   designation?: string | null;
-  subscription_package?: string | null;
-  subscription_start_date?: string | null;
-  subscription_expiry_date?: string | null;
-  subscription_status?: string | null;
   created_by?: string | null;
   created_userID?: number | null;
+  assigned_user_id?: number | null;
+  assigned_user_type?: number | null;
+  assigned_user_name?: string | null;
+  assigned_users?: AssignedUser[];
 }
 
 interface EmployeeResponse {
@@ -44,19 +76,16 @@ interface ErrorResponse {
   message?: string;
 }
 
-interface GroupedCount {
-  user_type: number;
-  count: number;
-}
 
-interface GetAllEmployeesResponse {
-  groupedCount: GroupedCount[];
-  employees: Employee[];
+
+interface FetchAllEmployeesResponse {
+  success: boolean;
+  count: number;
+  data: Employee[];
 }
 
 export interface EmployeeState {
   employees: Employee[];
-  groupedCount: GroupedCount[];
   // States for creating an employee
   createLoading: boolean;
   createError: string | null;
@@ -69,15 +98,18 @@ export interface EmployeeState {
   fetchLoading: boolean;
   fetchError: string | null;
   fetchSuccess: string | null;
-
+  // States for deleting an employee
   deleteLoading: boolean;
   deleteError: string | null;
   deleteSuccess: string | null;
+   assignLoading: boolean;
+  assignError: string | null;
+  assignSuccess: string | null;
 }
 
 const initialState: EmployeeState = {
   employees: [],
-  groupedCount: [],
+  
   // Initial states for creation
   createLoading: false,
   createError: null,
@@ -94,6 +126,10 @@ const initialState: EmployeeState = {
   deleteLoading: false,
   deleteError: null,
   deleteSuccess: null,
+
+  assignLoading: false,
+  assignError: null,
+  assignSuccess: null,
 };
 
 // Create Employee Thunk
@@ -102,7 +138,7 @@ export const createEmployee = createAsyncThunk(
   async (employeeData: Employee, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.post<EmployeeResponse>(
-        "/user/v1/createUser",
+        "/user/v1/createEmployee",
         employeeData
       );
 
@@ -144,7 +180,7 @@ export const updateEmployee = createAsyncThunk(
   async (employeeData: Employee, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.post<EmployeeResponse>(
-        "/user/v1/updateUser",
+        "/user/v1/updateEmployee",
         employeeData
       );
 
@@ -183,11 +219,10 @@ export const updateEmployee = createAsyncThunk(
 // Fetch All Employees Thunk
 export const fetchAllEmployees = createAsyncThunk(
   "employee/fetchAllEmployees",
-  async (userId: number, { rejectWithValue }) => {
+  async (_, { rejectWithValue }) => {
     try {
-      const response = await axiosInstance.get<GetAllEmployeesResponse>(
-        `/user/v1/getAllEmp/${userId}`,
-       
+      const response = await axiosInstance.get<FetchAllEmployeesResponse>(
+        `/user/v1/getAllEmployeesByTypeSearch`
       );
       return response.data;
     } catch (error) {
@@ -218,7 +253,7 @@ export const deleteEmployee = createAsyncThunk(
   "employee/deleteEmployee",
   async (employeeId: number, { rejectWithValue }) => {
     try {
-      const promise = axiosInstance.delete<EmployeeResponse>("/user/v1/deleteUser", {
+      const promise = axiosInstance.delete<EmployeeResponse>("/user/v1/deleteEmployee", {
         data: { id: employeeId }, // Pass the id in the request body
       });
 
@@ -246,6 +281,51 @@ export const deleteEmployee = createAsyncThunk(
           default:
             return rejectWithValue(
               axiosError.response.data?.message || "Failed to delete employee"
+            );
+        }
+      }
+      return rejectWithValue("Network error. Please try again.");
+    }
+  }
+);
+
+//Assign Employee
+
+export const assignEmployee = createAsyncThunk(
+  "employee/assignEmployee",
+  async (assignData: AssignEmployeeRequest, { rejectWithValue }) => {
+    try {
+      const promise = axiosInstance.post<AssignEmployeeResponse>(
+        "/user/v1/assignEmployee",
+        assignData
+      );
+
+      toast.promise(promise, {
+        loading: "Assigning employee...",
+        success: "Employee assigned successfully!",
+        error: "Failed to assign employee",
+      });
+
+      const response = await promise;
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error("Assign employee error:", axiosError);
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        switch (status) {
+          case 403:
+            return rejectWithValue("You don't have permission to assign employee");
+          case 400:
+            return rejectWithValue(axiosError.response.data?.message || "Invalid assignment data");
+          case 404:
+            return rejectWithValue("User or employee not found");
+          case 500:
+            return rejectWithValue("Server error. Please try again later.");
+          default:
+            return rejectWithValue(
+              axiosError.response.data?.message || "Failed to assign employee"
             );
         }
       }
@@ -321,8 +401,7 @@ const employeeSlice = createSlice({
       })
       .addCase(fetchAllEmployees.fulfilled, (state, action) => {
         state.fetchLoading = false;
-        state.employees = action.payload.employees;
-        state.groupedCount = action.payload.groupedCount;
+        state.employees = action.payload.data;
         state.fetchSuccess = "Employees fetched successfully";
       })
       .addCase(fetchAllEmployees.rejected, (state, action) => {
@@ -345,6 +424,19 @@ const employeeSlice = createSlice({
       .addCase(deleteEmployee.rejected, (state, action) => {
         state.deleteLoading = false;
         state.deleteError = action.payload as string;
+      })
+      .addCase(assignEmployee.pending, (state) => {
+        state.assignLoading = true;
+        state.assignError = null;
+        state.assignSuccess = null;
+      })
+      .addCase(assignEmployee.fulfilled, (state, action) => {
+        state.assignLoading = false;
+        state.assignSuccess = action.payload.message;
+      })
+      .addCase(assignEmployee.rejected, (state, action) => {
+        state.assignLoading = false;
+        state.assignError = action.payload as string;
       });
   },
 });

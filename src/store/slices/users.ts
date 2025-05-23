@@ -1,7 +1,27 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
-import axiosInstance from "../../utils/axiosInstance"; // Fixed typo: axiosIstance -> axiosInstance
+import axiosInstance from "../../utils/axiosInstance"; 
+
+interface UserActivity {
+  id: number;
+  property_id: string;
+  user_id: number;
+  name: string;
+  mobile: string;
+  email: string;
+  searched_on_date: string;
+  searched_on_time: string;
+  interested_status: number;
+  property_user_id: number;
+  searched_filter_desc: string;
+  shedule_date: string | null;
+  shedule_time: string | null;
+  view_status: number;
+  property_name: string | null;
+  location_id: number | null;
+  google_address: string | null;
+}
 
 interface User {
   id: number;
@@ -33,6 +53,7 @@ interface User {
   subscription_status: string | null;
   created_by: string;
   created_userID: number;
+   userActivity: UserActivity[];
 }
 
 interface UsersResponse {
@@ -98,11 +119,11 @@ export const fetchUsersByType = createAsyncThunk(
         }
       );
 
-      toast.promise(promise, {
-        loading: "Fetching users...",
-        success: "Users fetched successfully!",
-        error: "Failed to fetch users",
-      });
+      // toast.promise(promise, {
+      //   loading: "Fetching users...",
+      //   success: "Users fetched successfully!",
+      //   error: "Failed to fetch users",
+      // });
 
       const response = await promise;
       return response.data;
@@ -122,11 +143,11 @@ export const fetchAllUsers = createAsyncThunk(
     try {
       const promise = axiosInstance.get<UsersResponse>("/api/v1/getUsers");
 
-      toast.promise(promise, {
-        loading: "Fetching all users...",
-        success: "All users fetched successfully!",
-        error: "Failed to fetch all users",
-      });
+      // toast.promise(promise, {
+      //   loading: "Fetching all users...",
+      //   success: "All users fetched successfully!",
+      //   error: "Failed to fetch all users",
+      // });
 
       const response = await promise;
       console.log(response);

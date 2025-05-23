@@ -13,6 +13,7 @@ import {
 import Button from "../../ui/button/Button";
 import ComponentCard from "../../common/ComponentCard";
 import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
+import { formatDate } from "../../../hooks/FormatDate";
 
 // Property type mapping for display
 const propertyTypeMap: { [key: string]: string } = {
@@ -22,12 +23,6 @@ const propertyTypeMap: { [key: string]: string } = {
   Commercial: "Commercial",
 };
 
-// Format date function
-const formatDate = (dateString: string | null): string => {
-  if (!dateString) return "N/A";
-  const date = new Date(dateString);
-  return date.toISOString().split("T")[0];
-};
 
 export default function PropertyDetailsByUserId() {
   const location = useLocation();
