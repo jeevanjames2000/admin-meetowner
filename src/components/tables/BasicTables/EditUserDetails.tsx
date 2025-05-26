@@ -7,6 +7,7 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../../store/store";
 import { updateEmployee, clearMessages } from "../../../store/slices/employee";
 import toast from "react-hot-toast";
+import { updateUser } from "../../../store/slices/userEditSlicet";
 
 // Define interfaces for form data and errors
 interface FormData {
@@ -43,8 +44,10 @@ export default function EditUserDetails() {
   const navigate = useNavigate();
   const location = useLocation();
   const pageUserType = useSelector((state: RootState) => state.auth.user?.user_type);
-  const { updateLoading, updateSuccess, updateError } = useSelector((state: RootState) => state.employee);
+  const { updateLoading, updateSuccess, updateError } = useSelector((state: RootState) => state.userEdit);
   const user = location.state?.user; // Get user data from navigation state
+
+  console.log(user);
 
 
   const [formData, setFormData] = useState<FormData>({
@@ -128,7 +131,7 @@ export default function EditUserDetails() {
       newErrors.email = "Email is invalid";
     }
     if (!formData.designation) newErrors.designation = "Designation is required";
-    if (!formData.address.trim()) newErrors.address = "Address is required";
+    // if (!formData.address.trim()) newErrors.address = "Address is required";
     if (!formData.city.trim()) newErrors.city = "City is required";
     if (!formData.state.trim()) newErrors.state = "State is required";
     if (!formData.pincode.trim()) {
@@ -136,11 +139,11 @@ export default function EditUserDetails() {
     } else if (!/^\d{6}$/.test(formData.pincode)) {
       newErrors.pincode = "Pincode must be 6 digits";
     }
-    if (!formData.gstNumber.trim()) {
-      newErrors.gstNumber = "GST Number is required";
-    } 
+    // if (!formData.gstNumber.trim()) {
+    //   newErrors.gstNumber = "GST Number is required";
+    // } 
     
-    if (!formData.reraNumber.trim()) newErrors.reraNumber = "Rera Number is required";
+    // if (!formData.reraNumber.trim()) newErrors.reraNumber = "Rera Number is required";
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
@@ -174,7 +177,7 @@ export default function EditUserDetails() {
       };
       console.log(profileData);
 
-      dispatch(updateEmployee(profileData));
+      dispatch(updateUser(profileData));
     }
   };
 

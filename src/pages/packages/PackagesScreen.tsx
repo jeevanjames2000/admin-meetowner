@@ -75,6 +75,7 @@ export interface EditPackagePayload {
   gst_percentage:number;
   gst_number:string;
   rera_number:string;
+  city:string;
 }
 
 interface Option {
@@ -318,7 +319,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel,city })
         gst_percentage: parseInt(formData.gst_percentage),
         gst_number: formData.gst_number,
         rera_number: formData.rera_number,
-        
+        city:city
       };
       await dispatch(editPackage(editPackagePayload));
       console.log('Edit package payload', editPackagePayload);
@@ -570,7 +571,7 @@ const PackagesScreen: React.FC = () => {
   const hasSetInitialCity = useRef(false);
 
   
-
+    
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
       value: city.value,
@@ -596,13 +597,16 @@ const PackagesScreen: React.FC = () => {
 
   useEffect(() => {
     if (status && selectedCity) {
+
       let normalizedStatus = status.charAt(0).toUpperCase() + status.slice(1);
       if (status === "channel_partner") {
         normalizedStatus = "Channel Partner";
       }
+      const selectedCityOption = cityOptions.find((option) => option.value === selectedCity);
+      const cityLabel = selectedCityOption ? selectedCityOption.text : selectedCity; 
       const packagesFilters: PackageFilters = {
           package_for: status,
-          city: selectedCity,
+          city: cityLabel,
       };
       dispatch(fetchAllPackages(packagesFilters));
        
@@ -673,6 +677,9 @@ const PackagesScreen: React.FC = () => {
       document.removeEventListener("click", handleClickOutside);
     };
   }, []);
+
+  const selectedCityOption = cityOptions.find((option) => option.value === selectedCity);
+  const cityLabel = selectedCityOption ? selectedCityOption.text : selectedCity;
 
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -847,7 +854,7 @@ const PackagesScreen: React.FC = () => {
           onSave={handleSavePackage}
           onCancel={handleCancelEdit}
          
-          city = {selectedCity}
+          city = {cityLabel}
         />
       )}
     </div>

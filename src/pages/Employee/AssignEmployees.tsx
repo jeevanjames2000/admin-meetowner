@@ -354,7 +354,7 @@ export default function AssignEmployees() {
                               {assignedUser.name}
                             </span>
                             <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                              User Type: {userTypeOptions.find(opt => opt.value === assignedUser.user_type.toString())?.label || assignedUser.user_type}
+                             {userTypeOptions.find(opt => opt.value === assignedUser.user_type.toString())?.label || assignedUser.user_type}
                             </span>
                           </div>
                         </div>

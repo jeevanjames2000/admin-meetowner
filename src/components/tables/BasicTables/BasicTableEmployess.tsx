@@ -163,13 +163,16 @@ export default function BasicTableEmployees() {
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
 
-  const toggleMenu = (id: number) => {
-    setActiveMenu(activeMenu === id ? null : id);
-  };
+
 
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
+  };
+
+  const handleEmployeeClick = (id: number) => {
+    navigate(`/assignedemployees/${id}`);
+   
   };
 
   
@@ -346,12 +349,7 @@ export default function BasicTableEmployees() {
                         </TableCell>
                       </>
                   
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Address
-                    </TableCell>
+                  
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -377,12 +375,7 @@ export default function BasicTableEmployees() {
                     >
                       Status
                     </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Actions
-                    </TableCell>
+                    
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -395,7 +388,7 @@ export default function BasicTableEmployees() {
                         {user.id}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
-                        <div
+                        <div  onClick={() => handleEmployeeClick(user.id)}
                           className="flex items-center gap-3"
                         
                         >
@@ -415,9 +408,7 @@ export default function BasicTableEmployees() {
                             {user.mobile}
                           </TableCell>
                         </> 
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.address}
-                      </TableCell>
+                    
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.city}
                       </TableCell>
@@ -450,35 +441,7 @@ export default function BasicTableEmployees() {
                             : "Inactive"}
                         </span>
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                        <Button variant="outline" size="sm" onClick={() => toggleMenu(user.id)}>
-                          <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
-                        </Button>
-                        {activeMenu === user.id && (
-                          <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
-                            <div className="py-2">
-                              <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                //  onClick={() => handleEditUser(user)}
-                              >
-                                Edit
-                              </button>
-                              <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                //  onClick={() => handleDeleteClick(user)}
-                              >
-                                Delete
-                              </button>
-                              <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                // onClick={() => handleStatusChangeClick(user)}
-                              >
-                                {user.status === 0 ? "Suspend" : "Activate"}
-                                 </button>
-                            </div>
-                          </div>
-                        )}
-                      </TableCell>
+                     
                     </TableRow>
                   ))}
                 </TableBody>

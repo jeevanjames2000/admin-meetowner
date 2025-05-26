@@ -21,6 +21,7 @@ import Select from "../../form/Select";
 import DatePicker from "../../form/date-picker";
 import AssignEmployeeModal from "../AssignEmployeeModal";
 import { formatDate } from "../../../hooks/FormatDate";
+import { deleteUser } from "../../../store/slices/userEditSlicet";
 
 
 
@@ -51,7 +52,7 @@ export default function BasicTableOne() {
   const navigate = useNavigate();
   const { users, loading, error } = useSelector((state: RootState) => state.users);
   const { deleteError, deleteSuccess, } = useSelector(
-    (state: RootState) => state.employee
+    (state: RootState) => state.userEdit
   );
   const pageuserType = useSelector((state: RootState) => state.auth.user?.user_type);
 
@@ -114,7 +115,7 @@ export default function BasicTableOne() {
   }, [deleteSuccess, deleteError,  dispatch, userType]);
 
   const handleEditUser = (user: any) => {
-    // navigate("/edit-user-details", { state: { user } });
+    navigate("/edit-user-details", { state: { user } });
   };
 
   const handleDeleteClick = (user: { id: number; name: string }) => {
@@ -131,7 +132,7 @@ export default function BasicTableOne() {
 
   const confirmDelete = () => {
     if (userToDelete) {
-      dispatch(deleteEmployee(userToDelete.id));
+      dispatch(deleteUser(userToDelete.id));
     }
     setIsDeleteModalOpen(false);
     setUserToDelete(null);
@@ -203,6 +204,10 @@ export default function BasicTableOne() {
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
+  };
+
+  const handleCreate = () => {
+    navigate("/accounts/create-new-user");
   };
 
   
@@ -343,6 +348,14 @@ export default function BasicTableOne() {
           Clear Filters
         </Button>
       </div>
+
+        <button
+            type="submit"
+            className="px-6 py-2 bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+            onClick={handleCreate}
+          >
+            Create new user
+          </button>
     </div>
     
        
@@ -482,9 +495,7 @@ export default function BasicTableOne() {
                           </TableCell>
                         </>
                       )}
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.address}
-                      </TableCell>
+                     
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.city}
                       </TableCell>
@@ -539,22 +550,22 @@ export default function BasicTableOne() {
                             <div className="py-2">
                               <button
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                //  onClick={() => handleEditUser(user)}
+                                 onClick={() => handleEditUser(user)}
                               >
                                 Edit
                               </button>
                               <button
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                //  onClick={() => handleDeleteClick(user)}
+                                 onClick={() => handleDeleteClick(user)}
                               >
                                 Delete
                               </button>
-                              <button
+                              {/* <button
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 // onClick={() => handleStatusChangeClick(user)}
                               >
                                 {user.status === 0 ? "Suspend" : "Activate"}
-                                 </button>
+                                 </button> */}
                                 {showAssign && (
                                  
                                <button

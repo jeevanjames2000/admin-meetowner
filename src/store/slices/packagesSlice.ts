@@ -146,6 +146,7 @@ export interface EditPackagePayload {
   gst_percentage: number;
   gst_number: string;
   rera_number: string;
+  city:string;
 }
 
 interface InsertCustomPackagePayload {

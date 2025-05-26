@@ -79,13 +79,17 @@ interface CreateUserResponse {
 
 interface CreateUserPayload {
   name: string;
-  userType: string;
+  user_type: number;
   mobile: string;
   email: string;
-  city: number;
+  city: string;
+  state:string;
+  pincode:string;
   gst_number:string,
   rera_number:string,
-  company_name:string
+  company_name:string,
+  created_userID:number,
+  created_by:string
 }
 
 interface ErrorResponse {
@@ -169,17 +173,21 @@ export const createUser = createAsyncThunk(
     try {
       const payload = {
         name: userData.name,
-        userType: userData.userType,
+        user_type: userData.user_type,
         mobile: userData.mobile,
         email: userData.email,
         city: userData.city,
+        state:userData.state,
+        pincode:userData.pincode,
         gst_number:userData.gst_number,
         rera_number:userData.rera_number,
-        company_name:userData.company_name
+        company_name:userData.company_name,
+        created_userID:userData.created_userID,
+        created_by:userData.created_by
       };
 
       const promise = axiosInstance.post<CreateUserResponse>(
-        "/auth/registernew",
+        "/user/v1/createUser",
         payload
       );
 
