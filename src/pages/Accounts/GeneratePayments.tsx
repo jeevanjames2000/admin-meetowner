@@ -1,4 +1,4 @@
-import { useEffect, useState, ChangeEvent, FormEvent, useMemo } from "react";
+import { useEffect, useState, ChangeEvent, FormEvent, useMemo, useRef } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllUsers } from "../../store/slices/users";
@@ -19,6 +19,8 @@ import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
 import axios from "axios";
 import DatePicker from "../../components/form/date-picker";
+import { fetchAllCities, fetchAllStates } from "../../store/slices/places";
+
 const userTypeMap: { [key: number]: string } = {
   2: "User",
   3: "Builder",
@@ -26,10 +28,12 @@ const userTypeMap: { [key: number]: string } = {
   5: "Owner",
   6: "Channel Partner",
 };
+
 interface SelectOption {
   value: string;
   label: string;
 }
+
 interface FormData {
   user_id: string;
   amount: string;
@@ -37,20 +41,29 @@ interface FormData {
   email: string;
   name: string;
   city: string;
+  state: string;
   userType: string;
   package: string;
 }
+
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toISOString().split("T")[0];
 };
+
 export default function GeneratePayments() {
-  const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { users, loading, error } = useSelector(
-    (state: RootState) => state.users
-  );
+  const { users, loading, error } = useSelector((state: RootState) => state.users);
+  const {
+    states,
+    statesLoading,
+    statesError,
+    cities,
+    citiesLoading,
+    citiesError,
+  } = useSelector((state: RootState) => state.places);
+
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
@@ -64,6 +77,7 @@ export default function GeneratePayments() {
     email: "",
     name: "",
     city: "",
+    state: "",
     userType: "",
     package: "",
   });
@@ -72,18 +86,81 @@ export default function GeneratePayments() {
   const [paymentLink, setPaymentLink] = useState<string>("");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  const [stateSearchTerm, setStateSearchTerm] = useState<string>("");
+  const [citySearchTerm, setCitySearchTerm] = useState<string>("");
+  const [isStateDropdownOpen, setIsStateDropdownOpen] = useState<boolean>(false);
+  const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+
   const itemsPerPage = 10;
   const packageOptions: SelectOption[] = [
     { value: "Basic", label: "Basic" },
     { value: "Prime", label: "Prime" },
     { value: "Prime Plus", label: "Prime Plus" },
+    { value: "Custom", label: "Custom" }, // Include Custom option
   ];
+
+  // Fetch states on mount
+  useEffect(() => {
+    dispatch(fetchAllStates());
+  }, [dispatch]);
+
+  // Fetch cities when state changes or on popup open
+  useEffect(() => {
+    if (formData.state) {
+      dispatch(fetchAllCities({ state: formData.state }));
+    } else {
+      dispatch(fetchAllCities());
+    }
+  }, [dispatch, formData.state]);
+
+  // Close dropdowns when clicking outside
+  useEffect(() => {
+    const handleClickOutsideDropdowns = (event: MouseEvent) => {
+      const target = event.target as HTMLElement;
+      if (!target.closest(".state-dropdown")) {
+        setIsStateDropdownOpen(false);
+      }
+      if (!target.closest(".city-dropdown")) {
+        setIsCityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutsideDropdowns);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutsideDropdowns);
+    };
+  }, []);
+
+  // Fetch users
   useEffect(() => {
     dispatch(fetchAllUsers());
   }, [dispatch]);
+
   useEffect(() => {
     setCurrentPage(1);
   }, [selectedUserType, startDate, endDate]);
+
+  // Filtered states and cities
+  const filteredStates = useMemo(
+    () =>
+      states
+        .map((state) => state.name)
+        .filter((name) => name.toLowerCase().includes(stateSearchTerm.toLowerCase())),
+    [stateSearchTerm, states]
+  );
+
+  const filteredCities = useMemo(
+    () =>
+      cities
+        .filter(
+          (city) =>
+            (!formData.state || city.state === formData.state) &&
+            city.name.toLowerCase().includes(citySearchTerm.toLowerCase())
+        )
+        .map((city) => city.name),
+    [citySearchTerm, cities, formData.state]
+  );
+
   const filteredUsers = useMemo(
     () =>
       users && Array.isArray(users)
@@ -98,10 +175,7 @@ export default function GeneratePayments() {
               user.designation,
             ];
             const matchesSearch = searchableFields
-              .filter(
-                (field): field is string =>
-                  field !== null && field !== undefined
-              )
+              .filter((field): field is string => field !== null && field !== undefined)
               .map((field) => field.toLowerCase())
               .some((field) => field.includes(filterValue.toLowerCase()));
             const matchesUserType =
@@ -128,30 +202,38 @@ export default function GeneratePayments() {
         : [],
     [users, filterValue, selectedUserType, startDate, endDate]
   );
+
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
+
   const toggleMenu = (id: number) => {
     setActiveMenu(activeMenu === id ? null : id);
   };
+
   const handleCreate = () => {
     navigate("/accounts/create-new-user");
   };
+
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
+
   const goToPage = (page: number) => {
     setCurrentPage(page);
   };
+
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
+
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
+
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
@@ -180,6 +262,7 @@ export default function GeneratePayments() {
     }
     return pages;
   };
+
   const openPopup = (user: any) => {
     setSelectedUser(user);
     setFormData({
@@ -189,67 +272,80 @@ export default function GeneratePayments() {
       email: user.email || "",
       name: user.name || "",
       city: user.city || "",
+      state: user.state || "",
       userType: user.user_type.toString(),
       package: "",
     });
+    setStateSearchTerm(user.state || "");
+    setCitySearchTerm(user.city || "");
     setErrors({});
     setApiError("");
     setPaymentLink("");
     setShowPopup(true);
+    // Fetch cities for the user's state
+    if (user.state) {
+      dispatch(fetchAllCities({ state: user.state }));
+    }
   };
+
   const closePopup = () => {
     setShowPopup(false);
     setSelectedUser(null);
     setActiveMenu(null);
+    setStateSearchTerm("");
+    setCitySearchTerm("");
+    setIsStateDropdownOpen(false);
+    setIsCityDropdownOpen(false);
   };
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
     setApiError("");
   };
- const handleSelectChange = (name: keyof FormData) => async (value: string) => {
-  setFormData((prev) => ({
-    ...prev,
-    [name]: value,
-    amount: value === "Custom" ? "" : "",
-  }));
-  setErrors((prev) => ({ ...prev, [name]: "" }));
-  setApiError("");
-  if (name === "package" && value !== "Custom") {
-    try {
-      const { city, userType } = formData;
-      if (!city || !userType) {
-        return setApiError("City and user type are required to fetch pricing");
-      }
 
-      // Transform userType to match API expectation
-      const apiUserType = userTypeMap[userType].toLowerCase().replace(" ", "_");
-
-      const response = await axios.get(
-        `https://api.meetowner.in/packages/v1/getPackagePrice`,
-        {
-          params: {
-            package_for: apiUserType, // Use transformed userType
-            packageName: value.toLowerCase(), // Handle packageName like "Prime Plus"
-            city: city,
-          },
+  const handleSelectChange = (name: keyof FormData) => async (value: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      [name]: value,
+      amount: value === "Custom" ? "" : prev.amount, // Preserve amount unless switching to Custom
+    }));
+    setErrors((prev) => ({ ...prev, [name]: "" }));
+    setApiError("");
+    if (name === "package" && value !== "Custom") {
+      try {
+        const { state, city, userType } = formData;
+        if (!state || !city || !userType) {
+          return setApiError("State, city, and user type are required to fetch pricing");
         }
-      );
-      if (response.data?.price) {
-        setFormData((prev) => ({
-          ...prev,
-          amount: response.data.price.toString(),
-        }));
-      } else {
-        setApiError("Price not found for selected package and city");
+
+        const apiUserType = userTypeMap[parseInt(userType)].toLowerCase().replace(" ", "_");
+
+        const response = await axios.get(
+          `https://api.meetowner.in/packages/v1/getPackagePrice`,
+          {
+            params: {
+              package_for: apiUserType,
+              packageName: value.toLowerCase().replace(" ", " "), // Handle "Prime Plus"
+              city,
+            },
+          }
+        );
+        if (response.data?.price) {
+          setFormData((prev) => ({
+            ...prev,
+            amount: response.data.price.toString(),
+          }));
+        } else {
+          setApiError("Price not found for selected package, state, and city");
+        }
+      } catch (err: any) {
+        console.error("Price fetch error:", err);
+        setApiError("Failed to fetch price from server");
       }
-    } catch (err: any) {
-      console.error("Price fetch error:", err);
-      setApiError("Failed to fetch price from server");
     }
-  }
-};
+  };
 
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
@@ -274,15 +370,14 @@ export default function GeneratePayments() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
-    if (
-      (!selectedUser?.city || selectedUser?.city === "") &&
-      !formData.city.trim()
-    ) {
+   
+    if (!formData.city.trim()) {
       newErrors.city = "City is required";
     }
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setApiError("");
@@ -327,6 +422,7 @@ export default function GeneratePayments() {
       );
     }
   };
+
   const userFilterOptions: SelectOption[] = [
     { value: "", label: "All Users" },
     ...Object.entries(userTypeMap).map(([key, value]) => ({
@@ -334,6 +430,7 @@ export default function GeneratePayments() {
       label: value,
     })),
   ];
+
   const handleStartDateChange = (selectedDates: Date[]) => {
     const dateObj = selectedDates[0];
     let date = "";
@@ -345,6 +442,7 @@ export default function GeneratePayments() {
     }
     setStartDate(date || null);
   };
+
   const handleEndDateChange = (selectedDates: Date[]) => {
     const dateObj = selectedDates[0];
     let date = "";
@@ -360,9 +458,11 @@ export default function GeneratePayments() {
     }
     setEndDate(date || null);
   };
+
   if (loading) return <div>Loading users...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!users || users.length === 0) return <div>No users found.</div>;
+
   return (
     <div className="relative min-h-screen">
       <PageBreadcrumbList
@@ -468,7 +568,7 @@ export default function GeneratePayments() {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Paynment Status
+                      Payment Status
                     </TableCell>
                     <TableCell
                       isHeader
@@ -582,7 +682,6 @@ export default function GeneratePayments() {
                 Showing {startIndex + 1} to {endIndex} of {totalItems} entries
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
-                {}
                 <Button
                   variant={currentPage === 1 ? "outline" : "primary"}
                   size="sm"
@@ -591,7 +690,6 @@ export default function GeneratePayments() {
                 >
                   Previous
                 </Button>
-                {}
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
                     <span
@@ -616,7 +714,6 @@ export default function GeneratePayments() {
                     </Button>
                   )
                 )}
-                {}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"
@@ -630,7 +727,6 @@ export default function GeneratePayments() {
           )}
         </ComponentCard>
       </div>
-      {}
       {showPopup && (
         <div className="fixed inset-0 bg-white/30 backdrop-blur flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-md relative">
@@ -639,9 +735,7 @@ export default function GeneratePayments() {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               {apiError && (
-                <p className="text-sm text-red-600 dark:text-red-400">
-                  {apiError}
-                </p>
+                <p className="text-sm text-red-600 dark:text-red-400">{apiError}</p>
               )}
               {paymentLink && (
                 <div className="text-sm text-green-600 dark:text-green-400">
@@ -657,6 +751,137 @@ export default function GeneratePayments() {
                 </div>
               )}
               <div>
+                <Label htmlFor="state">State</Label>
+                <div className="relative state-dropdown">
+                  <input
+                    id="state-search"
+                    type="text"
+                    name="state"
+                    value={stateSearchTerm}
+                    onChange={(e) => {
+                      setStateSearchTerm(e.target.value);
+                      setIsStateDropdownOpen(true);
+                      setFormData((prev) => ({ ...prev, state: e.target.value, city: "" }));
+                      setCitySearchTerm("");
+                      setErrors((prev) => ({ ...prev, state: "", city: "" }));
+                    }}
+                    onClick={() => setIsStateDropdownOpen(true)}
+                    onFocus={() => setIsStateDropdownOpen(true)}
+                    placeholder="Search for a state..."
+                    className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-dark-900 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+                    disabled={statesLoading}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsStateDropdownOpen((prev) => !prev)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                    disabled={statesLoading}
+                  >
+                    <svg
+                      className={`w-4 h-4 transform ${isStateDropdownOpen ? "rotate-180" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {isStateDropdownOpen && filteredStates.length > 0 && (
+                    <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                      {filteredStates.map((state) => (
+                        <li
+                          key={state}
+                          onClick={() => {
+                            setStateSearchTerm(state);
+                            setFormData((prev) => ({ ...prev, state, city: "", amount: "" }));
+                            setCitySearchTerm("");
+                            setIsStateDropdownOpen(false);
+                            setErrors((prev) => ({ ...prev, state: "", city: "" }));
+                            dispatch(fetchAllCities({ state }));
+                          }}
+                          className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                        >
+                          {state}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {statesError && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{statesError}</p>
+                  )}
+                  {errors.state && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.state}</p>
+                  )}
+                </div>
+              </div>
+              <div>
+                <Label htmlFor="city">City</Label>
+                <div className="relative city-dropdown">
+                  <input
+                    id="city-search"
+                    type="text"
+                    name="city"
+                    value={citySearchTerm}
+                    onChange={(e) => {
+                      setCitySearchTerm(e.target.value);
+                      setIsCityDropdownOpen(true);
+                      setFormData((prev) => ({ ...prev, city: e.target.value, amount: "" }));
+                      setErrors((prev) => ({ ...prev, city: "" }));
+                    }}
+                    onClick={() => setIsCityDropdownOpen(true)}
+                    onFocus={() => setIsCityDropdownOpen(true)}
+                    placeholder="Search for a city..."
+                    className="block w-full p-2 border border-gray-300 rounded-lg dark:bg-dark-900 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-[#1D3A76]"
+                    disabled={citiesLoading || !formData.state}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setIsCityDropdownOpen((prev) => !prev)}
+                    className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
+                    disabled={citiesLoading || !formData.state}
+                  >
+                    <svg
+                      className={`w-4 h-4 transform ${isCityDropdownOpen ? "rotate-180" : ""}`}
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                      xmlns="http://www.w3.org/2000/svg"
+                    >
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                    </svg>
+                  </button>
+                  {isCityDropdownOpen && filteredCities.length > 0 && (
+                    <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+                      {filteredCities.map((city) => (
+                        <li
+                          key={city}
+                          onClick={() => {
+                            setCitySearchTerm(city);
+                            setFormData((prev) => ({ ...prev, city }));
+                            setIsCityDropdownOpen(false);
+                            setErrors((prev) => ({ ...prev, city: "" }));
+                            // Fetch package price if package is selected and not Custom
+                            if (formData.package && formData.package !== "Custom") {
+                              handleSelectChange("package")(formData.package);
+                            }
+                          }}
+                          className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                        >
+                          {city}
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                  {citiesError && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{citiesError}</p>
+                  )}
+                  {errors.city && (
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.city}</p>
+                  )}
+                </div>
+              </div>
+              <div>
                 <Label htmlFor="package">Package</Label>
                 <Select
                   options={packageOptions}
@@ -666,9 +891,7 @@ export default function GeneratePayments() {
                   className="dark:bg-dark-900"
                 />
                 {errors.package && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                    {errors.package}
-                  </p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.package}</p>
                 )}
               </div>
               {formData.package && (
@@ -679,26 +902,17 @@ export default function GeneratePayments() {
                     id="amount"
                     name="amount"
                     value={formData.amount}
-                    onChange={
-                      formData.package === "Custom"
-                        ? handleInputChange
-                        : undefined
-                    }
+                    onChange={formData.package === "Custom" ? handleInputChange : undefined}
                     className={`dark:bg-dark-900 ${
-                      formData.package !== "Custom"
-                        ? "bg-gray-100 cursor-not-allowed"
-                        : ""
+                      formData.package !== "Custom" ? "bg-gray-100 cursor-not-allowed" : ""
                     }`}
                     placeholder={
-                      formData.package === "Custom"
-                        ? "Enter custom amount"
-                        : "Amount set by package"
+                      formData.package === "Custom" ? "Enter custom amount" : "Amount set by package"
                     }
+                    disabled={formData.package !== "Custom"}
                   />
                   {errors.amount && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                      {errors.amount}
-                    </p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.amount}</p>
                   )}
                 </div>
               )}
@@ -715,9 +929,7 @@ export default function GeneratePayments() {
                     placeholder="Enter user email"
                   />
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                      {errors.email}
-                    </p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
                   )}
                 </div>
               )}
@@ -734,37 +946,12 @@ export default function GeneratePayments() {
                     placeholder="Enter 10-digit mobile number"
                   />
                   {errors.mobile && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                      {errors.mobile}
-                    </p>
-                  )}
-                </div>
-              )}
-              {(!selectedUser?.city || selectedUser?.city === "") && (
-                <div>
-                  <Label htmlFor="city">City</Label>
-                  <Input
-                    type="text"
-                    id="city"
-                    name="city"
-                    value={formData.city}
-                    onChange={handleInputChange}
-                    className="dark:bg-dark-900"
-                    placeholder="Enter the city"
-                  />
-                  {errors.city && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
-                      {errors.city}
-                    </p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.mobile}</p>
                   )}
                 </div>
               )}
               <div className="flex justify-end gap-4">
-                <Button
-                  variant="outline"
-                  onClick={closePopup}
-                  className="px-4 py-2"
-                >
+                <Button variant="outline" onClick={closePopup} className="px-4 py-2">
                   Cancel
                 </Button>
                 <Button className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700">
@@ -777,4 +964,4 @@ export default function GeneratePayments() {
       )}
     </div>
   );
-} 
+}
