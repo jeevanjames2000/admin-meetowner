@@ -9,6 +9,7 @@ import { fetchAllPlaces, deletePlace, editPlace, fetchAllStates, fetchAllCities 
 import { toast } from "react-hot-toast";
 import PageBreadcrumb from "../../components/common/PageBreadCrumb";
 import { AppDispatch, RootState } from "../../store/store";
+import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 
 
 interface Place {
@@ -355,11 +356,11 @@ const AllPlaces: React.FC = () => {
   return (
     <div className="relative min-h-screen">
       <PageMeta title="Meet owner All Places" />
-      <PageBreadcrumb
+      <PageBreadcrumbList
         pageTitle="All Places"
         pagePlacHolder="Search by State, City, Locality"
         onFilter={handleSearch}
-        persistSearch={true}
+        
       />
       <div className="space-y-6">
         {/* Filters */}
