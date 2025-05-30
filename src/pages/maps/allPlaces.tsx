@@ -7,7 +7,7 @@ import { MoreVertical, X } from "lucide-react";
 import Button from "../../components/ui/button/Button";
 import { fetchAllPlaces, deletePlace, editPlace, fetchAllStates, fetchAllCities } from "../../store/slices/places";
 import { toast } from "react-hot-toast";
-import PageBreadcrumb from "../../components/common/PageBreadCrumb";
+
 import { AppDispatch, RootState } from "../../store/store";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 
