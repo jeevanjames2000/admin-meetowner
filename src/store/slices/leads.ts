@@ -45,10 +45,45 @@ interface LeadByContacted {
   owner_type: number | null; 
 }
 
+interface PropertyView {
+  property_id: string;
+  property_name: string;
+  google_address: string;
+  city_id: string;
+  view_count: number;
+}
+
+interface PropertyViewDetail {
+  id: number;
+  user_id: number;
+  property_id: string;
+  name: string;
+  mobile: string;
+  email: string;
+  created_date: string;
+  property_name: string;
+  google_address: string;
+  city_id: string;
+}
+
+interface PropertyViewDetailsResponse {
+  count: number;
+  views: PropertyViewDetail[];
+}
+
+interface PropertyViewsResponse {
+  count: number;
+  views: PropertyView[];
+}
+
 interface LeadsByContactedResponse {
   message: string;
   count: number;
   data: LeadByContacted[];
+}
+
+interface PropertyViewDetailsFilters {
+  property_id: string;
 }
 
 
@@ -91,9 +126,6 @@ export const fetchLeads = createAsyncThunk(
           
         }
       );
-
-      
-
       toast.promise(promise, {
         loading: "Fetching leads...",
         success: "Leads fetched successfully!",
@@ -136,13 +168,73 @@ export const fetchLeadsByContacted = createAsyncThunk(
   }
 );
 
+export const fetchPropertyViews = createAsyncThunk(
+  "leads/fetchPropertyViews",
+  async (_, { rejectWithValue }) => {
+    try {
+      const promise = axiosIstance.get<PropertyViewsResponse>(
+        "/listings/v1/getAllPropertyViews"
+      );
+
+      toast.promise(promise, {
+        loading: "Fetching property views...",
+        success: "Property views fetched successfully!",
+        error: "Failed to fetch property views",
+      });
+
+      const response = await promise;
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || "Failed to fetch property views";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+export const fetchPropertyViewDetails = createAsyncThunk(
+  "leads/fetchPropertyViewDetails",
+  async (filters: PropertyViewDetailsFilters, { rejectWithValue }) => {
+    try {
+      const { property_id } = filters;
+      const promise = axiosIstance.get<PropertyViewDetailsResponse>(
+        "/listings/v1/getAllPropertyViews",
+        {
+          params: {
+            property_id,
+          },
+        }
+      );
+
+      toast.promise(promise, {
+        loading: "Fetching property view details...",
+        success: "Property view details fetched successfully!",
+        error: "Failed to fetch property view details",
+      });
+
+      const response = await promise;
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || "Failed to fetch property view details";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 
 
 export interface LeadsState {
   leads: Lead[];
+   leadsByContacted: LeadByContacted[];
   totalCount: number;
+   totalCountByContacted: number;
   loading: boolean;
   error: string | null;
+  propertyViews: PropertyView[]; 
+  propertyViewsCount: number; 
+  propertyViewDetails: PropertyViewDetail[]; 
+  propertyViewDetailsCount: number;
 }
 // Create the slice
 const leadsSlice = createSlice({
@@ -152,6 +244,10 @@ const leadsSlice = createSlice({
     leadsByContacted: [],
     totalCount: 0,
     totalCountByContacted: 0,
+    propertyViews: [],
+    propertyViewsCount: 0,
+     propertyViewDetails: [], 
+    propertyViewDetailsCount: 0,
     loading: false,
     error: null,
   } as LeadsState,
@@ -162,6 +258,10 @@ const leadsSlice = createSlice({
       state.leadsByContacted = [];
       state.totalCount = 0;
       state.totalCountByContacted = 0;
+      state.propertyViews = [];
+      state.propertyViewsCount = 0;
+      state.propertyViewDetails = [];
+      state.propertyViewDetailsCount = 0;
       state.error = null;
     },
   },
@@ -178,7 +278,7 @@ const leadsSlice = createSlice({
       })
       .addCase(fetchLeads.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string; // Ensure error is a string
+        state.error = action.payload as string; 
       });
 
        builder
@@ -192,6 +292,36 @@ const leadsSlice = createSlice({
         state.totalCountByContacted = action.payload.count;
       })
       .addCase(fetchLeadsByContacted.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+       builder
+      .addCase(fetchPropertyViews.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPropertyViews.fulfilled, (state, action) => {
+        state.loading = false;
+        state.propertyViews = action.payload.views;
+        state.propertyViewsCount = action.payload.count;
+      })
+      .addCase(fetchPropertyViews.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+      builder
+      .addCase(fetchPropertyViewDetails.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchPropertyViewDetails.fulfilled, (state, action) => {
+        state.loading = false;
+        state.propertyViewDetails = action.payload.views;
+        state.propertyViewDetailsCount = action.payload.count;
+      })
+      .addCase(fetchPropertyViewDetails.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
       });

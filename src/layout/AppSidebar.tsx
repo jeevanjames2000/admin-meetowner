@@ -71,6 +71,7 @@ export const navItems: NavItem[] = [
       { name: "Buy", path: "/leads/buy/1" },
       { name: "Rent", path: "/leads/rent/2" },
        { name: "Contacted", path: "/leads/contacted" },
+       {name:'Most Viewed',path:"/leads/mostviewed"}
     ],
   },
   {

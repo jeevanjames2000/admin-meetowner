@@ -69,6 +69,8 @@ import BuyersActivities from "./components/tables/buyersActivities";
 import AssignEmployees from "./pages/Employee/AssignEmployees";
 import BasicTableEmployees from "./components/tables/BasicTables/BasicTableEmployess";
 import ContactedLeads from "./pages/LeadManagement/ContactedLeads";
+import MostViewedLeads from "./pages/LeadManagement/MostViewedLeads";
+import MostViewedDetailsPage from "./pages/LeadManagement/MostViewedLeadsDetails";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -289,6 +291,26 @@ export default function App() {
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
+              />
+                <Route
+                  path="/leads/mostviewed"
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute>
+                        <MostViewedLeads />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  }
+              />
+               <Route
+                  path="/leads/most-viewed-details/:property_id"
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute>
+                        <MostViewedDetailsPage />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  }
               />
               <Route
                 path="/form-elements"
