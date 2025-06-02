@@ -27,6 +27,31 @@ interface Lead {
   owner_email :string | null;
 }
 
+interface LeadByContacted {
+  id: number;
+  user_id: number;
+  unique_property_id: string;
+  fullname: string | null;
+  mobile: string | null;
+  email: string | null;
+  created_date: string | null;
+  property_for: string | null;
+  property_name: string | null;
+  owner_user_id: number | null;
+  owner_name: string | null;
+  owner_mobile: string | null; 
+  owner_email: string | null;
+  owner_photo: string | null;
+  owner_type: number | null; 
+}
+
+interface LeadsByContactedResponse {
+  message: string;
+  count: number;
+  data: LeadByContacted[];
+}
+
+
 interface LeadsResponse {
   count: number;
   data: Lead[];
@@ -39,7 +64,9 @@ interface ErrorResponse {
 // Define the state interface
 export interface LeadsState {
   leads: Lead[];
+  leadsByContacted: LeadByContacted[];
   totalCount: number;
+  totalCountByContacted: number;
   loading: boolean;
   error: string | null;
 }
@@ -83,6 +110,33 @@ export const fetchLeads = createAsyncThunk(
   }
 );
 
+export const fetchLeadsByContacted = createAsyncThunk(
+  "leads/fetchLeadsByContacted",
+  async (_, { rejectWithValue }) => {
+    try {
+     
+      const promise = axiosIstance.get<LeadsByContactedResponse>(
+        "/enquiry/v1/getAllContactSellersByFilter",
+        
+      );
+
+      toast.promise(promise, {
+        loading: "Fetching contacted leads...",
+        success: "Contacted leads fetched successfully!",
+        error: "Failed to fetch contacted leads",
+      });
+
+      const response = await promise;
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || "Failed to fetch contacted leads";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+
 
 export interface LeadsState {
   leads: Lead[];
@@ -95,7 +149,9 @@ const leadsSlice = createSlice({
   name: "leads",
   initialState: {
     leads: [],
+    leadsByContacted: [],
     totalCount: 0,
+    totalCountByContacted: 0,
     loading: false,
     error: null,
   } as LeadsState,
@@ -103,7 +159,9 @@ const leadsSlice = createSlice({
     // Optional: Add any synchronous reducers if needed
     clearLeads: (state) => {
       state.leads = [];
+      state.leadsByContacted = [];
       state.totalCount = 0;
+      state.totalCountByContacted = 0;
       state.error = null;
     },
   },
@@ -121,6 +179,21 @@ const leadsSlice = createSlice({
       .addCase(fetchLeads.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string; // Ensure error is a string
+      });
+
+       builder
+      .addCase(fetchLeadsByContacted.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchLeadsByContacted.fulfilled, (state, action) => {
+        state.loading = false;
+        state.leadsByContacted = action.payload.data;
+        state.totalCountByContacted = action.payload.count;
+      })
+      .addCase(fetchLeadsByContacted.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
       });
   },
 });

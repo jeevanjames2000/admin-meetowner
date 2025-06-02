@@ -1,5 +1,4 @@
 import { useState, useEffect, useRef, useMemo } from "react";
-import { useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
@@ -12,7 +11,7 @@ import {
 } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import { AppDispatch, RootState } from "../../store/store";
-import { fetchLeads, LeadsState } from "../../store/slices/leads";
+import { fetchLeadsByContacted, LeadsState } from "../../store/slices/leads";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 import DatePicker from "../../components/form/date-picker";
 import Select from "../../components/form/Select";
@@ -30,10 +29,11 @@ interface SelectOption {
   label: string;
 }
 
-const PropertyLeadsBuy: React.FC = () => {
-  const { property_for, status } = useParams<{ property_for: string; status: string }>();
+const ContactedLeads: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const { leads, totalCount, loading, error } = useSelector((state: RootState) => state.leads as LeadsState);
+  const { leadsByContacted, loading, error } = useSelector(
+    (state: RootState) => state.leads as LeadsState
+  );
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -46,46 +46,35 @@ const PropertyLeadsBuy: React.FC = () => {
   const [startDateValue, setStartDateValue] = useState<Date | null>(null);
   const [endDateValue, setEndDateValue] = useState<Date | null>(null);
 
-  const filters = {
-    property_for: status === "1" ? "Sell" : status === "2" ? "Rent" : property_for || "",
-  };
-
   useEffect(() => {
-    if (filters.property_for) {
-      dispatch(fetchLeads(filters));
+    dispatch(fetchLeadsByContacted({})); // Pass an empty object since no filters are required
+  }, [dispatch]);
+
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "N/A"; // Check for invalid date
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    } catch {
+      return "N/A";
     }
-  }, [dispatch, property_for, status]);
-
-  const formatDate = (dateString: string) => {
-    const date = new Date(dateString);
-    const day = String(date.getDate()).padStart(2, "0");
-    const month = String(date.getMonth() + 1).padStart(2, "0");
-    const year = date.getFullYear();
-    return `${day}-${month}-${year}`;
-  };
-
-  const formatTime = (timeString: string | null) => {
-    if (!timeString) return "null";
-    const [hours, minutes] = timeString.split(":");
-    const hour = parseInt(hours, 10);
-    const period = hour >= 12 ? "PM" : "AM";
-    const formattedHour = hour % 12 || 12;
-    return `${String(formattedHour).padStart(2, "0")}:${minutes} ${period}`;
   };
 
   const filteredLeads = useMemo(() => {
-    return leads.filter((lead) => {
+    return leadsByContacted.filter((lead) => {
       const searchableFields = [
-        lead.property_id || "",
-        lead.name || "",
+        lead.unique_property_id || "",
+        lead.fullname || "",
         lead.mobile || "",
         lead.email || "",
-        lead.interested_status === 1 ? "Interested" :
-        lead.interested_status === 2 ? "Follows-up" :
-        lead.interested_status === 3 ? "Site Visited" : "Contacted",
         lead.property_name || "",
         lead.owner_name || "",
         lead.owner_mobile || "",
+        lead.owner_email || "",
       ];
       const matchesSearch = searchableFields.some((field) =>
         field.toLowerCase().includes(filterValue.toLowerCase())
@@ -94,15 +83,15 @@ const PropertyLeadsBuy: React.FC = () => {
       const matchesUserType =
         selectedUserType === null ||
         selectedUserType === "" ||
-        userTypeMap[lead.owner_type!] === selectedUserType;
+        (lead.owner_type !== null && userTypeMap[lead.owner_type.toString()] === selectedUserType);
 
       let matchesDate = true;
       if (startDate || endDate) {
-        if (!lead.searched_on_date) {
+        if (!lead.created_date) {
           matchesDate = false;
         } else {
           try {
-            const leadDate = lead.searched_on_date.split("T")[0]; // Extract YYYY-MM-DD
+            const leadDate = lead.created_date.split("T")[0]; // Extract YYYY-MM-DD
             matchesDate =
               (!startDate || leadDate >= startDate) &&
               (!endDate || leadDate <= endDate);
@@ -114,7 +103,7 @@ const PropertyLeadsBuy: React.FC = () => {
 
       return matchesSearch && matchesUserType && matchesDate;
     });
-  }, [leads, filterValue, selectedUserType, startDate, endDate]);
+  }, [leadsByContacted, filterValue, selectedUserType, startDate, endDate]);
 
   const totalItems = filteredLeads.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -228,13 +217,13 @@ const PropertyLeadsBuy: React.FC = () => {
   };
 
   // Handle View action
-  const handleView = (property_id: string) => {
-    if (!property_id) {
+  const handleView = (unique_property_id: string | null) => {
+    if (!unique_property_id) {
       console.error("Property ID is missing");
       return;
     }
     try {
-      const url = `https://meetowner.in/property?Id_${encodeURIComponent(property_id)}`;
+      const url = `https://meetowner.in/property?Id_${encodeURIComponent(unique_property_id)}`;
       window.open(url, "_blank"); // Open in new tab
     } catch (error) {
       console.error("Error navigating to property:", error);
@@ -249,19 +238,19 @@ const PropertyLeadsBuy: React.FC = () => {
     );
   }
 
-  if (error || !leads || leads.length === 0) {
+  if (error || !leadsByContacted || leadsByContacted.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
         <PageMeta
-          title={`Meet Owner Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
+          title={`Meet Owner Lead Management Contacted`}
           description="This is the Property Leads Table page"
         />
         <PageBreadcrumbList
-          pageTitle={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
+          pageTitle={`Lead Management Contacted`}
           pagePlacHolder="Filter leads"
           onFilter={handleFilter}
         />
-        <ComponentCard title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}>
+        <ComponentCard title={`Lead Management Contacted`}>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
             {error ? `${error}` : "No Data Available"}
           </h2>
@@ -273,11 +262,11 @@ const PropertyLeadsBuy: React.FC = () => {
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <PageMeta
-        title={`Meet Owner Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
+        title={`Meet Owner Lead Management Contacted`}
         description="This is the Property Leads Table page"
       />
       <PageBreadcrumbList
-        pageTitle={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
+        pageTitle={`Lead Management`}
         pagePlacHolder="Filter leads"
         onFilter={handleFilter}
       />
@@ -327,14 +316,14 @@ const PropertyLeadsBuy: React.FC = () => {
             Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
           </div>
         )}
-        <ComponentCard title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}>
+        <ComponentCard title={`Lead Management Contacted`}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl. No</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Approach</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Customer Id</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Customer Name</TableCell>
                     {userType === 1 && (
                       <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Mobile Number</TableCell>
@@ -345,7 +334,7 @@ const PropertyLeadsBuy: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property For</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Id</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Date & Time</TableCell>
+                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Date</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
                   </TableRow>
                 </TableHeader>
@@ -356,44 +345,47 @@ const PropertyLeadsBuy: React.FC = () => {
                         {startIndex + index + 1}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.interested_status === 1 ? "Interested" :
-                         lead.interested_status === 2 ? "Follows-up" :
-                         lead.interested_status === 3 ? "Site Visited" : "Closed"}
+                        {lead.user_id || "N/A"}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.name}
+                        {lead.fullname || "N/A"}
                       </TableCell>
                       {userType === 1 && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {lead.mobile}
+                          {lead.mobile || "N/A"}
                         </TableCell>
                       )}
                       {userType === 1 && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {lead.email}
+                          {lead.email || "N/A"}
                         </TableCell>
                       )}
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.property_for}
+                        {lead.property_for || "N/A"}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.property_id}
+                        {lead.unique_property_id || "N/A"}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
                         <span className="text-black dark:text-gray-400 cursor-default">
-                          {lead.property_name}
+                          {lead.property_name || "N/A"}
                         </span>
                         <div className="absolute z-10 w-64 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 left-0 top-full mt-1 hidden group-hover:block">
                           <div className="text-sm text-gray-800 dark:text-gray-200">
-                            <p className="font-semibold">User Name: <span className="font-normal">{lead.owner_name}</span></p>
-                            <p className="font-semibold">Phone Number: <span className="font-normal">{lead.owner_mobile}</span></p>
-                            <p className="font-semibold">Owner Type: <span className="font-normal">{userTypeMap[lead.owner_type!] || "Unknown"}</span></p>
+                            <p className="font-semibold">Owner Name: <span className="font-normal">{lead.owner_name || "N/A"}</span></p>
+                            <p className="font-semibold">Phone Number: <span className="font-normal">{lead.owner_mobile || "N/A"}</span></p>
+                            <p className="font-semibold">Email: <span className="font-normal">{lead.owner_email || "N/A"}</span></p>
+                            <p className="font-semibold">
+                              Owner Type: <span className="font-normal">
+                                {lead.owner_type !== null ? userTypeMap[lead.owner_type.toString()] || "Unknown" : "N/A"}
+                              </span>
+                            </p>
                           </div>
                           <div className="absolute top-[-6px] left-10 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white dark:border-b-gray-800" />
                         </div>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {`${formatDate(lead.searched_on_date)} ${formatTime(lead.searched_on_time)}`}
+                        {formatDate(lead.created_date)}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                         <Button
@@ -409,7 +401,7 @@ const PropertyLeadsBuy: React.FC = () => {
                           <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
                             <button
                               onClick={() => {
-                                handleView(lead.property_id);
+                                handleView(lead.unique_property_id);
                                 setDropdownOpen(null);
                               }}
                               className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
@@ -481,4 +473,4 @@ const PropertyLeadsBuy: React.FC = () => {
   );
 };
 
-export default PropertyLeadsBuy;
+export default ContactedLeads;

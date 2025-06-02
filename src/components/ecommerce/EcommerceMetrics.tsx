@@ -35,11 +35,11 @@ interface Option {
 
 const designationOptions: Option[] = [
   { value: 1, text: "Admin" },
-  { value: 2, text: "User" },
-  { value: 3, text: "Builder" },
-  { value: 4, text: "Agent" },
-  { value: 5, text: "Owner" },
-  { value: 6, text: "Channel Partner" },
+  { value: 7, text: "Manager" },
+  { value: 8, text: "Telecaller" },
+  { value: 9, text: "Marketing Executive" },
+  { value: 10, text: "Customer suppourt" },
+ 
 ];
 
 

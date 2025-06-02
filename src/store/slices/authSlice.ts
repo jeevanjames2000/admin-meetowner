@@ -135,7 +135,7 @@ export const getProfile = createAsyncThunk(
   "auth/getProfile",
   async (user_id: number, { rejectWithValue }) => {
     try {
-      const response = await axiosIstance.get<ProfileResponse>(`/user/v1/getProfile?user_id=${user_id}`);
+      const response = await axiosIstance.get<ProfileResponse>(`/user/v1/getEmpProfile?user_id=${user_id}`);
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;

@@ -68,6 +68,7 @@ import UserCustomPackage from "./pages/packages/UserCustomPackage";
 import BuyersActivities from "./components/tables/buyersActivities";
 import AssignEmployees from "./pages/Employee/AssignEmployees";
 import BasicTableEmployees from "./components/tables/BasicTables/BasicTableEmployess";
+import ContactedLeads from "./pages/LeadManagement/ContactedLeads";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -275,6 +276,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <PropertyLeads />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+                <Route
+                path="/leads/contacted"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <ContactedLeads />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
