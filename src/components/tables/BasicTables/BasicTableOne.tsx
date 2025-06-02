@@ -84,7 +84,10 @@ export default function BasicTableOne() {
   const showAssign = userType && AssignEmployessUserTypes.includes(parseInt(userType));
 
   // Condition to show Mobile and Email columns
-  const showMobileAndEmail = pageuserType === 7 && userType !== null && parseInt(userType) === 2;
+    const showMobileAndEmail =
+  (pageuserType === 1 && userType !== null && parseInt(userType) === 2) || // Admin viewing Users
+  ([1,7, 8, 9].includes(pageuserType!) && userType !== null && [3, 4, 5, 6].includes(parseInt(userType))); // Manager, Telecaller, Marketing Executive viewing Builder, Agent, Owner, Channel Partner
+
 
 
   useEffect(() => {
@@ -213,12 +216,15 @@ export default function BasicTableOne() {
   
 
  const handleUserClick = (userId: number, userType: number, name: string, userActivity: any[]) => {
-  if (userType === 2) {
+  if(pageuserType === 1){
+      if (userType === 2) {
     navigate('/buyers-activities', { state: { userActivity, userId, name } });
   }
   if ([3, 4, 5, 6].includes(userType)) {
     navigate(`/user/propertyDetails?userId=${userId}&name=${encodeURIComponent(name)}`);
+    }
   }
+  
 };
 
   const goToPage = (page: number) => {
@@ -399,7 +405,7 @@ export default function BasicTableOne() {
                     >
                       Name
                     </TableCell>
-                    {!showMobileAndEmail && (
+                    {showMobileAndEmail && (
                       <>
                         <TableCell
                           isHeader
@@ -488,7 +494,7 @@ export default function BasicTableOne() {
                           </div>
                         </div>
                       </TableCell>
-                      {!showMobileAndEmail && (
+                      {showMobileAndEmail && (
                         <>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                             {user.mobile}

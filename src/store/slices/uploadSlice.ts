@@ -41,7 +41,7 @@ export const uploadUserImage = createAsyncThunk(
       formData.append("photo", image);
 
       const promise = axiosInstance.post<UploadResponse>(
-        "/user/v1/uploadUserImage",
+        "/user/v1/uploadEmpImage",
         formData,
         {
           headers: {

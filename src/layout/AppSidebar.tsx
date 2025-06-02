@@ -204,18 +204,7 @@ const AppSidebar: React.FC = () => {
   const [openNestedSubmenu, setOpenNestedSubmenu] = useState<{ type: "main"; index: number; subIndex: number } | null>(null);
   const [openDeepNestedSubmenu, setOpenDeepNestedSubmenu] = useState<{ type: "main"; index: number; subIndex: number; nestedIndex: number } | null>(null);
 
-  const filterAccountsSubItems = (subItems: NavItem["subItems"]) => {
-    if (!subItems) return subItems;
-    return subItems.map(subItem => ({
-      ...subItem,
-      nestedItems: subItem.nestedItems?.filter(nestedItem => {
-        if (userType === 8) {
-          return ["Payment Failure", "Expiry Soon"].includes(nestedItem.name);
-        }
-        return true; // Keep all items for other user types
-      }),
-    }));
-  };
+  
 
   const filteredNavItems = filterNavItemsByUserType(navItems, userType);
  
