@@ -4,11 +4,10 @@ import { AppDispatch, RootState } from "../../store/store";
 import { fetchExpiringSoonSubscriptions } from "../../store/slices/paymentSlice";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
-import DatePicker from "../../components/form/date-picker";
 import Button from "../../components/ui/button/Button";
 import ComponentCard from "../../components/common/ComponentCard";
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
-import Select from "../../components/form/Select";
+import FilterBar from "../../components/common/FilterBar"; // Import FilterBar
 
 // Updated interface to align with Redux state
 interface ExpiringSoonUser {
@@ -48,6 +47,8 @@ const ExpiryPayments: React.FC = () => {
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [dateError, setDateError] = useState<string | null>(null);
+  const [stateFilter, setStateFilter] = useState<string>(""); // State filter for fetching cities
+  const [cityFilter, setCityFilter] = useState<string>(""); // City filter for filtering subscriptions
 
   const itemsPerPage = 10;
 
@@ -57,7 +58,7 @@ const ExpiryPayments: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedUserType, startDate, endDate, filterValue]);
+  }, [selectedUserType, startDate, endDate, filterValue, cityFilter]); // Removed stateFilter from dependencies
 
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return "N/A";
@@ -91,6 +92,18 @@ const ExpiryPayments: React.FC = () => {
     setCurrentPage(1);
   };
 
+  // Clear all filters
+  const clearFilters = () => {
+    setSelectedUserType(null);
+    setStartDate(null);
+    setEndDate(null);
+    setStateFilter("");
+    setCityFilter("");
+    setFilterValue("");
+    setCurrentPage(1);
+    setDateError(null);
+  };
+
   const filteredSubscriptions = useMemo(() => {
     return expiringSoonSubscriptions.filter((sub: ExpiringSoonUser) => {
       const searchableFields = [
@@ -105,7 +118,8 @@ const ExpiryPayments: React.FC = () => {
       );
 
       const matchesUserType =
-        !selectedUserType ||
+        selectedUserType === null ||
+        selectedUserType === "" ||
         userTypeMap[sub.user_type] === selectedUserType;
 
       let matchesDate = true;
@@ -124,9 +138,12 @@ const ExpiryPayments: React.FC = () => {
         }
       }
 
-      return matchesSearch && matchesUserType && matchesDate;
+      // City filter (not state filter)
+      const matchesCity = !cityFilter || (sub.city && sub.city.toLowerCase() === cityFilter.toLowerCase());
+
+      return matchesSearch && matchesUserType && matchesDate && matchesCity;
     });
-  }, [expiringSoonSubscriptions, filterValue, startDate, endDate, selectedUserType]);
+  }, [expiringSoonSubscriptions, filterValue, selectedUserType, startDate, endDate, cityFilter]);
 
   const userFilterOptions: SelectOption[] = [
     { value: "", label: "All Users" },
@@ -136,44 +153,11 @@ const ExpiryPayments: React.FC = () => {
     })),
   ];
 
-  const handleStartDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-    }
-    setStartDate(date || null);
-    setDateError(null);
-  };
-
-  const handleEndDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-      if (startDate && date < startDate) {
-        setDateError("End date cannot be earlier than start date");
-        return;
-      }
-    }
-    setEndDate(date || null);
-    setDateError(null);
-  };
-
   const totalItems = filteredSubscriptions.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const paginatedSubscriptions = filteredSubscriptions.slice(
-    startIndex,
-    endIndex
-  );
+  const paginatedSubscriptions = filteredSubscriptions.slice(startIndex, endIndex);
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
@@ -222,10 +206,10 @@ const ExpiryPayments: React.FC = () => {
 
     return pages;
   };
-    const formatPackageName = (packageName: string): string => {
+
+  const formatPackageName = (packageName: string): string => {
     return packageName.charAt(0).toUpperCase() + packageName.slice(1).toLowerCase();
   };
-
 
   if (expiringSoonLoading) {
     return (
@@ -256,55 +240,38 @@ const ExpiryPayments: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        {/* Filters */}
+        {/* Integrate FilterBar with user type, date, state, and city filters */}
         <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
-        <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-          <div className="w-full sm:w-43">
-            <Select
-              options={userFilterOptions}
-              placeholder="Select User Type"
-              onChange={(value: string) => setSelectedUserType(value || null)}
-              value={selectedUserType || ""}
-              className="dark:bg-dark-900"
-            />
-          </div>
-          <DatePicker
-            id="startDate"
-            placeholder="Select start date"
-            onChange={handleStartDateChange}
-            defaultDate={startDate ? new Date(startDate) : undefined}
+          <FilterBar
+            showUserTypeFilter={true}
+            showDateFilters={true}
+            showStateFilter={true} // State filter is enabled to fetch cities
+            showCityFilter={true}
+            userFilterOptions={userFilterOptions}
+            onUserTypeChange={setSelectedUserType}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onStateChange={setStateFilter}
+            onCityChange={setCityFilter}
+            onClearFilters={clearFilters}
+            selectedUserType={selectedUserType}
+            startDate={startDate}
+            endDate={endDate}
+            stateValue={stateFilter}
+            cityValue={cityFilter}
           />
-          <DatePicker
-            id="endDate"
-            placeholder="Select end date"
-            onChange={handleEndDateChange}
-            defaultDate={endDate ? new Date(endDate) : undefined}
-          />
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSelectedUserType(null);
-              setStartDate(null);
-              setEndDate(null);
-              setFilterValue("");
-              setCurrentPage(1);
-            }}
-            className="px-4 py-2 w-full sm:w-auto"
-          >
-            Clear Filters
-          </Button>
         </div>
-      </div>
+
         {/* Display date error if present */}
         {dateError && (
           <div className="text-sm text-red-500 mb-2">{dateError}</div>
         )}
 
-        {/* Display active filters */}
-        {(selectedUserType || startDate || endDate || filterValue) && (
+        {/* Display active filters (exclude state since it's not used for filtering) */}
+        {(selectedUserType || startDate || endDate || cityFilter || filterValue) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to{" "}
-            {endDate || "Any"} | Search: {filterValue || "None"}
+            Filters: User Type: {selectedUserType || "All"} | Date: {startDate || "Any"} to{" "}
+            {endDate || "Any"} | City: {cityFilter || "Any"} | Search: {filterValue || "None"}
           </div>
         )}
 
@@ -372,65 +339,68 @@ const ExpiryPayments: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {(!paginatedSubscriptions ||
-                    paginatedSubscriptions.length === 0) && (
+                  {(!paginatedSubscriptions || paginatedSubscriptions.length === 0) && (
                     <TableRow>
                       <TableCell
                       
                         className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                       >
-                        {filterValue
+                        {filterValue || selectedUserType || startDate || endDate || cityFilter
                           ? "No Matching Subscriptions Found"
                           : "No Expiring Subscriptions Available"}
                       </TableCell>
                     </TableRow>
                   )}
-                  {paginatedSubscriptions.map(
-                    (sub: ExpiringSoonUser, index: number) => (
-                      <TableRow key={sub.user_id}>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {startIndex + index + 1}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {sub.user_id}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          <div>{sub.name}</div>
-                          <span className="block text-gray-400 text-theme-xs dark:text-gray-500">
-                            {userTypeMap[sub.user_type] || "Unknown"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {sub.email}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {sub.mobile || "N/A"}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {sub.city || "N/A"}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                                             <span
-                                               className={`inline-block px-2 py-1 rounded-md  text-xs w-auto font-medium ${
-                                                 sub.subscription_package.toLowerCase() === "basic"
-                                                   ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                                                   : sub.subscription_package.toLowerCase() === "prime"
-                                                   ? "bg-[#EC9A0C] text-black dark:bg-[#EC9A0C] dark:text-white"
-                                                   : "bg-[#1D3A76] text-white dark:bg-purple-900 dark:text-purple-200"
-                                               }`}
-                                             >
-                                               {formatPackageName(sub.subscription_package === 'prime_plus' ? 'Prime Plus' : sub.subscription_package)}
-                                             </span>
-                                           </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {formatPaymentAmount(sub.payment_amount)}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {formatDate(sub.subscription_expiry_date)}
-                        </TableCell>
-                      </TableRow>
-                    )
-                  )}
+                  {paginatedSubscriptions.map((sub: ExpiringSoonUser, index: number) => (
+                    <TableRow key={sub.user_id}>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {startIndex + index + 1}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {sub.user_id}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start">
+                                                                    <div className="flex items-center gap-3">
+                                                                      <div>
+                                                                        <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
+                                                                          {sub.name}
+                                                                        </span>
+                                                                        <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                                                                          {userTypeMap[sub.user_type!] || "Unknown"}
+                                                                        </span>
+                                                                      </div>
+                                                                    </div>
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {sub.email}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {sub.mobile || "N/A"}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {sub.city || "N/A"}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        <span
+                          className={`inline-block px-2 py-1 rounded-md text-xs w-auto font-medium ${
+                            sub.subscription_package.toLowerCase() === "basic"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                              : sub.subscription_package.toLowerCase() === "prime"
+                              ? "bg-[#EC9A0C] text-black dark:bg-[#EC9A0C] dark:text-white"
+                              : "bg-[#1D3A76] text-white dark:bg-purple-900 dark:text-purple-200"
+                          }`}
+                        >
+                          {formatPackageName(sub.subscription_package === 'prime_plus' ? 'Prime Plus' : sub.subscription_package)}
+                        </span>
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {formatPaymentAmount(sub.payment_amount)}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {formatDate(sub.subscription_expiry_date)}
+                      </TableCell>
+                    </TableRow>
+                  ))}
                 </TableBody>
               </Table>
             </div>

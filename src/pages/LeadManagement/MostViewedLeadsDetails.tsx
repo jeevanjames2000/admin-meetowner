@@ -14,7 +14,7 @@ import Button from "../../components/ui/button/Button";
 import { AppDispatch, RootState } from "../../store/store";
 import { fetchPropertyViewDetails, LeadsState } from "../../store/slices/leads";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
-import DatePicker from "../../components/form/date-picker";
+import FilterBar from "../../components/common/FilterBar";
 
 const MostViewedDetailsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -22,16 +22,16 @@ const MostViewedDetailsPage: React.FC = () => {
   const { propertyViewDetails, propertyViewDetailsCount, loading, error } = useSelector(
     (state: RootState) => state.leads as LeadsState
   );
+  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const itemsPerPage = 10;
-  const dropdownRef = useRef<HTMLDivElement>(null);
-  const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-  const [startDateValue, setStartDateValue] = useState<Date | null>(null);
-  const [endDateValue, setEndDateValue] = useState<Date | null>(null);
+  const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
+  const itemsPerPage = 10;
 
+  // Fetch property view details on mount or when property_id changes
   useEffect(() => {
     if (property_id) {
       console.log("Fetching property view details for property_id:", property_id);
@@ -42,20 +42,26 @@ const MostViewedDetailsPage: React.FC = () => {
     }
   }, [dispatch, property_id]);
 
-  const formatDate = (dateString: string | null) => {
-    if (!dateString) return "N/A";
-    try {
-      const date = new Date(dateString);
-      if (isNaN(date.getTime())) return "N/A";
-      const day = String(date.getDate()).padStart(2, "0");
-      const month = String(date.getMonth() + 1).padStart(2, "0");
-      const year = date.getFullYear();
-      return `${day}-${month}-${year}`;
-    } catch {
-      return "N/A";
-    }
+  // Handle click outside to close dropdown
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+        setDropdownOpen(null);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilterValue("");
+    setStartDate(null);
+    setEndDate(null);
+    setCurrentPage(1);
   };
 
+  // Filter property view details
   const filteredDetails = useMemo(() => {
     return propertyViewDetails.filter((detail) => {
       const searchableFields = [
@@ -92,6 +98,7 @@ const MostViewedDetailsPage: React.FC = () => {
     });
   }, [propertyViewDetails, filterValue, startDate, endDate]);
 
+  // Pagination logic
   const totalItems = filteredDetails.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
@@ -99,7 +106,9 @@ const MostViewedDetailsPage: React.FC = () => {
   const paginatedDetails = filteredDetails.slice(startIndex, endIndex);
 
   const goToPage = (page: number) => {
-    setCurrentPage(page);
+    if (page >= 1 && page <= totalPages) {
+      setCurrentPage(page);
+    }
   };
 
   const goToPreviousPage = () => {
@@ -126,7 +135,6 @@ const MostViewedDetailsPage: React.FC = () => {
         start = 2;
         end = 5;
       }
-
       if (currentPage >= totalPages - 2) {
         start = totalPages - 4;
         end = totalPages - 1;
@@ -134,11 +142,9 @@ const MostViewedDetailsPage: React.FC = () => {
 
       pages.push(1);
       if (start > 2) pages.push("...");
-
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-
       if (end < totalPages - 1) pages.push("...");
       if (totalPages > 1) pages.push(totalPages);
     }
@@ -146,55 +152,28 @@ const MostViewedDetailsPage: React.FC = () => {
     return pages;
   };
 
+  // Handle search filter
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
 
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
-
-  const handleStartDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-      setStartDateValue(dateObj);
-    } else {
-      setStartDateValue(null);
+  // Format date for display
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
+    try {
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "N/A";
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    } catch {
+      return "N/A";
     }
-    setStartDate(date || null);
   };
 
-  const handleEndDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-      if (startDate && date < startDate) {
-        alert("End date cannot be before start date");
-        return;
-      }
-      setEndDateValue(dateObj);
-    } else {
-      setEndDateValue(null);
-    }
-    setEndDate(date || null);
-  };
-
+  // Handle view action
   const handleView = (property_id: string | null) => {
     if (!property_id) {
       console.error("Property ID is missing");
@@ -208,6 +187,7 @@ const MostViewedDetailsPage: React.FC = () => {
     }
   };
 
+  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -216,6 +196,7 @@ const MostViewedDetailsPage: React.FC = () => {
     );
   }
 
+  // Error or no data state
   if (error || propertyViewDetailsCount === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -228,6 +209,7 @@ const MostViewedDetailsPage: React.FC = () => {
           pagePlacHolder="Filter by user ID, property ID, name, mobile, email, address, or city"
           onFilter={handleFilter}
         />
+       
         <ComponentCard title={`Most Viewed Details - ${property_id}`}>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
             {error ? `Error: ${error}` : "No Data Available"}
@@ -249,58 +231,111 @@ const MostViewedDetailsPage: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        <div className="w-auto flex gap-3">
-          <div className="w-48">
-            <DatePicker
-              id="startDate"
-              placeholder="Select start date"
-              onChange={handleStartDateChange}
-            />
-          </div>
-          <div className="w-48">
-            <DatePicker
-              id="endDate"
-              placeholder="Select end date"
-              onChange={handleEndDateChange}
-            />
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setStartDate(null);
-              setEndDate(null);
-              setFilterValue("");
-              setCurrentPage(1);
-              setStartDateValue(null);
-              setEndDateValue(null);
-            }}
-            className="px-4 py-2"
-          >
-            Clear Filters
-          </Button>
+        {/* FilterBar for date filters */}
+        <div className="flex flex-col sm:flex-row justify-between gap-3 ">
+          <FilterBar
+            showUserTypeFilter={false}
+            showDateFilters={true}
+            showStateFilter={false}
+            showCityFilter={false}
+            userFilterOptions={[]}
+            onUserTypeChange={() => {}}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onStateChange={() => {}}
+            onCityChange={() => {}}
+            onClearFilters={clearFilters}
+            selectedUserType={null}
+            startDate={startDate}
+            endDate={endDate}
+            stateValue=""
+            cityValue=""
+          />
         </div>
-        {(startDate || endDate || filterValue) && (
+
+        {/* Display active filters */}
+        {(filterValue || startDate || endDate) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
+            Filters: Search: {filterValue || "None"} | Date: {startDate || "Any"} to {endDate || "Any"}
           </div>
         )}
+
         <ComponentCard title={`Most Viewed Details - ${property_id}`}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl. No</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">User Id</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property Id</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property Name</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Name</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Mobile</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Created Date</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Address</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">City</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Sl. No
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      User Id
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Property Id
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Property Name
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Name
+                    </TableCell>
+                    {userType === 1 && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Mobile
+                      </TableCell>
+                    )}
+                    {userType === 1 && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Email
+                      </TableCell>
+                    )}
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Created Date
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Address
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      City
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Actions
+                    </TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -321,12 +356,16 @@ const MostViewedDetailsPage: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {detail.name || "N/A"}
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {detail.mobile || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {detail.email || "N/A"}
-                      </TableCell>
+                      {userType === 1 && (
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {detail.mobile || "N/A"}
+                        </TableCell>
+                      )}
+                      {userType === 1 && (
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {detail.email || "N/A"}
+                        </TableCell>
+                      )}
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(detail.created_date)}
                       </TableCell>
@@ -342,12 +381,20 @@ const MostViewedDetailsPage: React.FC = () => {
                           size="sm"
                           onClick={() => setDropdownOpen(dropdownOpen === detail.id ? null : detail.id)}
                         >
-                          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <svg
+                            className="w-5 h-5 text-gray-500 dark:text-gray-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
                             <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
                         </Button>
                         {dropdownOpen === detail.id && (
-                          <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                          <div
+                            ref={dropdownRef}
+                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
+                          >
                             <button
                               onClick={() => {
                                 handleView(detail.property_id);
@@ -367,6 +414,7 @@ const MostViewedDetailsPage: React.FC = () => {
             </div>
           </div>
 
+          {/* Pagination */}
           {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">

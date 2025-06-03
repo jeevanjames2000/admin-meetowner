@@ -1,7 +1,7 @@
-import {  useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
-import { fetchUsersByType } from "../../../store/slices/users";
+import { fetchEmployeeUsersByType } from "../../../store/slices/employeeUsers";
 import { RootState, AppDispatch } from "../../../store/store";
 import {
   Table,
@@ -11,44 +11,31 @@ import {
   TableRow,
 } from "../../ui/table";
 import Button from "../../ui/button/Button";
-import { MoreVertical } from "lucide-react";
 import ComponentCard from "../../common/ComponentCard";
 import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
-import { clearMessages, deleteEmployee, } from "../../../store/slices/employee";
+import { clearMessages, deleteEmployee } from "../../../store/slices/employee";
 import toast from "react-hot-toast";
 import ConfirmDeleteModal from "../../common/ConfirmDeleteModal";
-
-import DatePicker from "../../form/date-picker";
-
-import { fetchEmployeeUsersByType } from "../../../store/slices/employeeUsers";
 import { formatDate } from "../../../hooks/FormatDate";
-
-
+import FilterBar from "../../common/FilterBar";
 
 // User type mapping
 const userTypeMap: { [key: number]: string } = {
   1: "Admin",
- 
   7: "Manager",
   8: "Telecaller",
   9: "Marketing Executive",
   10: "Customer Support",
 };
 
-
-
-// Format date function
-
-
 export default function BasicTableEmployees() {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { users, loading, error } = useSelector((state: RootState) => state.employeeUsers);
-  const { deleteError, deleteSuccess, } = useSelector(
+  const { deleteError, deleteSuccess } = useSelector(
     (state: RootState) => state.employee
   );
- 
 
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
@@ -57,9 +44,8 @@ export default function BasicTableEmployees() {
   const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-  
-
-
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
 
   const itemsPerPage = 10;
 
@@ -67,24 +53,21 @@ export default function BasicTableEmployees() {
   const userType = queryParams.get("userType");
   const categoryLabel = userTypeMap[parseInt(userType || "0")] || "User";
 
- 
-
-
   useEffect(() => {
     if (userType) {
       dispatch(fetchEmployeeUsersByType({ user_type: parseInt(userType) }));
     }
   }, [dispatch, userType]);
-  
+
   useEffect(() => {
-  setCurrentPage(1); // Reset to page 1 when filters change
-}, [startDate, endDate]);
+    setCurrentPage(1); // Reset to page 1 when filters change
+  }, [startDate, endDate, selectedCity]);
 
   useEffect(() => {
     if (deleteSuccess) {
       toast.success(deleteSuccess);
       if (userType) {
-        dispatch(fetchUsersByType({ user_type: parseInt(userType) })).then(() => {
+        dispatch(fetchEmployeeUsersByType({ user_type: parseInt(userType) })).then(() => {
           dispatch(clearMessages());
         });
       }
@@ -93,9 +76,7 @@ export default function BasicTableEmployees() {
       toast.error(deleteError);
       dispatch(clearMessages());
     }
-   
-    
-  }, [deleteSuccess, deleteError,  dispatch, userType]);
+  }, [deleteSuccess, deleteError, dispatch, userType]);
 
   const handleEditUser = (user: any) => {
     navigate("/edit-user-details", { state: { user } });
@@ -107,7 +88,6 @@ export default function BasicTableEmployees() {
     setActiveMenu(null);
   };
 
- 
   const confirmDelete = () => {
     if (userToDelete) {
       dispatch(deleteEmployee(userToDelete.id));
@@ -117,53 +97,51 @@ export default function BasicTableEmployees() {
   };
 
   const filteredUsers = useMemo(
-  () =>
-    users && Array.isArray(users)
-      ? users.filter((user) => {
-          const searchableFields = [
-            user.name,
-            user.mobile,
-            user.city,
-            user.state,
-          ];
-          const matchesSearch = searchableFields
-            .filter((field): field is string => field !== null && field !== undefined)
-            .map((field) => field.toLowerCase())
-            .some((field) => field.includes(filterValue.toLowerCase()));
+    () =>
+      users && Array.isArray(users)
+        ? users.filter((user) => {
+            const searchableFields = [
+              user.name,
+              user.mobile,
+              user.city,
+              user.state,
+            ];
+            const matchesSearch = searchableFields
+              .filter((field): field is string => field !== null && field !== undefined)
+              .map((field) => field.toLowerCase())
+              .some((field) => field.includes(filterValue.toLowerCase()));
 
-          // Date range filter
-          let matchesDate = true;
-          if (startDate || endDate) {
-            if (!user.created_date) {
-              matchesDate = false; // Exclude null created_date when date filter is active
-            } else {
-              try {
-                const userDate = user.created_date.split("T")[0]; // Extract YYYY-MM-DD
-                matchesDate =
-                  (!startDate || userDate >= startDate) &&
-                  (!endDate || userDate <= endDate);
-              } catch {
-                matchesDate = false; // Exclude invalid dates
+            // Date range filter
+            let matchesDate = true;
+            if (startDate || endDate) {
+              if (!user.created_date) {
+                matchesDate = false; // Exclude null created_date when date filter is active
+              } else {
+                try {
+                  const userDate = user.created_date.split("T")[0]; // Extract YYYY-MM-DD
+                  matchesDate =
+                    (!startDate || userDate >= startDate) &&
+                    (!endDate || userDate <= endDate);
+                } catch {
+                  matchesDate = false; // Exclude invalid dates
+                }
               }
             }
-          }
 
-          return matchesSearch  && matchesDate;
-        })
-      : [],
-  [users, filterValue, startDate, endDate,]
-);
+            // City filter
+            const matchesCity = !selectedCity || user.city === selectedCity;
 
-
-
+            return matchesSearch && matchesDate && matchesCity;
+          })
+        : [],
+    [users, filterValue, startDate, endDate, selectedCity]
+  );
 
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
-
 
   const handleFilter = (value: string) => {
     setFilterValue(value);
@@ -172,12 +150,7 @@ export default function BasicTableEmployees() {
 
   const handleEmployeeClick = (id: number) => {
     navigate(`/assignedemployees/${id}`);
-   
   };
-
-  
-
-
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
@@ -230,35 +203,6 @@ export default function BasicTableEmployees() {
   if (loading) return <div>Loading users...</div>;
   if (error) return <div>Error: {error}</div>;
 
-  
-  const handleStartDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-    }
-    setStartDate(date || null);
-  };
-
-  const handleEndDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-      if (startDate && date < startDate) {
-        alert("End date cannot be before start date");
-        return;
-      }
-    }
-  setEndDate(date || null);
-};
-
   return (
     <div className="relative min-h-screen">
       <PageBreadcrumbList
@@ -266,45 +210,38 @@ export default function BasicTableEmployees() {
         pagePlacHolder="Filter users by name, mobile, email, city"
         onFilter={handleFilter}
       />
-    
-        <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
-      <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-      
-        <DatePicker
-          id="startDate"
-          placeholder="Select start date"
-          onChange={handleStartDateChange}
-          defaultDate={startDate ? new Date(startDate) : undefined}
-        />
-        <DatePicker
-          id="endDate"
-          placeholder="Select end date"
-          onChange={handleEndDateChange}
-          defaultDate={endDate ? new Date(endDate) : undefined}
-        />
-        <Button
-          variant="outline"
-          onClick={() => {
-         
+
+      <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
+        <FilterBar
+          showUserTypeFilter={false} 
+          showDateFilters={true}
+          showStateFilter={true}
+          showCityFilter={true}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          onStateChange={setSelectedState}
+          onCityChange={setSelectedCity}
+          onClearFilters={() => {
             setStartDate(null);
             setEndDate(null);
+            setSelectedState("");
+            setSelectedCity("");
             setFilterValue("");
             setCurrentPage(1);
           }}
-          className="px-4 py-2 w-full sm:w-auto"
-        >
-          Clear Filters
-        </Button>
+          startDate={startDate}
+          endDate={endDate}
+          stateValue={selectedState}
+          cityValue={selectedCity}
+        />
       </div>
-    </div>
-    
-       
-        {(  startDate || endDate || filterValue) && (
+
+      {(startDate || endDate || selectedCity || filterValue) && (
         <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-          Filters: {"All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
+          Filters: Date: {startDate || "Any"} to {endDate || "Any"} | 
+          City: {selectedCity || "Any"} | Search: {filterValue || "None"}
         </div>
       )}
-
 
       {deleteSuccess && (
         <div className="p-3 bg-green-100 text-green-700 rounded-md">{deleteSuccess}</div>
@@ -312,7 +249,6 @@ export default function BasicTableEmployees() {
       {deleteError && (
         <div className="p-3 bg-red-100 text-red-700 rounded-md">{deleteError}</div>
       )}
-      
 
       <div className="space-y-6">
         <ComponentCard title={`${categoryLabel} Table`}>
@@ -331,7 +267,7 @@ export default function BasicTableEmployees() {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                       Id
+                      Id
                     </TableCell>
                     <TableCell
                       isHeader
@@ -339,17 +275,12 @@ export default function BasicTableEmployees() {
                     >
                       Name
                     </TableCell>
-                   
-                      <>
-                        <TableCell
-                          isHeader
-                          className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                        >
-                          Mobile
-                        </TableCell>
-                      </>
-                  
-                  
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Mobile
+                    </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -362,7 +293,6 @@ export default function BasicTableEmployees() {
                     >
                       State
                     </TableCell>
-                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -375,22 +305,21 @@ export default function BasicTableEmployees() {
                     >
                       Status
                     </TableCell>
-                    
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedUsers.map((user,index) => (
+                  {paginatedUsers.map((user, index) => (
                     <TableRow key={user.id}>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.id}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
-                        <div  onClick={() => handleEmployeeClick(user.id)}
+                        <div
+                          onClick={() => handleEmployeeClick(user.id)}
                           className="flex items-center gap-3"
-                        
                         >
                           <div>
                             <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
@@ -402,22 +331,18 @@ export default function BasicTableEmployees() {
                           </div>
                         </div>
                       </TableCell>
-                     
-                        <>
-                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {user.mobile}
-                          </TableCell>
-                        </> 
-                    
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {user.mobile}
+                      </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.city}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.state}
                       </TableCell>
-                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(user.created_date!)}
-                        </TableCell>
+                      </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         <span
                           className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
@@ -441,7 +366,6 @@ export default function BasicTableEmployees() {
                             : "Inactive"}
                         </span>
                       </TableCell>
-                     
                     </TableRow>
                   ))}
                 </TableBody>
@@ -449,13 +373,12 @@ export default function BasicTableEmployees() {
             </div>
           </div>
 
-         {totalItems > itemsPerPage && (
+          {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Showing {startIndex + 1} to {endIndex} of {totalItems} entries
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
-                {/* Previous Button */}
                 <Button
                   variant={currentPage === 1 ? "outline" : "primary"}
                   size="sm"
@@ -464,8 +387,6 @@ export default function BasicTableEmployees() {
                 >
                   Previous
                 </Button>
-
-                {/* Page Buttons */}
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
                     <span
@@ -490,7 +411,6 @@ export default function BasicTableEmployees() {
                     </Button>
                   )
                 )}
-                {/* Next Button */}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"
@@ -503,7 +423,6 @@ export default function BasicTableEmployees() {
             </div>
           )}
 
-
           <ConfirmDeleteModal
             isOpen={isDeleteModalOpen}
             propertyName={userToDelete?.name || ""}
@@ -513,11 +432,8 @@ export default function BasicTableEmployees() {
               setUserToDelete(null);
             }}
           />
-
         </ComponentCard>
       </div>
     </div>
   );
 }
-
-

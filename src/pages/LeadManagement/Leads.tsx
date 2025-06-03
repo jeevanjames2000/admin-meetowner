@@ -14,8 +14,8 @@ import Button from "../../components/ui/button/Button";
 import { AppDispatch, RootState } from "../../store/store";
 import { fetchLeads, LeadsState } from "../../store/slices/leads";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
-import DatePicker from "../../components/form/date-picker";
-import Select from "../../components/form/Select";
+
+import FilterBar from "../../components/common/FilterBar";
 
 const userTypeMap: { [key: string]: string } = {
   "1":"Admin",
@@ -43,9 +43,7 @@ const PropertyLeadsBuy: React.FC = () => {
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
-  const [startDateValue, setStartDateValue] = useState<Date | null>(null);
-  const [endDateValue, setEndDateValue] = useState<Date | null>(null);
-
+ 
   const filters = {
     property_for: status === "1" ? "Sell" : status === "2" ? "Rent" : property_for || "",
   };
@@ -71,6 +69,14 @@ const PropertyLeadsBuy: React.FC = () => {
     const period = hour >= 12 ? "PM" : "AM";
     const formattedHour = hour % 12 || 12;
     return `${String(formattedHour).padStart(2, "0")}:${minutes} ${period}`;
+  };
+
+   const clearFilters = () => {
+    setFilterValue("");
+    setSelectedUserType(null);
+    setStartDate(null);
+    setEndDate(null);
+    setCurrentPage(1);
   };
 
   const filteredLeads = useMemo(() => {
@@ -193,39 +199,9 @@ const PropertyLeadsBuy: React.FC = () => {
     })),
   ];
 
-  const handleStartDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-      setStartDateValue(dateObj);
-    } else {
-      setStartDateValue(null);
-    }
-    setStartDate(date || null);
-  };
+ 
 
-  const handleEndDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-      if (startDate && date < startDate) {
-        alert("End date cannot be before start date");
-        return;
-      }
-      setEndDateValue(dateObj);
-    } else {
-      setEndDateValue(null);
-    }
-    setEndDate(date || null);
-  };
+  
 
   // Handle View action
   const handleView = (property_id: string) => {
@@ -249,7 +225,7 @@ const PropertyLeadsBuy: React.FC = () => {
     );
   }
 
-  if (error || !leads || leads.length === 0) {
+    if (error || !leads || leads.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
         <PageMeta
@@ -268,65 +244,46 @@ const PropertyLeadsBuy: React.FC = () => {
         </ComponentCard>
       </div>
     );
-  }
+    }
 
-  return (
-    <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-      <PageMeta
-        title={`Meet Owner Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
-        description="This is the Property Leads Table page"
-      />
-      <PageBreadcrumbList
-        pageTitle={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
-        pagePlacHolder="Filter leads"
-        onFilter={handleFilter}
-      />
-      <div className="space-y-6">
-        <div className="w-auto flex gap-3">
-          <div className="w-48">
-            <Select
-              options={userFilterOptions}
-              placeholder="Select User Type"
-              onChange={(value: string) => setSelectedUserType(value || null)}
-              value={selectedUserType || ""}
-              className="dark:bg-dark-900"
-            />
+     return (
+            <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+              <PageMeta
+                title={`Meet Owner Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
+                description="This is the Property Leads Table page"
+              />
+              <PageBreadcrumbList
+                pageTitle={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
+                pagePlacHolder="Filter leads"
+                onFilter={handleFilter}
+              />
+              <div className="space-y-6">
+                 <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
+                  <FilterBar
+                    showUserTypeFilter={true}
+                    showDateFilters={true}
+                    showStateFilter={false}
+                    showCityFilter={false}
+                    userFilterOptions={userFilterOptions}
+                    onUserTypeChange={setSelectedUserType}
+                    onStartDateChange={setStartDate}
+                    onEndDateChange={setEndDate}
+                    onStateChange={() => {}}
+                    onCityChange={() => {}}
+                    onClearFilters={clearFilters}
+                    selectedUserType={selectedUserType}
+                    startDate={startDate}
+                    endDate={endDate}
+                    stateValue=""
+                    cityValue=""
+                  />
           </div>
-          <div className="w-48">
-            <DatePicker
-              id="startDate"
-              placeholder="Select start date"
-              onChange={handleStartDateChange}
-            />
-          </div>
-          <div className="w-48">
-            <DatePicker
-              id="endDate"
-              placeholder="Select end date"
-              onChange={handleEndDateChange}
-            />
-          </div>
-          <Button
-            variant="outline"
-            onClick={() => {
-              setSelectedUserType(null);
-              setStartDate(null);
-              setEndDate(null);
-              setFilterValue("");
-              setCurrentPage(1);
-              setStartDateValue(null);
-              setEndDateValue(null);
-            }}
-            className="px-4 py-2"
-          >
-            Clear Filters
-          </Button>
-        </div>
-        {(selectedUserType || startDate || endDate || filterValue) && (
-          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
-          </div>
-        )}
+            {(filterValue || selectedUserType || startDate || endDate) && (
+              <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+                Filters: Search: {filterValue || "None"} | User Type: {selectedUserType || "All"} | Date: {startDate || "Any"} to {endDate || "Any"}
+              </div>
+            )}
+
         <ComponentCard title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">

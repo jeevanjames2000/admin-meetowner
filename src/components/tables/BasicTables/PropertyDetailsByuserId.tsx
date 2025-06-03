@@ -14,6 +14,7 @@ import Button from "../../ui/button/Button";
 import ComponentCard from "../../common/ComponentCard";
 import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
 import { formatDate } from "../../../hooks/FormatDate";
+import FilterBar from "../../common/FilterBar";
 
 // Property type mapping for display
 const propertyTypeMap: { [key: string]: string } = {
@@ -22,7 +23,6 @@ const propertyTypeMap: { [key: string]: string } = {
   Plot: "Plot",
   Commercial: "Commercial",
 };
-
 
 export default function PropertyDetailsByUserId() {
   const location = useLocation();
@@ -36,6 +36,10 @@ export default function PropertyDetailsByUserId() {
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
+  const [stateFilter, setStateFilter] = useState<string>("");
+  const [cityFilter, setCityFilter] = useState<string>("");
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   const itemsPerPage = 10;
@@ -62,7 +66,12 @@ export default function PropertyDetailsByUserId() {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  // Filter properties based on search input
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterValue, startDate, endDate, cityFilter]); // Removed stateFilter from dependencies since it's not used for filtering
+
+  // Filter properties based on search input, date range, and city (not state)
   const filteredProperties = properties.filter((property) => {
     const searchableFields = [
       property.property_name,
@@ -71,9 +80,31 @@ export default function PropertyDetailsByUserId() {
       property.sub_type,
       property.unique_property_id,
     ];
-    return searchableFields
+    const matchesSearch = searchableFields
       .map((field) => field?.toLowerCase() || "")
       .some((field) => field.includes(filterValue.toLowerCase()));
+
+    // Date range filter
+    let matchesDate = true;
+    if (startDate || endDate) {
+      if (!property.updated_date) {
+        matchesDate = false;
+      } else {
+        try {
+          const propertyDate = property.updated_date.split("T")[0]; // Extract YYYY-MM-DD
+          matchesDate =
+            (!startDate || propertyDate >= startDate) &&
+            (!endDate || propertyDate <= endDate);
+        } catch {
+          matchesDate = false;
+        }
+      }
+    }
+
+    // City filter only (removed state filter)
+    const matchesCity = !cityFilter || property.city_id?.toLowerCase() === cityFilter.toLowerCase();
+
+    return matchesSearch && matchesDate && matchesCity;
   });
 
   // Pagination logic
@@ -89,7 +120,7 @@ export default function PropertyDetailsByUserId() {
     setCurrentPage(1);
   };
 
-  const handlepropertyClick = (propertyId: string) => {
+  const handlePropertyClick = (propertyId: string) => {
     if (propertyId) {
       navigate(`/user-activities?property_id=${propertyId}`);
     }
@@ -103,7 +134,7 @@ export default function PropertyDetailsByUserId() {
     }
     try {
       const url = `https://meetowner.in/property?Id_${encodeURIComponent(property_id)}`;
-      window.open(url, "_blank"); // Open in new tab
+      window.open(url, "_blank");
     } catch (error) {
       console.error("Error navigating to property:", error);
     }
@@ -123,26 +154,49 @@ export default function PropertyDetailsByUserId() {
 
   // Generate pagination items
   const getPaginationItems = () => {
-    const pages = [];
-    const totalVisiblePages = 7;
-    let startPage = Math.max(1, currentPage - Math.floor(totalVisiblePages / 2));
-    let endPage = Math.min(totalPages, startPage + totalVisiblePages - 1);
+    const pages: (number | string)[] = [];
+    const totalVisiblePages = 5;
 
-    if (endPage - startPage + 1 < totalVisiblePages) {
-      startPage = Math.max(1, endPage - totalVisiblePages + 1);
+    if (totalPages <= totalVisiblePages + 2) {
+      for (let i = 1; i <= totalPages; i++) {
+        pages.push(i);
+      }
+    } else {
+      let start = Math.max(2, currentPage - 2);
+      let end = Math.min(totalPages - 1, currentPage + 2);
+
+      if (currentPage <= 3) {
+        start = 2;
+        end = 5;
+      }
+
+      if (currentPage >= totalPages - 2) {
+        start = totalPages - 4;
+        end = totalPages - 1;
+      }
+
+      pages.push(1);
+      if (start > 2) pages.push("...");
+
+      for (let i = start; i <= end; i++) {
+        pages.push(i);
+      }
+
+      if (end < totalPages - 1) pages.push("...");
+      if (totalPages > 1) pages.push(totalPages);
     }
-
-    if (startPage > 1) pages.push(1);
-    if (startPage > 2) pages.push("...");
-
-    for (let i = startPage; i <= endPage; i++) {
-      pages.push(i);
-    }
-
-    if (endPage < totalPages - 1) pages.push("...");
-    if (endPage < totalPages) pages.push(totalPages);
 
     return pages;
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilterValue("");
+    setStartDate(null);
+    setEndDate(null);
+    setStateFilter("");
+    setCityFilter("");
+    setCurrentPage(1);
   };
 
   if (loading) return <div>Loading properties...</div>;
@@ -156,6 +210,29 @@ export default function PropertyDetailsByUserId() {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
+        {/* Integrate FilterBar with state, city, start date, end date, and clear button */}
+        <FilterBar
+          showStateFilter={true} // State filter is enabled to fetch cities
+          showCityFilter={true}
+          showDateFilters={true}
+          onStateChange={setStateFilter}
+          onCityChange={setCityFilter}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          onClearFilters={clearFilters}
+          stateValue={stateFilter}
+          cityValue={cityFilter}
+          startDate={startDate}
+          endDate={endDate}
+        />
+
+        {/* Display active filters (exclude state from display since it's not used for filtering) */}
+        {(cityFilter || startDate || endDate || filterValue) && (
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Filters: City: {cityFilter || "Any"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
+          </div>
+        )}
+
         <ComponentCard title={`Properties by ${name}`}>
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
@@ -186,7 +263,7 @@ export default function PropertyDetailsByUserId() {
                     >
                       Type
                     </TableCell>
-                     <TableCell
+                    <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
@@ -221,32 +298,26 @@ export default function PropertyDetailsByUserId() {
                 <TableBody className="divide-y divide-gray-200 dark:divide-white/[0.05]">
                   {loading && (
                     <TableRow>
-                      <TableCell
-                        className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
-                      >
+                      <TableCell className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400">
                         Loading properties...
                       </TableCell>
                     </TableRow>
                   )}
                   {!loading && error && (
                     <TableRow>
-                      <TableCell
-                        className="px-5 py-4 text-center text-red-500 text-theme-sm dark:text-red-400"
-                      >
+                      <TableCell className="px-5 py-4 text-center text-red-500 text-theme-sm dark:text-red-400">
                         Error: {error}
                       </TableCell>
                     </TableRow>
                   )}
-                  {!loading && !error && properties.length === 0 && (
+                  {!loading && !error && filteredProperties.length === 0 && (
                     <TableRow>
-                      <TableCell
-                        className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
-                      >
+                      <TableCell className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400">
                         No properties found
                       </TableCell>
                     </TableRow>
                   )}
-                  {!loading && !error && properties.length > 0 && paginatedProperties.map((property, index) => (
+                  {!loading && !error && filteredProperties.length > 0 && paginatedProperties.map((property, index) => (
                     <TableRow key={property.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1}
@@ -256,7 +327,7 @@ export default function PropertyDetailsByUserId() {
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
                         <span
-                          onClick={() => handlepropertyClick(property.unique_property_id)}
+                          onClick={() => handlePropertyClick(property.unique_property_id)}
                           className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline"
                         >
                           {property.property_name}
@@ -265,7 +336,7 @@ export default function PropertyDetailsByUserId() {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {propertyTypeMap[property.sub_type] || property.sub_type}
                       </TableCell>
-                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {property.property_for}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
@@ -327,7 +398,7 @@ export default function PropertyDetailsByUserId() {
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
                     <span
-                      key={index}
+                      key={`ellipsis-${index}`}
                       className="px-3 py-1 text-gray-500 dark:text-gray-400"
                     >
                       ...
@@ -338,6 +409,11 @@ export default function PropertyDetailsByUserId() {
                       variant={page === currentPage ? "primary" : "outline"}
                       size="sm"
                       onClick={() => goToPage(page as number)}
+                      className={
+                        page === currentPage
+                          ? "bg-[#1D3A76] text-white"
+                          : "text-gray-500"
+                      }
                     >
                       {page}
                     </Button>

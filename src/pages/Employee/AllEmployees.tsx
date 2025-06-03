@@ -14,11 +14,9 @@ import { AppDispatch, RootState } from "../../store/store";
 import { fetchAllEmployees, deleteEmployee, clearMessages, updateEmployee } from "../../store/slices/employee";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 import { useNavigate } from "react-router";
-import Select from "../../components/form/Select";
-import DatePicker from "../../components/form/date-picker";
+import FilterBar from "../../components/common/FilterBar"; // Import FilterBar
 import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal";
 import ActiveStatusModal from "../../components/common/ActiveStatusModel";
-
 
 interface SelectOption {
   value: string;
@@ -55,6 +53,8 @@ const AllEmployees: React.FC = () => {
   const [selectedDesignation, setSelectedDesignation] = useState<string | null>(null);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  const [stateFilter, setStateFilter] = useState<string>(""); // State filter for fetching cities
+  const [cityFilter, setCityFilter] = useState<string>(""); // City filter for filtering employees
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [employeeToDelete, setEmployeeToDelete] = useState<{ id: number; name: string } | null>(null);
@@ -121,7 +121,7 @@ const AllEmployees: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterValue, selectedDesignation, startDate, endDate]);
+  }, [filterValue, selectedDesignation, startDate, endDate, cityFilter]); // Removed stateFilter from dependencies
 
   const filteredEmployees = useMemo(() => {
     return transformedEmployees.filter((employee) => {
@@ -154,9 +154,12 @@ const AllEmployees: React.FC = () => {
         }
       }
 
-      return matchesSearch && matchesDesignation && matchesDate;
+      // City filter (not state filter)
+      const matchesCity = !cityFilter || (employee.city.length > 0 && employee.city[0].toLowerCase() === cityFilter.toLowerCase());
+
+      return matchesSearch && matchesDesignation && matchesDate && matchesCity;
     });
-  }, [transformedEmployees, filterValue, selectedDesignation, startDate, endDate]);
+  }, [transformedEmployees, filterValue, selectedDesignation, startDate, endDate, cityFilter]);
 
   const totalItems = filteredEmployees.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -274,34 +277,6 @@ const AllEmployees: React.FC = () => {
     setEmployeeToUpdateStatus(null);
   };
 
-  const handleStartDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-    }
-    setStartDate(date || null);
-  };
-
-  const handleEndDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-      if (startDate && date < startDate) {
-        alert("End date cannot be before start date");
-        return;
-      }
-    }
-    setEndDate(date || null);
-  };
-
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return "N/A";
     try {
@@ -323,6 +298,8 @@ const AllEmployees: React.FC = () => {
     setSelectedDesignation(null);
     setStartDate(null);
     setEndDate(null);
+    setStateFilter("");
+    setCityFilter("");
     setCurrentPage(1);
   };
 
@@ -361,43 +338,34 @@ const AllEmployees: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
+        {/* Integrate FilterBar with designation, date, state, and city filters */}
         <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div className="w-full sm:w-43">
-              <Select
-                options={designationOptions}
-                placeholder="Select Designation"
-                onChange={(value: string) => setSelectedDesignation(value || null)}
-                value={selectedDesignation || ""}
-                className="dark:bg-dark-900"
-              />
-            </div>
-            <DatePicker
-              id="startDate"
-              placeholder="Select start date"
-              onChange={handleStartDateChange}
-              defaultDate={startDate ? new Date(startDate) : undefined}
-            />
-            <DatePicker
-              id="endDate"
-              placeholder="Select end date"
-              onChange={handleEndDateChange}
-              defaultDate={endDate ? new Date(endDate) : undefined}
-            />
-            <Button
-              variant="outline"
-              onClick={handleClearFilters}
-              className="px-4 py-2 w-full sm:w-auto"
-            >
-              Clear Filters
-            </Button>
-          </div>
+          <FilterBar
+            showUserTypeFilter={true} // Use for designation filter
+            showDateFilters={true}
+            showStateFilter={true} // State filter is enabled to fetch cities
+            showCityFilter={true}
+            userFilterOptions={designationOptions} // Pass designation options as user type options
+            onUserTypeChange={setSelectedDesignation} // Handle designation as user type
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onStateChange={setStateFilter}
+            onCityChange={setCityFilter}
+            onClearFilters={handleClearFilters}
+            selectedUserType={selectedDesignation}
+            startDate={startDate}
+            endDate={endDate}
+            stateValue={stateFilter}
+            cityValue={cityFilter}
+          />
         </div>
 
-        {(filterValue || selectedDesignation || startDate || endDate) && (
+        {/* Display active filters (exclude state since it's not used for filtering) */}
+        {(filterValue || selectedDesignation || startDate || endDate || cityFilter) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: {selectedDesignation || "All"} | 
+            Filters: Designation: {selectedDesignation || "All"} | 
             Date: {startDate || "Any"} to {endDate || "Any"} | 
+            City: {cityFilter || "Any"} | 
             Search: {filterValue || "None"}
           </div>
         )}
@@ -441,74 +409,87 @@ const AllEmployees: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedEmployees.map((employee) => (
-                    <TableRow key={employee.id}>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.id}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
-                        <div onClick={() => handleEmployeeClick(employee.id)}>
-                          <span className="text-black dark:text-gray-400 cursor-default">
-                            {employee.name}
-                          </span>
-                          <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                            {employee.designation}
-                          </span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.mobile}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.email}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.city.join(",")}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.state.join(",")}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{formatDate(employee.created_date!)}</TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                          employee.status === 0 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" :
-                          employee.status === 2 ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" :
-                          employee.status === 3 ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200" :
-                          "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                        }`}>
-                          {employee.status === 0 ? "Active" :
-                           employee.status === 2 ? "Suspended" :
-                           employee.status === 3 ? "Deleted" : "Inactive"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        <div className="relative" ref={(el) => el && dropdownRefs.current.set(employee.id, el)}>
-                          <button
-                            onClick={() => setDropdownOpen(dropdownOpen === employee.id ? null : employee.id)}
-                            className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
-                          >
-                            <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
-                              <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
-                            </svg>
-                          </button>
-                          {dropdownOpen === employee.id && (
-                            <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 dark:bg-gray-800">
-                              <div className="py-1">
-                                <button
-                                  onClick={() => handleEdit(employee)}
-                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-                                >
-                                  Edit
-                                </button>
-                                <button
-                                  onClick={() => handleDeleteClick(employee)}
-                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-                                >
-                                  Delete
-                                </button>
-                                <button
-                                  onClick={() => handleStatusChangeClick(employee)}
-                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
-                                >
-                                  {employee.status === 0 ? "Suspend" : "Activate"}
-                                </button>
-                              </div>
-                            </div>
-                          )}
-                        </div>
+                  {paginatedEmployees.length === 0 ? (
+                    <TableRow>
+                      <TableCell
+
+                        className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
+                      >
+                        {filterValue || selectedDesignation || startDate || endDate || cityFilter
+                          ? "No Matching Employees Found"
+                          : "No Employees Available"}
                       </TableCell>
                     </TableRow>
-                  ))}
+                  ) : (
+                    paginatedEmployees.map((employee) => (
+                      <TableRow key={employee.id}>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.id}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
+                          <div onClick={() => handleEmployeeClick(employee.id)}>
+                            <span className="text-black dark:text-gray-400 cursor-default">
+                              {employee.name}
+                            </span>
+                            <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                              {employee.designation}
+                            </span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.mobile}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.email}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.city.join(",")}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{employee.state.join(",")}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">{formatDate(employee.created_date!)}</TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          <span className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                            employee.status === 0 ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200" :
+                            employee.status === 2 ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200" :
+                            employee.status === 3 ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200" :
+                            "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                          }`}>
+                            {employee.status === 0 ? "Active" :
+                             employee.status === 2 ? "Suspended" :
+                             employee.status === 3 ? "Deleted" : "Inactive"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          <div className="relative" ref={(el) => el && dropdownRefs.current.set(employee.id, el)}>
+                            <button
+                              onClick={() => setDropdownOpen(dropdownOpen === employee.id ? null : employee.id)}
+                              className="p-1 rounded-full hover:bg-gray-100 dark:hover:bg-gray-800"
+                            >
+                              <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M10 6a2 2 0 110-4 2 2 0 010 4zM10 12a2 2 0 110-4 2 2 0 010 4zM10 18a2 2 0 110-4 2 2 0 010 4z" />
+                              </svg>
+                            </button>
+                            {dropdownOpen === employee.id && (
+                              <div className="absolute right-0 mt-2 w-48 bg-white rounded-md shadow-lg z-10 dark:bg-gray-800">
+                                <div className="py-1">
+                                  <button
+                                    onClick={() => handleEdit(employee)}
+                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                                  >
+                                    Edit
+                                  </button>
+                                  <button
+                                    onClick={() => handleDeleteClick(employee)}
+                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                                  >
+                                    Delete
+                                  </button>
+                                  <button
+                                    onClick={() => handleStatusChangeClick(employee)}
+                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 hover:bg-gray-100 dark:text-gray-200 dark:hover:bg-gray-700"
+                                  >
+                                    {employee.status === 0 ? "Suspend" : "Activate"}
+                                  </button>
+                                </div>
+                              </div>
+                            )}
+                          </div>
+                        </TableCell>
+                      </TableRow>
+                    ))
+                  )}
                 </TableBody>
               </Table>
             </div>

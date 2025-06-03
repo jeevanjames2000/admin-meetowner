@@ -14,7 +14,7 @@ import ComponentCard from "../common/ComponentCard";
 import PageBreadcrumbList from "../common/PageBreadCrumbLists";
 import { getPropertyActivity } from "../../store/slices/propertyDetailsbyUser";
 import { formatDate } from "../../hooks/FormatDate";
-
+import FilterBar from "../common/FilterBar"; // Import the FilterBar component
 
 export default function UserActivities() {
   const location = useLocation();
@@ -22,8 +22,11 @@ export default function UserActivities() {
   const { propertyActivities, loading, error } = useSelector(
     (state: RootState) => state.propertyDetailsByUser
   );
+  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [startDate, setStartDate] = useState<string | null>(null); 
+  const [endDate, setEndDate] = useState<string | null>(null); 
   const itemsPerPage = 10;
 
   // Get propertyId from query params
@@ -36,7 +39,12 @@ export default function UserActivities() {
     }
   }, [dispatch, propertyId]);
 
-  // Filter activities
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterValue, startDate, endDate]);
+
+  // Filter activities based on search input and date range
   const filteredActivities = propertyActivities.filter((activity) => {
     const searchableFields = [
       activity.fullname || activity.userDetails?.name || "",
@@ -47,9 +55,28 @@ export default function UserActivities() {
     ];
     // Debug: Log searchable fields and filter value
     console.log("Searchable Fields:", searchableFields, "Filter Value:", filterValue);
-    return searchableFields
+    const matchesSearch = searchableFields
       .map((field) => field.toLowerCase())
       .some((field) => field.includes(filterValue.toLowerCase()));
+
+    // Date range filter based on created_date (contacted_date)
+    let matchesDate = true;
+    if (startDate || endDate) {
+      if (!activity.created_date) {
+        matchesDate = false;
+      } else {
+        try {
+          const activityDate = activity.created_date.split("T")[0]; // Extract YYYY-MM-DD
+          matchesDate =
+            (!startDate || activityDate >= startDate) &&
+            (!endDate || activityDate <= endDate);
+        } catch {
+          matchesDate = false;
+        }
+      }
+    }
+
+    return matchesSearch && matchesDate;
   });
 
   const totalItems = filteredActivities.length;
@@ -61,6 +88,14 @@ export default function UserActivities() {
   const handleFilter = (value: string) => {
     console.log("Filter Value Updated:", value); // Debug: Log filter value
     setFilterValue(value);
+    setCurrentPage(1);
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilterValue("");
+    setStartDate(null);
+    setEndDate(null);
     setCurrentPage(1);
   };
 
@@ -107,6 +142,23 @@ export default function UserActivities() {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
+       
+        <FilterBar
+          showDateFilters={true} 
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          onClearFilters={clearFilters}
+          startDate={startDate}
+          endDate={endDate}
+        />
+
+        {/* Display active filters */}
+        {(startDate || endDate || filterValue) && (
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Filters: Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
+          </div>
+        )}
+
         <ComponentCard title="Property Activities">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
@@ -119,13 +171,13 @@ export default function UserActivities() {
                     >
                       Sl.No
                     </TableCell>
-                        <TableCell
+                    <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Property ID
                     </TableCell>
-                     <TableCell
+                    <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
@@ -137,19 +189,22 @@ export default function UserActivities() {
                     >
                       Name
                     </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Email
-                    </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Mobile
-                    </TableCell>
-                
+                    {userType === 1 && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Email
+                      </TableCell>
+                    )}
+                    {userType === 1 && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Mobile
+                      </TableCell>
+                    )}
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -163,7 +218,6 @@ export default function UserActivities() {
                   {loading && (
                     <TableRow>
                       <TableCell
-                       
                         className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                       >
                         Loading activities...
@@ -173,10 +227,9 @@ export default function UserActivities() {
                   {!loading && error && (
                     <TableRow>
                       <TableCell
-                       
-                        className="px-5 py-4 text-center  text-red-500 text-theme-sm dark:text-red-400"
+                        className="px-5 py-4 text-center text-red-500 text-theme-sm dark:text-red-400"
                       >
-                      {error}
+                        {error}
                       </TableCell>
                     </TableRow>
                   )}
@@ -184,7 +237,6 @@ export default function UserActivities() {
                   {!loading && !error && paginatedActivities.length === 0 && (
                     <TableRow>
                       <TableCell
-                      
                         className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                       >
                         No activities found
@@ -198,22 +250,25 @@ export default function UserActivities() {
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {startIndex + index + 1}
                         </TableCell>
-                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {activity.unique_property_id || "N/A"}
                         </TableCell>
-                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {activity.property_name || "N/A"}
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {activity.fullname || activity.userDetails?.name || "N/A"}
                         </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {activity.email || activity.userDetails?.email || "N/A"}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {activity.mobile || activity.userDetails?.mobile || "N/A"}
-                        </TableCell>
-                       
+                        {userType === 1 && (
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {activity.email || activity.userDetails?.email || "N/A"}
+                          </TableCell>
+                        )}
+                        {userType === 1 && (
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {activity.mobile || activity.userDetails?.mobile || "N/A"}
+                          </TableCell>
+                        )}
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {formatDate(activity.created_date)}
                         </TableCell>

@@ -48,7 +48,7 @@ interface User {
     assigned_emp_id: number;
     assigned_emp_type: string;
     assigned_emp_name: string;
-    created_date:string;
+    created_date: string;
   }>;
 }
 
@@ -65,6 +65,31 @@ interface EmployeeCount {
 
 type EmployeeCountResponse = EmployeeCount[];
 
+interface ActiveUsers {
+  user_id: number;
+  last_active: string;
+  device_type: string;
+  ip_address?: string;
+  mobile: string;
+  name?: string; 
+  photo?: string; 
+  email?: string; 
+  created_date?: string; 
+  created_time?: string; 
+  city?: string; 
+  subscription_status?: string; 
+  subscription_package?: string | null; 
+  subscription_start_date?: string | null; 
+  subscription_expiry_date?: string | null; 
+}
+
+interface ActiveUser {
+  count: number;
+  activeUsers: ActiveUsers[];
+}
+
+type ActiveUserCountResponse = ActiveUser;
+
 interface EmployeeUsersState {
   users: User[];
   loading: boolean;
@@ -72,6 +97,9 @@ interface EmployeeUsersState {
   employeeCounts: EmployeeCount[] | null;
   countsLoading: boolean;
   countsError: string | null;
+  activeUsers: ActiveUsers[]; 
+  activeUsersLoading: boolean; 
+  activeUsersError: string | null; 
 }
 
 interface ErrorResponse {
@@ -85,6 +113,9 @@ const initialState: EmployeeUsersState = {
   employeeCounts: null,
   countsLoading: false,
   countsError: null,
+  activeUsers: [], 
+  activeUsersLoading: false,
+  activeUsersError: null, 
 };
 
 interface UserFilter {
@@ -95,6 +126,7 @@ interface EmployeeIdFilter {
   id: number;
 }
 
+// Existing thunks (unchanged)
 export const fetchEmployeeUsersByType = createAsyncThunk(
   "employeeUsers/fetchEmployeeUsersByType",
   async (filter: UserFilter, { rejectWithValue }) => {
@@ -187,11 +219,6 @@ export const fetchEmployeeCounts = createAsyncThunk(
       const promise = axiosInstance.get<EmployeeCountResponse>(
         "/user/v1/getAllEmployeeCount"
       );
-      // toast.promise(promise, {
-      //   loading: "Fetching employee counts...",
-      //   success: "Employee counts fetched successfully!",
-      //   error: "Failed to fetch employee counts",
-      // });
 
       const response = await promise;
       return response.data;
@@ -219,6 +246,47 @@ export const fetchEmployeeCounts = createAsyncThunk(
   }
 );
 
+// New thunk for fetching active users
+export const fetchCurrentActiveUsers = createAsyncThunk(
+  "employeeUsers/fetchCurrentActiveUsers",
+  async (_, { rejectWithValue }) => {
+    try {
+      const promise = axiosInstance.get<ActiveUserCountResponse>(
+        "/enquiry/v1/getCurrentActiveUsers"
+      );
+      // toast.promise(promise, {
+      //   loading: "Fetching active users...",
+      //   success: "Active users fetched successfully!",
+      //   error: "Failed to fetch active users",
+      // });
+
+      const response = await promise;
+      console.log("Active users API response:", response.data); // Log for debugging
+      return response.data.activeUsers; // Return only the activeUsers array
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error("Fetch active users error:", axiosError);
+
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        switch (status) {
+          case 403:
+            return rejectWithValue("You don't have permission to view active users");
+          case 404:
+            return rejectWithValue("Active users not found");
+          case 500:
+            return rejectWithValue("Server error. Please try again later.");
+          default:
+            return rejectWithValue(
+              axiosError.response?.data?.message || "Failed to fetch active users"
+            );
+        }
+      }
+      return rejectWithValue("Network error. Please try again.");
+    }
+  }
+);
+
 const employeeUsersSlice = createSlice({
   name: "employeeUsers",
   initialState,
@@ -230,10 +298,14 @@ const employeeUsersSlice = createSlice({
       state.employeeCounts = null;
       state.countsLoading = false;
       state.countsError = null;
+      state.activeUsers = []; 
+      state.activeUsersLoading = false; 
+      state.activeUsersError = null; 
     },
   },
   extraReducers: (builder) => {
     builder
+      // Existing cases (unchanged)
       .addCase(fetchEmployeeUsersByType.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -269,6 +341,19 @@ const employeeUsersSlice = createSlice({
       .addCase(fetchEmployeeCounts.rejected, (state, action) => {
         state.countsLoading = false;
         state.countsError = action.payload as string;
+      })
+      // New cases for fetchCurrentActiveUsers
+      .addCase(fetchCurrentActiveUsers.pending, (state) => {
+        state.activeUsersLoading = true;
+        state.activeUsersError = null;
+      })
+      .addCase(fetchCurrentActiveUsers.fulfilled, (state, action) => {
+        state.activeUsersLoading = false;
+        state.activeUsers = action.payload;
+      })
+      .addCase(fetchCurrentActiveUsers.rejected, (state, action) => {
+        state.activeUsersLoading = false;
+        state.activeUsersError = action.payload as string;
       });
   },
 });

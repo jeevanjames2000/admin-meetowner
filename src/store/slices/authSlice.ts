@@ -179,11 +179,7 @@ export const getAllUsersCount = createAsyncThunk(
     try {
       const promise = axiosIstance.get<UserCount[]>("/user/v1/getAllUsersCount");
 
-      // toast.promise(promise, {
-      //   loading: "Fetching user counts...",
-      //   success: "User counts fetched successfully!",
-      //   error: "Failed to fetch user counts",
-      // });
+     
 
       const response = await promise;
 

@@ -1,7 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import  { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
-import axiosIstance from "../../utils/axiosInstance";
+import axiosInstance from "../../utils/axiosInstance";
 
 // Define the Lead interface based on your API response
 interface Lead {
@@ -20,11 +20,11 @@ interface Lead {
   shedule_time: string | null;
   view_status: string | null;
   property_for: string;
-  property_name:string | null;
-  owner_name : string | null;
-  owner_mobile:string | null;
-  owner_type:string | null;
-  owner_email :string | null;
+  property_name: string | null;
+  owner_name: string | null;
+  owner_mobile: string | null;
+  owner_type: string | null;
+  owner_email: string | null;
 }
 
 interface LeadByContacted {
@@ -39,10 +39,10 @@ interface LeadByContacted {
   property_name: string | null;
   owner_user_id: number | null;
   owner_name: string | null;
-  owner_mobile: string | null; 
+  owner_mobile: string | null;
   owner_email: string | null;
   owner_photo: string | null;
-  owner_type: number | null; 
+  owner_type: number | null;
 }
 
 interface PropertyView {
@@ -66,6 +66,40 @@ interface PropertyViewDetail {
   city_id: string;
 }
 
+// New interface for Most Searched Locations response
+interface MostSearchedLocation {
+  searched_location: string;
+  total_searches: number;
+}
+
+interface MostSearchedLocationsResponse {
+  message: string;
+  count: number;
+  data: MostSearchedLocation[];
+}
+
+// New interface for User Search Data by City response
+interface UserSearchData {
+  id: number;
+  user_id: number;
+  mobile: string | null;
+  name: string | null;
+  searched_location: string | null;
+  searched_for: string | null;
+  created_date: string | null;
+  created_time: string | null ;
+  email: string | null;
+  sub_type: string | null;
+  searched_city: string | null;
+  property_in: string | null;
+}
+
+interface UserSearchDataResponse {
+  message: string;
+  count: number;
+  data: UserSearchData[];
+}
+
 interface PropertyViewDetailsResponse {
   count: number;
   views: PropertyViewDetail[];
@@ -86,7 +120,6 @@ interface PropertyViewDetailsFilters {
   property_id: string;
 }
 
-
 interface LeadsResponse {
   count: number;
   data: Lead[];
@@ -96,19 +129,32 @@ interface ErrorResponse {
   message?: string;
 }
 
-// Define the state interface
+// Define the filter parameters for the API request
+interface LeadsFilters {
+  property_for: string;
+}
+
+// Define the filter parameters for User Search Data by City
+interface UserSearchDataFilters {
+  city: string;
+}
+
+// Updated state interface
 export interface LeadsState {
   leads: Lead[];
   leadsByContacted: LeadByContacted[];
   totalCount: number;
   totalCountByContacted: number;
+  propertyViews: PropertyView[];
+  propertyViewsCount: number;
+  propertyViewDetails: PropertyViewDetail[];
+  propertyViewDetailsCount: number;
+  mostSearchedLocations: MostSearchedLocation[];
+  mostSearchedLocationsCount: number;
+  userSearchData: UserSearchData[];
+  userSearchDataCount: number;
   loading: boolean;
   error: string | null;
-}
-
-// Define the filter parameters for the API request
-interface LeadsFilters {
-  property_for: string;
 }
 
 // Create async thunk for fetching leads
@@ -117,15 +163,9 @@ export const fetchLeads = createAsyncThunk(
   async (filters: LeadsFilters, { rejectWithValue }) => {
     try {
       const { property_for } = filters;
-      const promise = axiosIstance.get<LeadsResponse>(
-        "/listings/v1/getAllLeads",
-        {
-          params: {
-            property_for,
-          },
-          
-        }
-      );
+      const promise = axiosInstance.get<LeadsResponse>("/listings/v1/getAllLeads", {
+        params: { property_for },
+      });
       toast.promise(promise, {
         loading: "Fetching leads...",
         success: "Leads fetched successfully!",
@@ -146,10 +186,8 @@ export const fetchLeadsByContacted = createAsyncThunk(
   "leads/fetchLeadsByContacted",
   async (_, { rejectWithValue }) => {
     try {
-     
-      const promise = axiosIstance.get<LeadsByContactedResponse>(
-        "/enquiry/v1/getAllContactSellersByFilter",
-        
+      const promise = axiosInstance.get<LeadsByContactedResponse>(
+        "/enquiry/v1/getAllContactSellersByFilter"
       );
 
       toast.promise(promise, {
@@ -172,7 +210,7 @@ export const fetchPropertyViews = createAsyncThunk(
   "leads/fetchPropertyViews",
   async (_, { rejectWithValue }) => {
     try {
-      const promise = axiosIstance.get<PropertyViewsResponse>(
+      const promise = axiosInstance.get<PropertyViewsResponse>(
         "/listings/v1/getAllPropertyViews"
       );
 
@@ -197,12 +235,10 @@ export const fetchPropertyViewDetails = createAsyncThunk(
   async (filters: PropertyViewDetailsFilters, { rejectWithValue }) => {
     try {
       const { property_id } = filters;
-      const promise = axiosIstance.get<PropertyViewDetailsResponse>(
+      const promise = axiosInstance.get<PropertyViewDetailsResponse>(
         "/listings/v1/getAllPropertyViews",
         {
-          params: {
-            property_id,
-          },
+          params: { property_id },
         }
       );
 
@@ -222,20 +258,67 @@ export const fetchPropertyViewDetails = createAsyncThunk(
   }
 );
 
+// New async thunk for fetching most searched locations
+export const fetchMostSearchedLocations = createAsyncThunk(
+  "leads/fetchMostSearchedLocations",
+  async (_, { rejectWithValue }) => {
+    try {
+      const promise = axiosInstance.get<MostSearchedLocationsResponse>(
+        "/enquiry/v1/getMostSearchedLocations"
+      );
 
+      toast.promise(promise, {
+        loading: "Fetching most searched locations...",
+        success: "Most searched locations fetched successfully!",
+        error: "Failed to fetch most searched locations",
+      });
 
-export interface LeadsState {
-  leads: Lead[];
-   leadsByContacted: LeadByContacted[];
-  totalCount: number;
-   totalCountByContacted: number;
-  loading: boolean;
-  error: string | null;
-  propertyViews: PropertyView[]; 
-  propertyViewsCount: number; 
-  propertyViewDetails: PropertyViewDetail[]; 
-  propertyViewDetailsCount: number;
-}
+      const response = await promise;
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || "Failed to fetch most searched locations";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
+// New async thunk for fetching user search data by city
+export const fetchUserSearchDataByCity = createAsyncThunk(
+  "leads/fetchUserSearchDataByCity",
+  async (filters: UserSearchDataFilters, { rejectWithValue }) => {
+    try {
+      const { city } = filters;
+     
+      const promise = axiosInstance.get<UserSearchDataResponse>(
+        "/enquiry/v1/getMostSearchedLocations", 
+        {
+          params: { city },
+        }
+      );
+
+      toast.promise(promise, {
+        loading: `Fetching user search data for city: ${city}...`,
+        success: "User search data fetched successfully!",
+        error: "Failed to fetch user search data",
+      });
+
+      const response = await promise;
+      console.log("API Response for city", city, ":", response.data); // Log response
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || "Failed to fetch user search data";
+      console.error("API Error for city", filters.city, ":", {
+        message: errorMessage,
+        status: axiosError.response?.status,
+        data: axiosError.response?.data,
+      });
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
+
 // Create the slice
 const leadsSlice = createSlice({
   name: "leads",
@@ -246,13 +329,16 @@ const leadsSlice = createSlice({
     totalCountByContacted: 0,
     propertyViews: [],
     propertyViewsCount: 0,
-     propertyViewDetails: [], 
+    propertyViewDetails: [],
     propertyViewDetailsCount: 0,
+    mostSearchedLocations: [],
+    mostSearchedLocationsCount: 0,
+    userSearchData: [],
+    userSearchDataCount: 0,
     loading: false,
     error: null,
   } as LeadsState,
   reducers: {
-    // Optional: Add any synchronous reducers if needed
     clearLeads: (state) => {
       state.leads = [];
       state.leadsByContacted = [];
@@ -262,10 +348,15 @@ const leadsSlice = createSlice({
       state.propertyViewsCount = 0;
       state.propertyViewDetails = [];
       state.propertyViewDetailsCount = 0;
+      state.mostSearchedLocations = [];
+      state.mostSearchedLocationsCount = 0;
+      state.userSearchData = [];
+      state.userSearchDataCount = 0;
       state.error = null;
     },
   },
   extraReducers: (builder) => {
+    // Existing cases for fetchLeads
     builder
       .addCase(fetchLeads.pending, (state) => {
         state.loading = true;
@@ -278,10 +369,11 @@ const leadsSlice = createSlice({
       })
       .addCase(fetchLeads.rejected, (state, action) => {
         state.loading = false;
-        state.error = action.payload as string; 
+        state.error = action.payload as string;
       });
 
-       builder
+    // Existing cases for fetchLeadsByContacted
+    builder
       .addCase(fetchLeadsByContacted.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -296,7 +388,8 @@ const leadsSlice = createSlice({
         state.error = action.payload as string;
       });
 
-       builder
+    // Existing cases for fetchPropertyViews
+    builder
       .addCase(fetchPropertyViews.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -311,7 +404,8 @@ const leadsSlice = createSlice({
         state.error = action.payload as string;
       });
 
-      builder
+    // Existing cases for fetchPropertyViewDetails
+    builder
       .addCase(fetchPropertyViewDetails.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -324,6 +418,40 @@ const leadsSlice = createSlice({
       .addCase(fetchPropertyViewDetails.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+      });
+
+    // New cases for fetchMostSearchedLocations
+    builder
+      .addCase(fetchMostSearchedLocations.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchMostSearchedLocations.fulfilled, (state, action) => {
+        state.loading = false;
+        state.mostSearchedLocations = action.payload.data;
+        state.mostSearchedLocationsCount = action.payload.count;
+      })
+      .addCase(fetchMostSearchedLocations.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+      });
+
+    // New cases for fetchUserSearchDataByCity
+    builder
+      .addCase(fetchUserSearchDataByCity.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+      })
+      .addCase(fetchUserSearchDataByCity.fulfilled, (state, action) => {
+        state.loading = false;
+        state.userSearchData = action.payload.data || []; 
+        state.userSearchDataCount = action.payload.count || 0;
+      })
+      .addCase(fetchUserSearchDataByCity.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        state.userSearchData = []; 
+        state.userSearchDataCount = 0;
       });
   },
 });

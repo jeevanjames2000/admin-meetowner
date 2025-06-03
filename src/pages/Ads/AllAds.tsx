@@ -3,7 +3,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
-
 import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
 import { MoreVertical, X } from "lucide-react";
 import Button from "../../components/ui/button/Button";
@@ -11,8 +10,8 @@ import { fetchAds, clearAds, AdsState, deleteAd } from "../../store/slices/adSli
 import { toast } from "react-hot-toast";
 import Input from "../../components/form/input/InputField";
 import { useParams } from "react-router";
-import DatePicker from "../../components/form/date-picker";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
+import FilterBar from "../../components/common/FilterBar"; // Import FilterBar
 
 interface Ad {
   id: number;
@@ -31,7 +30,6 @@ interface Ad {
   display_cities?: string;
   ads_order?: string;
   created_date?: string;
-  
   status?: number;
 }
 
@@ -84,6 +82,8 @@ const AllAdsPage: React.FC = () => {
   const [newGoogleAddress, setNewGoogleAddress] = useState<string>("");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  const [stateFilter, setStateFilter] = useState<string>(""); // State filter for fetching cities
+  const [cityFilter, setCityFilter] = useState<string>(""); // City filter for filtering ads
   const dropdownRef = useRef<HTMLDivElement>(null);
 
   // Debounce function
@@ -144,7 +144,18 @@ const AllAdsPage: React.FC = () => {
   // Reset page on filter change
   useEffect(() => {
     setCurrentPage(1);
-  }, [debouncedSearchQuery, startDate, endDate]);
+  }, [debouncedSearchQuery, startDate, endDate, cityFilter]); // Removed stateFilter from dependencies
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSearchQuery("");
+    setDebouncedSearchQuery("");
+    setStartDate(null);
+    setEndDate(null);
+    setStateFilter("");
+    setCityFilter("");
+    setCurrentPage(1);
+  };
 
   // Filter ads
   const filteredAds = useMemo(
@@ -174,10 +185,13 @@ const AllAdsPage: React.FC = () => {
               }
             }
 
-            return matchesSearch && matchesDate;
+            // City filter (not state filter)
+            const matchesCity = !cityFilter || (ad.display_cities && ad.display_cities.toLowerCase() === cityFilter.toLowerCase());
+
+            return matchesSearch && matchesDate && matchesCity;
           })
         : [],
-    [ads, debouncedSearchQuery, startDate, endDate]
+    [ads, debouncedSearchQuery, startDate, endDate, cityFilter]
   );
 
   // Pagination
@@ -231,7 +245,7 @@ const AllAdsPage: React.FC = () => {
     if (ad) {
       setSelectedAd(ad);
       setNewPropertyName(ad.property_name || "");
-      setNewPropertyType(ad.property_in || "");
+      setNewPropertyType(ad.property_type || ""); // Fixed typo: property_in to property_type
       setNewGoogleAddress(ad.google_address || "");
       setEditModalOpen(true);
     }
@@ -277,34 +291,6 @@ const AllAdsPage: React.FC = () => {
     setActiveMenu(null);
   };
 
-  const handleStartDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-    }
-    setStartDate(date || null);
-  };
-
-  const handleEndDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-      if (startDate && date < startDate) {
-        alert("End date cannot be before start date");
-        return;
-      }
-    }
-    setEndDate(date || null);
-  };
-
   if (error && !loading && ads.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -322,43 +308,37 @@ const AllAdsPage: React.FC = () => {
         pageTitle="All Ads"
         pagePlacHolder="Search by Property Name, Type, Address"
         onFilter={handleSearch}
-        
       />
       <div className="space-y-6">
+        {/* Integrate FilterBar with date, state, and city filters */}
         <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <DatePicker
-              id="startDate"
-              placeholder="Select start date"
-              onChange={handleStartDateChange}
-              defaultDate={startDate ? new Date(startDate) : undefined}
-            />
-            <DatePicker
-              id="endDate"
-              placeholder="Select end date"
-              onChange={handleEndDateChange}
-              defaultDate={endDate ? new Date(endDate) : undefined}
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSearchQuery("");
-                setDebouncedSearchQuery("");
-                setStartDate(null);
-                setEndDate(null);
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2 w-full sm:w-auto"
-            >
-              Clear Filters
-            </Button>
-          </div>
+          <FilterBar
+            showUserTypeFilter={false} // No user type filter needed for ads
+            showDateFilters={true}
+            showStateFilter={true} // State filter is enabled to fetch cities
+            showCityFilter={true}
+            userFilterOptions={[]} // No user type filter, so empty array
+            onUserTypeChange={() => {}} // No-op for user type
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onStateChange={setStateFilter}
+            onCityChange={setCityFilter}
+            onClearFilters={clearFilters}
+            selectedUserType={null}
+            startDate={startDate}
+            endDate={endDate}
+            stateValue={stateFilter}
+            cityValue={cityFilter}
+          />
         </div>
-        {(searchQuery || startDate || endDate) && (
+
+        {/* Display active filters (exclude state since it's not used for filtering) */}
+        {(searchQuery || startDate || endDate || cityFilter) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: Search: {searchQuery || "None"} | Date: {startDate || "Any"} to {endDate || "Any"}
+            Filters: Search: {searchQuery || "None"} | Date: {startDate || "Any"} to {endDate || "Any"} | City: {cityFilter || "Any"}
           </div>
         )}
+
         <ComponentCard title="All Ads">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
@@ -575,7 +555,6 @@ const AllAdsPage: React.FC = () => {
                   Cancel
                 </Button>
                 <Button
-                
                   variant="primary"
                   size="sm"
                   disabled={loading}

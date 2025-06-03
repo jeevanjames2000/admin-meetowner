@@ -1,4 +1,3 @@
-// UserActivities.tsx
 import { useEffect, useState } from "react";
 import { useLocation } from "react-router";
 import {
@@ -12,20 +11,25 @@ import Button from "../ui/button/Button";
 import ComponentCard from "../common/ComponentCard";
 import PageBreadcrumbList from "../common/PageBreadCrumbLists";
 import { formatDate } from "../../hooks/FormatDate";
-
-// Format date for created_date
-
+import FilterBar from "../common/FilterBar"; // Import the FilterBar component
 
 export default function BuyersActivities() {
   const location = useLocation();
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [startDate, setStartDate] = useState<string | null>(null); // State for start date
+  const [endDate, setEndDate] = useState<string | null>(null); // State for end date
   const itemsPerPage = 10;
 
   // Get userActivity from location state
   const { userActivity = [], userId, name } = location.state || {};
 
-  // Filter activities
+  // Reset pagination when filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [filterValue, startDate, endDate]);
+
+  // Filter activities based on search input and date range
   const filteredActivities = userActivity.filter((activity: any) => {
     const searchableFields = [
       activity.name || "",
@@ -35,9 +39,28 @@ export default function BuyersActivities() {
       formatDate(activity.searched_on_date),
       activity.property_name || "",
     ];
-    return searchableFields
+    const matchesSearch = searchableFields
       .map((field: string) => field.toLowerCase())
       .some((field: string) => field.includes(filterValue.toLowerCase()));
+
+    // Date range filter based on searched_on_date (contacted_date)
+    let matchesDate = true;
+    if (startDate || endDate) {
+      if (!activity.searched_on_date) {
+        matchesDate = false;
+      } else {
+        try {
+          const activityDate = activity.searched_on_date.split("T")[0]; // Extract YYYY-MM-DD
+          matchesDate =
+            (!startDate || activityDate >= startDate) &&
+            (!endDate || activityDate <= endDate);
+        } catch {
+          matchesDate = false;
+        }
+      }
+    }
+
+    return matchesSearch && matchesDate;
   });
 
   const totalItems = filteredActivities.length;
@@ -48,6 +71,14 @@ export default function BuyersActivities() {
 
   const handleFilter = (value: string) => {
     setFilterValue(value);
+    setCurrentPage(1);
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setFilterValue("");
+    setStartDate(null);
+    setEndDate(null);
     setCurrentPage(1);
   };
 
@@ -94,6 +125,23 @@ export default function BuyersActivities() {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
+        {/* Integrate FilterBar with date filters and clear button */}
+        <FilterBar
+          showDateFilters={true} // Enable date filters
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          onClearFilters={clearFilters}
+          startDate={startDate}
+          endDate={endDate}
+        />
+
+        {/* Display active filters */}
+        {(startDate || endDate || filterValue) && (
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Filters: Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
+          </div>
+        )}
+
         <ComponentCard title="User Activities">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
@@ -154,7 +202,6 @@ export default function BuyersActivities() {
                   {filteredActivities.length === 0 && (
                     <TableRow>
                       <TableCell
-                        
                         className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                       >
                         No activities found

@@ -1,6 +1,6 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
-import { useNavigate } from "react-router";
+import { useParams } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
@@ -14,72 +14,93 @@ import {
 } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import { AppDispatch, RootState } from "../../store/store";
-import { fetchPropertyViews, LeadsState } from "../../store/slices/leads";
+import { fetchUserSearchDataByCity, LeadsState } from "../../store/slices/leads";
 
-const MostViewedLeads: React.FC = () => {
+const MostSearchedDetail: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  const navigate = useNavigate();
-  const { propertyViews, loading, error } = useSelector(
+  const { city } = useParams<{ city: string }>();
+  const { userSearchData, userSearchDataCount, loading, error } = useSelector(
     (state: RootState) => state.leads as LeadsState
   );
   const [currentPage, setCurrentPage] = useState<number>(1);
+   const userType = useSelector((state: RootState) => state.auth.user?.user_type);
   const [filterValue, setFilterValue] = useState<string>("");
-  const [cityFilter, setCityFilter] = useState<string>("");
-  const [stateFilter, setStateFilter] = useState<string>("");
-  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
   const itemsPerPage = 10;
 
-  // Fetch property views on mount
+  // Fetch user search data by city
   useEffect(() => {
-    dispatch(fetchPropertyViews());
-  }, [dispatch]);
-
-  // Handle click outside to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+    if (city) {
+      console.log("Fetching user search data for city:", city);
+      dispatch(fetchUserSearchDataByCity({ city }))
+        .unwrap()
+        .then((response) => console.log("Fetch successful:", response))
+        .catch((err) => console.error("Fetch failed:", err));
+    } else {
+      console.warn("No city parameter provided in URL");
+    }
+  }, [dispatch, city]);
 
   // Clear all filters
   const clearFilters = () => {
     setFilterValue("");
-    setCityFilter("");
-    setStateFilter("");
+    setStartDate(null);
+    setEndDate(null);
     setCurrentPage(1);
   };
 
-  // Filter property views based on search and city
-  const filteredViews = useMemo(() => {
-    return propertyViews.filter((view) => {
+  // Filter user search data
+  const filteredData = useMemo(() => {
+    if (!Array.isArray(userSearchData)) {
+      console.warn("userSearchData is not an array:", userSearchData);
+      return [];
+    }
+
+    return userSearchData.filter((item) => {
       const searchableFields = [
-        view.property_id || "",
-        view.property_name || "",
-        view.google_address || "",
-        view.city_id || "",
+        item.user_id?.toString() || "",
+        item.mobile || "",
+        item.name || "",
+        item.searched_location || "",
+        item.searched_for || "",
+        item.created_date || "",
+        item.created_time || "",
+        item.email || "",
+        item.sub_type || "",
+        item.searched_city || "",
+        item.property_in || "",
       ];
       const matchesSearch = searchableFields.some((field) =>
         field.toLowerCase().includes(filterValue.toLowerCase())
       );
-      const matchesCity =
-        !cityFilter ||
-        (view.city_id && view.city_id.toLowerCase().includes(cityFilter.toLowerCase()));
 
-      return matchesSearch && matchesCity;
+      let matchesDate = true;
+      if (startDate || endDate) {
+        if (!item.created_date) {
+          matchesDate = false;
+        } else {
+          try {
+            const itemDate = item.created_date.split("T")[0];
+            matchesDate =
+              (!startDate || itemDate >= startDate) &&
+              (!endDate || itemDate <= endDate);
+          } catch {
+            matchesDate = false;
+          }
+        }
+      }
+
+      return matchesSearch && matchesDate;
     });
-  }, [propertyViews, filterValue, cityFilter]);
+  }, [userSearchData, filterValue, startDate, endDate]);
 
   // Pagination logic
-  const totalItems = filteredViews.length;
+  const totalItems = filteredData.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const paginatedViews = filteredViews.slice(startIndex, endIndex);
+  const paginatedData = filteredData.slice(startIndex, endIndex);
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -128,36 +149,25 @@ const MostViewedLeads: React.FC = () => {
     return pages;
   };
 
-  // Handle search filter
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
 
-  // Handle view action
-  const handleView = (property_id: string | null) => {
-    if (!property_id) {
-      console.error("Property ID is missing");
-      return;
-    }
+  const formatDate = (dateString: string | null) => {
+    if (!dateString) return "N/A";
     try {
-      const url = `https://meetowner.in/property?Id_${encodeURIComponent(property_id)}`;
-      window.open(url, "_blank");
-    } catch (error) {
-      console.error("Error navigating to property:", error);
+      const date = new Date(dateString);
+      if (isNaN(date.getTime())) return "N/A";
+      const day = String(date.getDate()).padStart(2, "0");
+      const month = String(date.getMonth() + 1).padStart(2, "0");
+      const year = date.getFullYear();
+      return `${day}-${month}-${year}`;
+    } catch {
+      return "N/A";
     }
   };
 
-  // Handle property ID click
-  const handlePropertyIdClick = (property_id: string | null) => {
-    if (!property_id) {
-      console.error("Property ID is missing");
-      return;
-    }
-    navigate(`/leads/most-viewed-details/${property_id}`);
-  };
-
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -166,23 +176,21 @@ const MostViewedLeads: React.FC = () => {
     );
   }
 
-  // Error or no data state
-  if (error || !propertyViews || propertyViews.length === 0) {
+  if (error || userSearchDataCount === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
         <PageMeta
-          title="Meet Owner Most Viewed Leads"
-          description="This is the Most Viewed Properties Table page"
+          title={`Meet Owner Most Searched Details - ${city || "Unknown"}`}
+          description="This is the Most Searched Location Details page"
         />
         <PageBreadcrumbList
-          pageTitle="Most Viewed Leads"
-          pagePlacHolder="Filter by property ID, name, address, or city"
+          pageTitle={`Most Searched Details - ${city || "Unknown"}`}
+          pagePlacHolder="Filter by user ID, mobile, name, location, searched for, date, time, email, sub type, city, or property in"
           onFilter={handleFilter}
         />
-       
-        <ComponentCard title="Most Viewed Leads">
+        <ComponentCard title={`Most Searched Details - ${city || "Unknown"}`}>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
-            {error ? error : "No Data Available"}
+            {error ? `Error: ${error}` : "No Data Available"}
           </h2>
         </ComponentCard>
       </div>
@@ -192,45 +200,44 @@ const MostViewedLeads: React.FC = () => {
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <PageMeta
-        title="Meet Owner Most Viewed Leads"
-        description="This is the Most Viewed Properties Table page"
+        title={`Meet Owner Most Searched Details - ${city}`}
+        description="This is the Most Searched Location Details page"
       />
       <PageBreadcrumbList
-        pageTitle="Most Viewed Leads"
-        pagePlacHolder="Filter by property ID, name, address, or city"
+        pageTitle={`Most Searched Details - ${city}`}
+        pagePlacHolder="Filter by user ID, mobile, name, location, searched for, date, time, email, sub type, city, or property in"
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        {/* FilterBar for state and city */}
         <div className="flex flex-col sm:flex-row justify-between gap-3">
           <FilterBar
             showUserTypeFilter={false}
-            showDateFilters={false}
-            showStateFilter={true}
-            showCityFilter={true}
+            showDateFilters={true}
+            showStateFilter={false}
+            showCityFilter={false}
             userFilterOptions={[]}
             onUserTypeChange={() => {}}
-            onStartDateChange={() => {}}
-            onEndDateChange={() => {}}
-            onStateChange={setStateFilter}
-            onCityChange={setCityFilter}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onStateChange={() => {}}
+            onCityChange={() => {}}
             onClearFilters={clearFilters}
             selectedUserType={null}
-            startDate={null}
-            endDate={null}
-            stateValue={stateFilter}
-            cityValue={cityFilter}
+            startDate={startDate}
+            endDate={endDate}
+            stateValue=""
+            cityValue=""
           />
         </div>
 
-        {/* Display active filters */}
-        {(filterValue || cityFilter) && (
+        {(filterValue || startDate || endDate) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: Search: {filterValue || "None"} | City: {cityFilter || "Any"}
+            Filters: Search: {filterValue || "None"} | Date: {startDate || "Any"} to{" "}
+            {endDate || "Any"}
           </div>
         )}
 
-        <ComponentCard title="Most Viewed Leads">
+        <ComponentCard title={`Most Searched Details - ${city}`}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
               <Table>
@@ -246,98 +253,117 @@ const MostViewedLeads: React.FC = () => {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Property ID
+                      User ID
+                    </TableCell>
+                      {userType === 1 && (
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Mobile
+                    </TableCell>
+                      )}
+
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Name
                     </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Property Name
+                      Searched Location
                     </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Location
+                      Searched For
                     </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      City
+                      Created Time
                     </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      View Count
+                      Created Date
+                    </TableCell>
+                  {userType === 1 && (
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Email
+                    </TableCell>
+                      )}
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Sub Type
                     </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Actions
+                      Searched City
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Property In
                     </TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedViews.map((view, index) => (
-                    <TableRow key={view.property_id}>
+                  {paginatedData.map((item, index) => (
+                    <TableRow key={item.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1}
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-[#1D3A76] text-theme-sm dark:text-gray-400 cursor-pointer font-bold">
-                        <div onClick={() => handlePropertyIdClick(view.property_id)}>
-                          {view.property_id || "N/A"}
-                        </div>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {item.user_id || "N/A"}
+                      </TableCell>
+                    {userType === 1 && (
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {item.mobile || "N/A"}
+                      </TableCell>
+                    )}
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {item.name || "N/A"}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {view.property_name || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 max-w-[200px] truncate">
-                        {view.google_address || "N/A"}
+                        {item.searched_location || "N/A"}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {view.city_id || "N/A"}
+                        {item.searched_for || "N/A"}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {view.view_count || "N/A"}
+                        {item.created_time || "N/A"}
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setDropdownOpen(
-                              dropdownOpen === view.property_id ? null : view.property_id
-                            )
-                          }
-                        >
-                          <svg
-                            className="w-5 h-5 text-gray-500 dark:text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                        </Button>
-                        {dropdownOpen === view.property_id && (
-                          <div
-                            ref={dropdownRef}
-                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
-                          >
-                            <button
-                              onClick={() => {
-                                handleView(view.property_id);
-                                setDropdownOpen(null);
-                              }}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              View
-                            </button>
-                          </div>
-                        )}
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {formatDate(item.created_date)}
+                      </TableCell>
+                    {userType === 1 && (
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {item.email || "N/A"}
+                      </TableCell>
+                    )}
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {item.sub_type || "N/A"}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {item.searched_city || "N/A"}
+                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {item.property_in || "N/A"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -346,7 +372,6 @@ const MostViewedLeads: React.FC = () => {
             </div>
           </div>
 
-          {/* Pagination */}
           {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -361,11 +386,11 @@ const MostViewedLeads: React.FC = () => {
                 >
                   Previous
                 </Button>
-                {getPaginationItems().map((page, index) =>
+                {getPaginationItems().map((page, index) => (
                   page === "..." ? (
                     <span
                       key={`ellipsis-${index}`}
-                      className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                      className="px-3 text-gray-400 text-sm sm:text-gray-500 dark:text-gray-400"
                     >
                       ...
                     </span>
@@ -384,7 +409,7 @@ const MostViewedLeads: React.FC = () => {
                       {page}
                     </Button>
                   )
-                )}
+                ))}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"
@@ -402,4 +427,4 @@ const MostViewedLeads: React.FC = () => {
   );
 };
 
-export default MostViewedLeads;
+export default MostSearchedDetail;

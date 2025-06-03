@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate } from "react-router";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -14,72 +14,53 @@ import {
 } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import { AppDispatch, RootState } from "../../store/store";
-import { fetchPropertyViews, LeadsState } from "../../store/slices/leads";
+import { fetchMostSearchedLocations, LeadsState } from "../../store/slices/leads";
 
-const MostViewedLeads: React.FC = () => {
+const MostSearchedLocations: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { propertyViews, loading, error } = useSelector(
+  const { mostSearchedLocations, loading, error } = useSelector(
     (state: RootState) => state.leads as LeadsState
   );
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [filterValue, setFilterValue] = useState<string>("");
   const [cityFilter, setCityFilter] = useState<string>("");
-  const [stateFilter, setStateFilter] = useState<string>("");
-  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 10;
 
-  // Fetch property views on mount
+  // Fetch most searched locations on mount
   useEffect(() => {
-    dispatch(fetchPropertyViews());
+    dispatch(fetchMostSearchedLocations());
   }, [dispatch]);
-
-  // Handle click outside to close dropdown
-  useEffect(() => {
-    const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
-        setDropdownOpen(null);
-      }
-    };
-    document.addEventListener("mousedown", handleClickOutside);
-    return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
 
   // Clear all filters
   const clearFilters = () => {
     setFilterValue("");
     setCityFilter("");
-    setStateFilter("");
     setCurrentPage(1);
   };
 
-  // Filter property views based on search and city
-  const filteredViews = useMemo(() => {
-    return propertyViews.filter((view) => {
-      const searchableFields = [
-        view.property_id || "",
-        view.property_name || "",
-        view.google_address || "",
-        view.city_id || "",
-      ];
+  // Filter most searched locations based on search and city
+  const filteredLocations = useMemo(() => {
+    return mostSearchedLocations.filter((location) => {
+      const searchableFields = [location.searched_location || ""];
       const matchesSearch = searchableFields.some((field) =>
         field.toLowerCase().includes(filterValue.toLowerCase())
       );
       const matchesCity =
         !cityFilter ||
-        (view.city_id && view.city_id.toLowerCase().includes(cityFilter.toLowerCase()));
+        (location.searched_location &&
+          location.searched_location.toLowerCase().includes(cityFilter.toLowerCase()));
 
       return matchesSearch && matchesCity;
     });
-  }, [propertyViews, filterValue, cityFilter]);
+  }, [mostSearchedLocations, filterValue, cityFilter]);
 
   // Pagination logic
-  const totalItems = filteredViews.length;
+  const totalItems = filteredLocations.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const paginatedViews = filteredViews.slice(startIndex, endIndex);
+  const paginatedLocations = filteredLocations.slice(startIndex, endIndex);
 
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
@@ -134,27 +115,13 @@ const MostViewedLeads: React.FC = () => {
     setCurrentPage(1);
   };
 
-  // Handle view action
-  const handleView = (property_id: string | null) => {
-    if (!property_id) {
-      console.error("Property ID is missing");
+  // Handle location click
+  const handleLocationClick = (city: string) => { // Changed to city
+    if (!city || city === "N/A") {
+      console.error("Invalid city");
       return;
     }
-    try {
-      const url = `https://meetowner.in/property?Id_${encodeURIComponent(property_id)}`;
-      window.open(url, "_blank");
-    } catch (error) {
-      console.error("Error navigating to property:", error);
-    }
-  };
-
-  // Handle property ID click
-  const handlePropertyIdClick = (property_id: string | null) => {
-    if (!property_id) {
-      console.error("Property ID is missing");
-      return;
-    }
-    navigate(`/leads/most-viewed-details/${property_id}`);
+    navigate(`/leads/most-searched-details/${encodeURIComponent(city)}`);
   };
 
   // Loading state
@@ -167,20 +134,19 @@ const MostViewedLeads: React.FC = () => {
   }
 
   // Error or no data state
-  if (error || !propertyViews || propertyViews.length === 0) {
+  if (error || !mostSearchedLocations || mostSearchedLocations.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
         <PageMeta
-          title="Meet Owner Most Viewed Leads"
-          description="This is the Most Viewed Properties Table page"
+          title="Meet Owner Most Searched Locations"
+          description="This is the Most Searched Locations Table page"
         />
         <PageBreadcrumbList
-          pageTitle="Most Viewed Leads"
-          pagePlacHolder="Filter by property ID, name, address, or city"
+          pageTitle="Most Searched Locations"
+          pagePlacHolder="Filter by searched location"
           onFilter={handleFilter}
         />
-       
-        <ComponentCard title="Most Viewed Leads">
+        <ComponentCard title="Most Searched Locations">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
             {error ? error : "No Data Available"}
           </h2>
@@ -192,33 +158,33 @@ const MostViewedLeads: React.FC = () => {
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <PageMeta
-        title="Meet Owner Most Viewed Leads"
-        description="This is the Most Viewed Properties Table page"
+        title="Meet Owner Most Searched Locations"
+        description="This is the Most Searched Locations Table page"
       />
       <PageBreadcrumbList
-        pageTitle="Most Viewed Leads"
-        pagePlacHolder="Filter by property ID, name, address, or city"
+        pageTitle="Most Searched Locations"
+        pagePlacHolder="Filter by searched location"
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        {/* FilterBar for state and city */}
+        {/* FilterBar for city */}
         <div className="flex flex-col sm:flex-row justify-between gap-3">
           <FilterBar
             showUserTypeFilter={false}
             showDateFilters={false}
-            showStateFilter={true}
+            showStateFilter={false}
             showCityFilter={true}
             userFilterOptions={[]}
             onUserTypeChange={() => {}}
             onStartDateChange={() => {}}
             onEndDateChange={() => {}}
-            onStateChange={setStateFilter}
+            onStateChange={() => {}}
             onCityChange={setCityFilter}
             onClearFilters={clearFilters}
             selectedUserType={null}
             startDate={null}
             endDate={null}
-            stateValue={stateFilter}
+            stateValue=""
             cityValue={cityFilter}
           />
         </div>
@@ -230,7 +196,7 @@ const MostViewedLeads: React.FC = () => {
           </div>
         )}
 
-        <ComponentCard title="Most Viewed Leads">
+        <ComponentCard title="Most Searched Locations">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
               <Table>
@@ -246,98 +212,29 @@ const MostViewedLeads: React.FC = () => {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Property ID
+                      Searched Location
                     </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Property Name
-                    </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Location
-                    </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      City
-                    </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      View Count
-                    </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Actions
+                      Total Searches
                     </TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedViews.map((view, index) => (
-                    <TableRow key={view.property_id}>
+                  {paginatedLocations.map((location, index) => (
+                    <TableRow key={index}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-[#1D3A76] text-theme-sm dark:text-gray-400 cursor-pointer font-bold">
-                        <div onClick={() => handlePropertyIdClick(view.property_id)}>
-                          {view.property_id || "N/A"}
+                        <div onClick={() => handleLocationClick(location.searched_location)}>
+                          {location.searched_location || "N/A"}
                         </div>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {view.property_name || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 max-w-[200px] truncate">
-                        {view.google_address || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {view.city_id || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {view.view_count || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setDropdownOpen(
-                              dropdownOpen === view.property_id ? null : view.property_id
-                            )
-                          }
-                        >
-                          <svg
-                            className="w-5 h-5 text-gray-500 dark:text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                        </Button>
-                        {dropdownOpen === view.property_id && (
-                          <div
-                            ref={dropdownRef}
-                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
-                          >
-                            <button
-                              onClick={() => {
-                                handleView(view.property_id);
-                                setDropdownOpen(null);
-                              }}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              View
-                            </button>
-                          </div>
-                        )}
+                        {location.total_searches || "N/A"}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -402,4 +299,4 @@ const MostViewedLeads: React.FC = () => {
   );
 };
 
-export default MostViewedLeads;
+export default MostSearchedLocations;

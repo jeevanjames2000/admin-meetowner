@@ -18,7 +18,7 @@ import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
 import axios from "axios";
-import DatePicker from "../../components/form/date-picker";
+import FilterBar from "../../components/common/FilterBar"; // Import FilterBar
 import { fetchAllCities, fetchAllStates } from "../../store/slices/places";
 
 const userTypeMap: { [key: number]: string } = {
@@ -63,6 +63,7 @@ export default function GeneratePayments() {
     citiesLoading,
     citiesError,
   } = useSelector((state: RootState) => state.places);
+  const pageuserType = useSelector((state: RootState) => state.auth.user?.user_type);
 
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
@@ -86,8 +87,8 @@ export default function GeneratePayments() {
   const [paymentLink, setPaymentLink] = useState<string>("");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-  const [stateSearchTerm, setStateSearchTerm] = useState<string>("");
-  const [citySearchTerm, setCitySearchTerm] = useState<string>("");
+  const [stateFilter, setStateFilter] = useState<string>(""); // State filter for fetching cities
+  const [cityFilter, setCityFilter] = useState<string>(""); // City filter for filtering users
   const [isStateDropdownOpen, setIsStateDropdownOpen] = useState<boolean>(false);
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -97,12 +98,21 @@ export default function GeneratePayments() {
     { value: "Basic", label: "Basic" },
     { value: "Prime", label: "Prime" },
     { value: "Prime Plus", label: "Prime Plus" },
-    { value: "Custom", label: "Custom" }, // Include Custom option
+    { value: "Custom", label: "Custom" },
   ];
 
-  // Fetch states on mount
+  // Determine if Mobile and Email columns should be shown in the header
+  const canShowMobileAndEmail =
+    pageuserType === 1 ||
+    (pageuserType !== null &&
+     pageuserType !== undefined &&
+     [7, 8, 9].includes(pageuserType) &&
+     selectedUserType !== "User");
+
+  // Fetch states and users
   useEffect(() => {
     dispatch(fetchAllStates());
+    dispatch(fetchAllUsers());
   }, [dispatch]);
 
   // Fetch cities when state changes or on popup open
@@ -131,35 +141,10 @@ export default function GeneratePayments() {
     };
   }, []);
 
-  // Fetch users
-  useEffect(() => {
-    dispatch(fetchAllUsers());
-  }, [dispatch]);
-
+  // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedUserType, startDate, endDate]);
-
-  // Filtered states and cities
-  const filteredStates = useMemo(
-    () =>
-      states
-        .map((state) => state.name)
-        .filter((name) => name.toLowerCase().includes(stateSearchTerm.toLowerCase())),
-    [stateSearchTerm, states]
-  );
-
-  const filteredCities = useMemo(
-    () =>
-      cities
-        .filter(
-          (city) =>
-            (!formData.state || city.state === formData.state) &&
-            city.name.toLowerCase().includes(citySearchTerm.toLowerCase())
-        )
-        .map((city) => city.name),
-    [citySearchTerm, cities, formData.state]
-  );
+  }, [selectedUserType, startDate, endDate, cityFilter, filterValue]); // Removed stateFilter from dependencies
 
   const filteredUsers = useMemo(
     () =>
@@ -178,10 +163,12 @@ export default function GeneratePayments() {
               .filter((field): field is string => field !== null && field !== undefined)
               .map((field) => field.toLowerCase())
               .some((field) => field.includes(filterValue.toLowerCase()));
+
             const matchesUserType =
               selectedUserType === null ||
               selectedUserType === "" ||
               userTypeMap[user.user_type] === selectedUserType;
+
             let matchesDate = true;
             if (startDate || endDate) {
               if (!user.created_date) {
@@ -197,10 +184,14 @@ export default function GeneratePayments() {
                 }
               }
             }
-            return matchesSearch && matchesUserType && matchesDate;
+
+            // City filter (not state filter)
+            const matchesCity = !cityFilter || (user.city && user.city.toLowerCase() === cityFilter.toLowerCase());
+
+            return matchesSearch && matchesUserType && matchesDate && matchesCity;
           })
         : [],
-    [users, filterValue, selectedUserType, startDate, endDate]
+    [users, filterValue, selectedUserType, startDate, endDate, cityFilter]
   );
 
   const totalItems = filteredUsers.length;
@@ -219,6 +210,17 @@ export default function GeneratePayments() {
 
   const handleFilter = (value: string) => {
     setFilterValue(value);
+    setCurrentPage(1);
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSelectedUserType(null);
+    setStartDate(null);
+    setEndDate(null);
+    setStateFilter("");
+    setCityFilter("");
+    setFilterValue("");
     setCurrentPage(1);
   };
 
@@ -273,16 +275,13 @@ export default function GeneratePayments() {
       name: user.name || "",
       city: user.city || "",
       state: user.state || "",
-      userType: user.user_type.toString(),
+      userType: userTypeMap[user.user_type] || "",
       package: "",
     });
-    setStateSearchTerm(user.state || "");
-    setCitySearchTerm(user.city || "");
     setErrors({});
     setApiError("");
     setPaymentLink("");
     setShowPopup(true);
-    // Fetch cities for the user's state
     if (user.state) {
       dispatch(fetchAllCities({ state: user.state }));
     }
@@ -292,10 +291,6 @@ export default function GeneratePayments() {
     setShowPopup(false);
     setSelectedUser(null);
     setActiveMenu(null);
-    setStateSearchTerm("");
-    setCitySearchTerm("");
-    setIsStateDropdownOpen(false);
-    setIsCityDropdownOpen(false);
   };
 
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
@@ -309,7 +304,7 @@ export default function GeneratePayments() {
     setFormData((prev) => ({
       ...prev,
       [name]: value,
-      amount: value === "Custom" ? "" : prev.amount, // Preserve amount unless switching to Custom
+      amount: value === "Custom" ? "" : prev.amount,
     }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
     setApiError("");
@@ -320,14 +315,14 @@ export default function GeneratePayments() {
           return setApiError("State, city, and user type are required to fetch pricing");
         }
 
-        const apiUserType = userTypeMap[parseInt(userType)].toLowerCase().replace(" ", "_");
+        const apiUserType = userType.toLowerCase().replace(" ", "_");
 
         const response = await axios.get(
           `https://api.meetowner.in/packages/v1/getPackagePrice`,
           {
             params: {
               package_for: apiUserType,
-              packageName: value.toLowerCase().replace(" ", " "), // Handle "Prime Plus"
+              packageName: value.toLowerCase().replace(" ", " "),
               city,
             },
           }
@@ -370,7 +365,6 @@ export default function GeneratePayments() {
     } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
       newErrors.email = "Please enter a valid email address";
     }
-   
     if (!formData.city.trim()) {
       newErrors.city = "City is required";
     }
@@ -431,34 +425,6 @@ export default function GeneratePayments() {
     })),
   ];
 
-  const handleStartDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-    }
-    setStartDate(date || null);
-  };
-
-  const handleEndDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-      if (startDate && date < startDate) {
-        alert("End date cannot be before start date");
-        return;
-      }
-    }
-    setEndDate(date || null);
-  };
-
   if (loading) return <div>Loading users...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!users || users.length === 0) return <div>No users found.</div>;
@@ -470,60 +436,49 @@ export default function GeneratePayments() {
         pagePlacHolder="Filter users by name, mobile, email, city, state, address, or designation"
         onFilter={handleFilter}
       />
+      
       <div className="space-y-6">
-        <div className="flex justify-between gap-3">
-          <div className="w-auto flex gap-3">
-            <div className="w-43">
-              <Select
-                options={userFilterOptions}
-                placeholder="Select User Type"
-                onChange={(value: string) => setSelectedUserType(value || null)}
-                value={selectedUserType || ""}
-                className="dark:bg-dark-900"
-              />
-            </div>
-            <DatePicker
-              id="startDate"
-              placeholder="Select start date"
-              onChange={handleStartDateChange}
-              defaultDate={startDate ? new Date(startDate) : undefined}
-            />
-            <DatePicker
-              id="endDate"
-              placeholder="Select end date"
-              onChange={handleEndDateChange}
-              defaultDate={endDate ? new Date(endDate) : undefined}
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedUserType(null);
-                setStartDate(null);
-                setEndDate(null);
-                setFilterValue("");
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2"
-            >
-              Clear Filters
-            </Button>
-          </div>
-          <button
-            type="submit"
-            className="px-6 py-2 bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
+     
+        <div className="flex flex-col sm:flex-row justify-between gap-3">
+          <FilterBar
+            showUserTypeFilter={true}
+            showDateFilters={true}
+            showStateFilter={true} // State filter is enabled to fetch cities
+            showCityFilter={true}
+            userFilterOptions={userFilterOptions}
+            onUserTypeChange={setSelectedUserType}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onStateChange={setStateFilter}
+            onCityChange={setCityFilter}
+            onClearFilters={clearFilters}
+            selectedUserType={selectedUserType}
+            startDate={startDate}
+            endDate={endDate}
+            stateValue={stateFilter}
+            cityValue={cityFilter}
+          />
+           <button
+            type="button"
+            className="px-3 text-sm bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed w-[50%] sm:w-auto"
             onClick={handleCreate}
           >
-            Create new user
+            Create  User
           </button>
+         
         </div>
-        {(selectedUserType || startDate || endDate || filterValue) && (
+
+        {/* Display active filters (exclude state since it's not used for filtering) */}
+        {(selectedUserType || startDate || endDate || cityFilter || filterValue) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to{" "}
-            {endDate || "Any"} | Search: {filterValue || "None"}
+            Filters: User Type: {selectedUserType || "All"} | Date: {startDate || "Any"} to{" "}
+            {endDate || "Any"} | City: {cityFilter || "Any"} | Search: {filterValue || "None"}
           </div>
         )}
+         
         <ComponentCard title="All Users Table">
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
+          
             <div className="max-w-full overflow-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
@@ -546,18 +501,22 @@ export default function GeneratePayments() {
                     >
                       User
                     </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Mobile
-                    </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Email
-                    </TableCell>
+                    {canShowMobileAndEmail && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Mobile
+                      </TableCell>
+                    )}
+                    {canShowMobileAndEmail && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Email
+                      </TableCell>
+                    )}
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -591,87 +550,99 @@ export default function GeneratePayments() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedUsers.map((user, index) => (
-                    <TableRow key={user.id}>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {startIndex + index + 1}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.id}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start">
-                        <div className="flex items-center gap-3">
-                          <div>
-                            <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
-                              {user.name}
-                            </span>
-                            <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                              {userTypeMap[user.user_type] || "Unknown"}
-                            </span>
-                          </div>
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.mobile}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.email}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.city}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.subscription_status}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {formatDate(user.created_date)}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        <span
-                          className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                            user.status === 0
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : user.status === 2
-                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                              : user.status === 3
-                              ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
-                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                          }`}
-                        >
-                          {user.status === 0
-                            ? "Active"
-                            : user.status === 2
-                            ? "Suspended"
-                            : user.status === 3
-                            ? "Blocked"
-                            : user.status === null
-                            ? "N/A"
-                            : "Inactive"}
-                        </span>
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => toggleMenu(user.id)}
-                        >
-                          <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
-                        </Button>
-                        {activeMenu === user.id && (
-                          <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
-                            <div className="py-2">
-                              <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                onClick={() => openPopup(user)}
-                              >
-                                Generate Payment Link
-                              </button>
+                  {paginatedUsers.map((user, index) => {
+                    const showMobileAndEmail =
+                      pageuserType === 1 ||
+                      (pageuserType !== null &&
+                       pageuserType !== undefined &&
+                       [7, 8, 9].includes(pageuserType) &&
+                       user.user_type !== 2);
+                    return (
+                      <TableRow key={user.id}>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {startIndex + index + 1}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {user.id}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start">
+                          <div className="flex items-center gap-3">
+                            <div>
+                              <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
+                                {user.name}
+                              </span>
+                              <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                                {userTypeMap[user.user_type] || "Unknown"}
+                              </span>
                             </div>
                           </div>
+                        </TableCell>
+                        {showMobileAndEmail && (
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {user.mobile}
+                          </TableCell>
                         )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        {showMobileAndEmail && (
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {user.email}
+                          </TableCell>
+                        )}
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {user.city}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {user.subscription_status}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {formatDate(user.created_date)}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          <span
+                            className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
+                              user.status === 0
+                                ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
+                                : user.status === 2
+                                ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
+                                : user.status === 3
+                                ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
+                                : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
+                            }`}
+                          >
+                            {user.status === 0
+                              ? "Active"
+                              : user.status === 2
+                              ? "Suspended"
+                              : user.status === 3
+                              ? "Blocked"
+                              : user.status === null
+                              ? "N/A"
+                              : "Inactive"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={() => toggleMenu(user.id)}
+                          >
+                            <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
+                          </Button>
+                          {activeMenu === user.id && (
+                            <div className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                              <div className="py-2">
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => openPopup(user)}
+                                >
+                                  Generate Payment Link
+                                </button>
+                              </div>
+                            </div>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
@@ -757,12 +728,9 @@ export default function GeneratePayments() {
                     id="state-search"
                     type="text"
                     name="state"
-                    value={stateSearchTerm}
+                    value={formData.state}
                     onChange={(e) => {
-                      setStateSearchTerm(e.target.value);
-                      setIsStateDropdownOpen(true);
-                      setFormData((prev) => ({ ...prev, state: e.target.value, city: "" }));
-                      setCitySearchTerm("");
+                      setFormData((prev) => ({ ...prev, state: e.target.value, city: "", amount: "" }));
                       setErrors((prev) => ({ ...prev, state: "", city: "" }));
                     }}
                     onClick={() => setIsStateDropdownOpen(true)}
@@ -787,22 +755,20 @@ export default function GeneratePayments() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  {isStateDropdownOpen && filteredStates.length > 0 && (
+                  {isStateDropdownOpen && states.length > 0 && (
                     <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
-                      {filteredStates.map((state) => (
+                      {states.map((state) => (
                         <li
-                          key={state}
+                          key={state.name}
                           onClick={() => {
-                            setStateSearchTerm(state);
-                            setFormData((prev) => ({ ...prev, state, city: "", amount: "" }));
-                            setCitySearchTerm("");
+                            setFormData((prev) => ({ ...prev, state: state.name, city: "", amount: "" }));
                             setIsStateDropdownOpen(false);
                             setErrors((prev) => ({ ...prev, state: "", city: "" }));
-                            dispatch(fetchAllCities({ state }));
+                            dispatch(fetchAllCities({ state: state.name }));
                           }}
                           className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                         >
-                          {state}
+                          {state.name}
                         </li>
                       ))}
                     </ul>
@@ -822,10 +788,8 @@ export default function GeneratePayments() {
                     id="city-search"
                     type="text"
                     name="city"
-                    value={citySearchTerm}
+                    value={formData.city}
                     onChange={(e) => {
-                      setCitySearchTerm(e.target.value);
-                      setIsCityDropdownOpen(true);
                       setFormData((prev) => ({ ...prev, city: e.target.value, amount: "" }));
                       setErrors((prev) => ({ ...prev, city: "" }));
                     }}
@@ -851,24 +815,22 @@ export default function GeneratePayments() {
                       <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
                     </svg>
                   </button>
-                  {isCityDropdownOpen && filteredCities.length > 0 && (
+                  {isCityDropdownOpen && cities.length > 0 && (
                     <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
-                      {filteredCities.map((city) => (
+                      {cities.map((city) => (
                         <li
-                          key={city}
+                          key={city.name}
                           onClick={() => {
-                            setCitySearchTerm(city);
-                            setFormData((prev) => ({ ...prev, city }));
+                            setFormData((prev) => ({ ...prev, city: city.name }));
                             setIsCityDropdownOpen(false);
                             setErrors((prev) => ({ ...prev, city: "" }));
-                            // Fetch package price if package is selected and not Custom
                             if (formData.package && formData.package !== "Custom") {
                               handleSelectChange("package")(formData.package);
                             }
                           }}
                           className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
                         >
-                          {city}
+                          {city.name}
                         </li>
                       ))}
                     </ul>

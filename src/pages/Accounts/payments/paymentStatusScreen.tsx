@@ -12,15 +12,13 @@ import { clearSubscriptions, fetchAllSubscriptions, updateSubscriptionStatus } f
 import { AppDispatch, RootState } from "../../../store/store";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageBreadcrumbList from "../../../components/common/PageBreadCrumbLists";
-import {  useParams } from "react-router";
+import { useParams } from "react-router";
 import Button from "../../../components/ui/button/Button";
 import ConfirmStatusModal from "../../../components/common/ConfirmStatusModal";
-import DatePicker from "../../../components/form/date-picker";
-import Select from "../../../components/form/Select";
+import FilterBar from "../../../components/common/FilterBar"; // Import FilterBar
 import { pdf } from "@react-pdf/renderer";
 import { InvoicePDF } from "../Invoice";
 import axios from "axios";
-
 
 const userTypeMap: { [key: number]: string } = {
   2: "User",
@@ -28,7 +26,6 @@ const userTypeMap: { [key: number]: string } = {
   4: "Agent",
   5: "Owner",
   6: "Channel Partner",
-
 };
 
 interface SelectOption {
@@ -38,12 +35,12 @@ interface SelectOption {
 
 interface SubscriptionFilters {
   payment_status?: string; // Optional payment_status
-  
 }
-// Define the Subscription interface (same as in paymentSlice)
+
 interface Subscription {
   id: number;
   user_id: number;
+  user_type?: number; // Added user_type to the Subscription interface
   name: string;
   mobile: string;
   email: string;
@@ -68,9 +65,10 @@ interface Subscription {
   gst_percentage: string;
   gst_number: string;
   rera_number: string;
-  invoice_number: string | null; // Nullable field
-  city:string,
+  invoice_number: string | null;
+  city: string;
 }
+
 interface InvoiceResponse {
   id: number;
   invoice_number: string;
@@ -81,18 +79,19 @@ interface InvoiceResponse {
   invoice_url: string;
 }
 
+
+
 const PaymentStatusScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
-  
   const { subscriptions, loading, error } = useSelector(
     (state: RootState) => state.payment
   );
+  const { status } = useParams<{ status: string }>();
   const [filterValue, setFilterValue] = useState<string>("");
-  const {status } = useParams<{status:string}>();
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const subscriptionFilters: SubscriptionFilters = {
-    payment_status: status, // status is string | undefined, which matches payment_status
+    payment_status: status,
   };
   const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
   const [selectedSubscription, setSelectedSubscription] = useState<{
@@ -104,9 +103,10 @@ const PaymentStatusScreen: React.FC = () => {
   const [endDate, setEndDate] = useState<string | null>(null);
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
+  const [stateFilter, setStateFilter] = useState<string>(""); // State filter for fetching cities
+  const [cityFilter, setCityFilter] = useState<string>(""); // City filter for filtering subscriptions
 
-   const itemsPerPage = 10;
-
+  const itemsPerPage = 10;
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -124,25 +124,20 @@ const PaymentStatusScreen: React.FC = () => {
     };
   }, []);
 
-
   useEffect(() => {
     if (status) {
       dispatch(fetchAllSubscriptions(subscriptionFilters));
     }
-    // Optional: Clear subscriptions on unmount
     return () => {
       dispatch(clearSubscriptions());
     };
-  }, [dispatch, status]); // Add status to dependencies
+  }, [dispatch, status]);
 
-  
   useEffect(() => {
     setCurrentPage(1); // Reset to page 1 when filters change
-  }, [selectedUserType, startDate, endDate, filterValue]);
+  }, [selectedUserType, startDate, endDate, filterValue, cityFilter]); // Removed stateFilter from dependencies
 
-
-
-const handleInvoice = useCallback(async (sub: Subscription) => {
+  const handleInvoice = useCallback(async (sub: Subscription) => {
     if (!sub.invoice_number) {
       console.log("No invoice number available for this subscription");
       setDropdownOpen(null);
@@ -156,13 +151,11 @@ const handleInvoice = useCallback(async (sub: Subscription) => {
       const invoices = response.data;
       if (invoices.length > 0 && invoices[0].invoice_url) {
         window.open(invoices[0].invoice_url, "_blank");
-        
       } else {
         console.log("No invoice URL found");
       }
     } catch (error) {
       console.error("Error fetching invoice:", error);
-     
     }
     setDropdownOpen(null);
   }, []);
@@ -181,7 +174,6 @@ const handleInvoice = useCallback(async (sub: Subscription) => {
     []
   );
 
-  // Memoized confirmStatusChange function to handle the confirmation
   const confirmStatusChange = useCallback(() => {
     if (selectedSubscription && statusAction) {
       const subscriptionStatus = statusAction === "approve" ? "active" : "inactive";
@@ -200,29 +192,27 @@ const handleInvoice = useCallback(async (sub: Subscription) => {
       ).then(async (result) => {
         if (result.meta.requestStatus === "fulfilled") {
           dispatch(fetchAllSubscriptions({ payment_status: status }));
-          if (statusAction === 'approve'){
-            try{
-                const subscription = subscriptions.find((sub)=> sub.user_id === selectedSubscription.id);
-                if(!subscription){
-                  throw new Error("Subscription not found");
-                }
-                const pdfDoc = pdf(<InvoicePDF subscription={subscription} />)
-                const pdfBlob = await pdfDoc.toBlob();
+          if (statusAction === 'approve') {
+            try {
+              const subscription = subscriptions.find((sub) => sub.user_id === selectedSubscription.id);
+              if (!subscription) {
+                throw new Error("Subscription not found");
+              }
+              const pdfDoc = pdf(<InvoicePDF subscription={subscription} />);
+              const pdfBlob = await pdfDoc.toBlob();
 
-                const formData = new FormData();
-                formData.append('pdf', pdfBlob, `invoice-${subscription.id}.pdf`);
-                formData.append('user_id', selectedSubscription.id.toString());
-                formData.append('subscription_name', selectedSubscription.name);
-                await axios.post('YOUR_BACKEND_ENDPOINT', formData, {
+              const formData = new FormData();
+              formData.append('pdf', pdfBlob, `invoice-${subscription.id}.pdf`);
+              formData.append('user_id', selectedSubscription.id.toString());
+              formData.append('subscription_name', selectedSubscription.name);
+              await axios.post('YOUR_BACKEND_ENDPOINT', formData, {
                 headers: {
-                'Content-Type': 'multipart/form-data',
+                  'Content-Type': 'multipart/form-data',
                 },
-                
-               });
+              });
               console.log('PDF sent to backend successfully');
-                
-            }catch(error){
-                 console.error('Failed to generate or send PDF:', error);
+            } catch (error) {
+              console.error('Failed to generate or send PDF:', error);
             }
           }
         } else if (result.meta.requestStatus === "rejected") {
@@ -230,17 +220,13 @@ const handleInvoice = useCallback(async (sub: Subscription) => {
         }
       });
 
-      // Close the modal and reset state
       setIsStatusModalOpen(false);
       setSelectedSubscription(null);
       setStatusAction(null);
     }
-  }, [dispatch, selectedSubscription, statusAction, status,subscriptions]);
+  }, [dispatch, selectedSubscription, statusAction, status, subscriptions]);
 
-
-
-
-const formatDate = (dateString: string | null): string => {
+  const formatDate = (dateString: string | null): string => {
     if (!dateString) return "N/A";
     try {
       const date = new Date(dateString);
@@ -255,96 +241,79 @@ const formatDate = (dateString: string | null): string => {
     }
   };
 
-  // Format package name for display
   const formatPackageName = (packageName: string): string => {
     return packageName.charAt(0).toUpperCase() + packageName.slice(1).toLowerCase();
   };
 
-  // Handle filter input
-   const handleFilter = (value: string) => {
+  const handleFilter = (value: string) => {
     setFilterValue(value);
-    
+    setCurrentPage(1);
+  };
+
+  // Clear all filters
+  const clearFilters = () => {
+    setSelectedUserType(null);
+    setStartDate(null);
+    setEndDate(null);
+    setStateFilter("");
+    setCityFilter("");
+    setFilterValue("");
     setCurrentPage(1);
   };
 
   const pageTitleStatus = status
     ? `${status.charAt(0).toUpperCase() + status.slice(1)} Payments`
-    : "Payments ";
+    : "Payments";
 
-  // Filter subscriptions based on name and mobile
   const filteredSubscriptions = useMemo(() => {
-  return subscriptions.filter((sub) => {
-    const searchableFields = [sub.name || "", sub.mobile || ""];
-    const matchesSearch = searchableFields.some((field) =>
-      field.toLowerCase().includes(filterValue.toLowerCase())
-    );
+    return subscriptions.filter((sub) => {
+      const searchableFields = [sub.name || "", sub.mobile || ""];
+      const matchesSearch = searchableFields.some((field) =>
+        field.toLowerCase().includes(filterValue.toLowerCase())
+      );
 
-    const matchesUserType =
-      selectedUserType === null ||
-      selectedUserType === "" ||
-      userTypeMap[sub.user_type] === selectedUserType;
+      const matchesUserType =
+        selectedUserType === null ||
+        selectedUserType === "" ||
+        userTypeMap[sub.user_type || 0] === selectedUserType;
 
-    let matchesDate = true;
-    if (startDate || endDate) {
-      if (!sub.subscription_start_date) {
-        matchesDate = false;
-      } else {
-        try {
-          const subDate = sub.subscription_start_date.split("T")[0]; // Extract YYYY-MM-DD
-          matchesDate =
-            (!startDate || subDate >= startDate) &&
-            (!endDate || subDate <= endDate);
-        } catch {
+      let matchesDate = true;
+      if (startDate || endDate) {
+        if (!sub.subscription_start_date) {
           matchesDate = false;
+        } else {
+          try {
+            const subDate = sub.subscription_start_date.split("T")[0];
+            matchesDate =
+              (!startDate || subDate >= startDate) &&
+              (!endDate || subDate <= endDate);
+          } catch {
+            matchesDate = false;
+          }
         }
       }
-    }
 
-    return matchesSearch && matchesUserType && matchesDate;
-  });
-}, [subscriptions, filterValue, selectedUserType, startDate, endDate]);
+      // City filter (not state filter)
+      const matchesCity = !cityFilter || (sub.city && sub.city.toLowerCase() === cityFilter.toLowerCase());
 
-const userFilterOptions: SelectOption[] = [
-  { value: "", label: "All Users" }, // Empty value for "All Users"
-  ...Object.entries(userTypeMap).map(([key, value]) => ({
-    value: value,
-    label: value,
-  })),
+      return matchesSearch && matchesUserType && matchesDate && matchesCity;
+    });
+  }, [subscriptions, filterValue, selectedUserType, startDate, endDate, cityFilter]);
+
+  const userFilterOptions: SelectOption[] = [
+    { value: "", label: "All Users" },
+    ...Object.entries(userTypeMap).map(([key, value]) => ({
+      value: value,
+      label: value,
+    })),
   ];
-
-  const handleStartDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-    }
-    setStartDate(date || null);
-  };
-
- const handleEndDateChange = (selectedDates: Date[]) => {
-  const dateObj = selectedDates[0];
-  let date = "";
-  if (dateObj) {
-    const year = dateObj.getFullYear();
-    const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-    const day = String(dateObj.getDate()).padStart(2, "0");
-    date = `${year}-${month}-${day}`;
-    if (startDate && date < startDate) {
-      alert("End date cannot be before start date");
-      return;
-    }
-  }
-  setEndDate(date || null);
-};
 
   const totalItems = filteredSubscriptions.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedSubscriptions = filteredSubscriptions.slice(startIndex, endIndex);
+
   const goToPage = (page: number) => {
     setCurrentPage(page);
   };
@@ -357,8 +326,7 @@ const userFilterOptions: SelectOption[] = [
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
-
- const getPaginationItems = () => {
+  const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
 
@@ -404,10 +372,6 @@ const userFilterOptions: SelectOption[] = [
     );
   }
 
-  
-
-
-
   return (
     <div className="relative min-h-screen">
       <PageMeta title="Meet Owner Payments" />
@@ -417,66 +381,48 @@ const userFilterOptions: SelectOption[] = [
         onFilter={handleFilter}
       />
       <div className="space-y-6">
+        {/* Integrate FilterBar with user type, date, state, and city filters */}
         <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
-          <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-            <div className="w-full sm:w-43">
-              <Select
-                options={userFilterOptions}
-                placeholder="Select User Type"
-                onChange={(value: string) => setSelectedUserType(value || null)}
-                value={selectedUserType || ""}
-                className="dark:bg-dark-900"
-              />
-            </div>
-            <DatePicker
-              id="startDate"
-              placeholder="Select start date"
-              onChange={handleStartDateChange}
-              defaultDate={startDate ? new Date(startDate) : undefined}
-            />
-            <DatePicker
-              id="endDate"
-              placeholder="Select end date"
-              onChange={handleEndDateChange}
-              defaultDate={endDate ? new Date(endDate) : undefined}
-            />
-            <Button
-              variant="outline"
-              onClick={() => {
-                setSelectedUserType(null);
-                setStartDate(null);
-                setEndDate(null);
-                setFilterValue("");
-                setCurrentPage(1);
-              }}
-              className="px-4 py-2 w-full sm:w-auto"
-            >
-              Clear Filters
-            </Button>
-          </div>
+          <FilterBar
+            showUserTypeFilter={true}
+            showDateFilters={true}
+            showStateFilter={true} // State filter is enabled to fetch cities
+            showCityFilter={true}
+            userFilterOptions={userFilterOptions}
+            onUserTypeChange={setSelectedUserType}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onStateChange={setStateFilter}
+            onCityChange={setCityFilter}
+            onClearFilters={clearFilters}
+            selectedUserType={selectedUserType}
+            startDate={startDate}
+            endDate={endDate}
+            stateValue={stateFilter}
+            cityValue={cityFilter}
+          />
         </div>
 
-    {(selectedUserType || startDate || endDate || filterValue) && (
-        <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-          Filters: {selectedUserType || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
-        </div>
-      )}
-          <ComponentCard title={pageTitleStatus}>
+        {/* Display active filters (exclude state since it's not used for filtering) */}
+        {(selectedUserType || startDate || endDate || cityFilter || filterValue) && (
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Filters: User Type: {selectedUserType || "All"} | Date: {startDate || "Any"} to{" "}
+            {endDate || "Any"} | City: {cityFilter || "Any"} | Search: {filterValue || "None"}
+          </div>
+        )}
+
+        <ComponentCard title={pageTitleStatus}>
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-auto">
-             { (error && 
-              (
-                  <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-                      <h2 className="text-lg font-bold text-red-500">Error: {error}</h2>
-                    </div>
-              )
-             ) }
-          
+              {error && (
+                <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+                  <h2 className="text-lg font-bold text-red-500">Error: {error}</h2>
+                </div>
+              )}
               <Table>
-                {/* Table Header */}
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
-                     <TableCell
+                    <TableCell
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Sl.No
@@ -498,14 +444,13 @@ const userFilterOptions: SelectOption[] = [
                     >
                       Mobile
                     </TableCell>
-                    
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Email
                     </TableCell>
-                     <TableCell
+                    <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
@@ -517,22 +462,18 @@ const userFilterOptions: SelectOption[] = [
                     >
                       Package
                     </TableCell>
-                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Start Date
                     </TableCell>
-                  
-                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Expiry Date
                     </TableCell>
-                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -564,38 +505,56 @@ const userFilterOptions: SelectOption[] = [
                       Payment Amount
                     </TableCell>
                     {status?.toLowerCase() === "success" && (
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                     Invoice Number
-                    </TableCell>
-                     )}
-                    {(status?.toLowerCase() === "processing" || status?.toLocaleLowerCase() === 'success') && (
-                    <TableCell 
-                      isHeader 
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Invoice Number
+                      </TableCell>
+                    )}
+                    {(status?.toLowerCase() === "processing" || status?.toLowerCase() === "success") && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Actions
+                      </TableCell>
                     )}
                   </TableRow>
                 </TableHeader>
-                {/* Table Body */}
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                 {(!paginatedSubscriptions || paginatedSubscriptions.length === 0) && (
-               <p className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400">
-                {filterValue ? "No Matching Subscriptions Found" : "No Subscriptions Available"}
-              </p>
-                 )}
-                  {paginatedSubscriptions.map((sub: Subscription,index) => (
+                  {(!paginatedSubscriptions || paginatedSubscriptions.length === 0) && (
+                    <TableRow>
+                      <TableCell
+                       
+                        className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
+                      >
+                        {filterValue || selectedUserType || startDate || endDate || cityFilter
+                          ? "No Matching Subscriptions Found"
+                          : "No Subscriptions Available"}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {paginatedSubscriptions.map((sub: Subscription, index) => (
                     <TableRow key={sub.id}>
-                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {currentPage + index }
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        {startIndex + index + 1} {/* Adjusted to show correct Sl.No */}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {sub.user_id}
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {sub.name}
-                      </TableCell>
+                      <TableCell className="px-5 py-4 sm:px-6 text-start">
+                          <div className="flex items-center gap-3">
+                                  <div>
+                                                   <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
+                                                     {sub.name}
+                                                   </span>
+                                                   <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                                                     {userTypeMap[sub.user_type!] || "Unknown"}
+                                                   </span>
+                                                 </div>
+                                    </div>
+                             </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {sub.mobile}
                       </TableCell>
@@ -606,28 +565,24 @@ const userFilterOptions: SelectOption[] = [
                         {sub.city}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                      <span
-                        className={`inline-block px-2 py-1 rounded-md  text-xs w-auto font-medium ${
-                          sub.subscription_package.toLowerCase() === "basic"
-                            ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                            : sub.subscription_package.toLowerCase() === "prime"
-                            ? "bg-[#EC9A0C] text-black dark:bg-[#EC9A0C] dark:text-white"
-                            : "bg-[#1D3A76] text-white dark:bg-purple-900 dark:text-purple-200"
-                        }`}
-                      >
-                        {formatPackageName(sub.subscription_package === 'prime_plus' ? 'Prime Plus' : sub.subscription_package)}
-                      </span>
-                    </TableCell>
-                  
+                        <span
+                          className={`inline-block px-2 py-1 rounded-md text-xs w-auto font-medium ${
+                            sub.subscription_package.toLowerCase() === "basic"
+                              ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
+                              : sub.subscription_package.toLowerCase() === "prime"
+                              ? "bg-[#EC9A0C] text-black dark:bg-[#EC9A0C] dark:text-white"
+                              : "bg-[#1D3A76] text-white dark:bg-purple-900 dark:text-purple-200"
+                          }`}
+                        >
+                          {formatPackageName(sub.subscription_package === 'prime_plus' ? 'Prime Plus' : sub.subscription_package)}
+                        </span>
+                      </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(sub.subscription_start_date)}
                       </TableCell>
-                 
-                    
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(sub.subscription_expiry_date)}
                       </TableCell>
-                  
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {sub.subscription_status}
                       </TableCell>
@@ -644,104 +599,100 @@ const userFilterOptions: SelectOption[] = [
                         {sub.payment_amount}
                       </TableCell>
                       {status?.toLowerCase() === "success" && (
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {sub.invoice_number}
-                      </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {sub.invoice_number}
+                        </TableCell>
                       )}
-                      {(status?.toLowerCase() === "processing" ) && (
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setDropdownOpen(
-                              dropdownOpen === sub.id.toString()
-                                ? null
-                                : sub.id.toString()
-                            )
-                          }
-                        >
-                          <svg
-                            className="w-5 h-5 text-gray-500 dark:text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                        </Button>
-                        {dropdownOpen === sub.id.toString() && (
-                          <div
-                            ref={dropdownRef}
-                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
-                          >
-                            <button
+                      {(status?.toLowerCase() === "processing") && (
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={() =>
-                                handleApprove(sub.user_id, sub.name, "approve")
+                                setDropdownOpen(
+                                  dropdownOpen === sub.id.toString()
+                                    ? null
+                                    : sub.id.toString()
+                                )
                               }
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
-                              Approve
-                            </button>
-                            <button
-                              onClick={() =>
-                                handleApprove(sub.user_id, sub.name, "reject")
-                              }
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              Reject
-                            </button>
-                          </div>
-                        )}
-                      </>
-                     </TableCell>
-                     
+                              <svg
+                                className="w-5 h-5 text-gray-500 dark:text-gray-400"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                            </Button>
+                            {dropdownOpen === sub.id.toString() && (
+                              <div
+                                ref={dropdownRef}
+                                className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
+                              >
+                                <button
+                                  onClick={() =>
+                                    handleApprove(sub.user_id, sub.name, "approve")
+                                  }
+                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                  Approve
+                                </button>
+                                <button
+                                  onClick={() =>
+                                    handleApprove(sub.user_id, sub.name, "reject")
+                                  }
+                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                  Reject
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        </TableCell>
                       )}
                       {(status?.toLowerCase() === "success") && (
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                      <>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() =>
-                            setDropdownOpen(
-                              dropdownOpen === sub.id.toString()
-                                ? null
-                                : sub.id.toString()
-                            )
-                          }
-                        >
-                          <svg
-                            className="w-5 h-5 text-gray-500 dark:text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                        </Button>
-                        {dropdownOpen === sub.id.toString() && (
-                          <div
-                            ref={dropdownRef}
-                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20"
-                          >
-                            <button
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                          <>
+                            <Button
+                              variant="outline"
+                              size="sm"
                               onClick={() =>
-                                handleInvoice(sub)
+                                setDropdownOpen(
+                                  dropdownOpen === sub.id.toString()
+                                    ? null
+                                    : sub.id.toString()
+                                )
                               }
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                             >
-                              View Invoice
-                            </button>
-                           
-                          </div>
-                        )}
-                      </>
-                     </TableCell>
-                     
+                              <svg
+                                className="w-5 h-5 text-gray-500 dark:text-gray-400"
+                                fill="currentColor"
+                                viewBox="0 0 20 20"
+                                xmlns="http://www.w3.org/2000/svg"
+                              >
+                                <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                              </svg>
+                            </Button>
+                            {dropdownOpen === sub.id.toString() && (
+                              <div
+                                ref={dropdownRef}
+                                className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20"
+                              >
+                                <button
+                                  onClick={() =>
+                                    handleInvoice(sub)
+                                  }
+                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                  View Invoice
+                                </button>
+                              </div>
+                            )}
+                          </>
+                        </TableCell>
                       )}
-                      
                     </TableRow>
                   ))}
                 </TableBody>
@@ -754,7 +705,6 @@ const userFilterOptions: SelectOption[] = [
                 Showing {startIndex + 1} to {endIndex} of {totalItems} entries
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
-                {/* Previous Button */}
                 <Button
                   variant={currentPage === 1 ? "outline" : "primary"}
                   size="sm"
@@ -763,8 +713,6 @@ const userFilterOptions: SelectOption[] = [
                 >
                   Previous
                 </Button>
-
-                {/* Page Buttons */}
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
                     <span
@@ -789,8 +737,6 @@ const userFilterOptions: SelectOption[] = [
                     </Button>
                   )
                 )}
-
-                {/* Next Button */}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"
@@ -805,20 +751,17 @@ const userFilterOptions: SelectOption[] = [
           <ConfirmStatusModal
             isOpen={isStatusModalOpen}
             propertyName={selectedSubscription?.name || ""}
-            action={statusAction || "approve"} // Fallback to "approve" if null
+            action={statusAction || "approve"}
             onConfirm={confirmStatusChange}
             onCancel={() => {
               setIsStatusModalOpen(false);
               setSelectedSubscription(null);
               setStatusAction(null);
             }}
-        />
+          />
         </ComponentCard>
-
-        
       </div>
     </div>
-    
   );
 };
 

@@ -71,6 +71,9 @@ import BasicTableEmployees from "./components/tables/BasicTables/BasicTableEmplo
 import ContactedLeads from "./pages/LeadManagement/ContactedLeads";
 import MostViewedLeads from "./pages/LeadManagement/MostViewedLeads";
 import MostViewedDetailsPage from "./pages/LeadManagement/MostViewedLeadsDetails";
+import MostSearchedLocations from "./pages/LeadManagement/MostSearchedLocations";
+import MostSearchedDetail from "./pages/LeadManagement/MostSearchedDetails";
+import ActiveUsersTable from "./components/ecommerce/ActiveUsersTable";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -113,6 +116,17 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <Home />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+               <Route
+                index
+                path="/activeusers"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <ActiveUsersTable />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
@@ -298,6 +312,26 @@ export default function App() {
                     <ErrorBoundary>
                       <ProtectedRoute>
                         <MostViewedLeads />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  }
+              />
+               <Route
+                  path="/leads/mostsearched"
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute>
+                        <MostSearchedLocations />
+                      </ProtectedRoute>
+                    </ErrorBoundary>
+                  }
+              />
+               <Route
+                  path="/leads/most-searched-details/:city"
+                  element={
+                    <ErrorBoundary>
+                      <ProtectedRoute>
+                        <MostSearchedDetail />
                       </ProtectedRoute>
                     </ErrorBoundary>
                   }

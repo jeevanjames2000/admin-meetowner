@@ -1,4 +1,4 @@
-import {  useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchUsersByType } from "../../../store/slices/users";
@@ -14,16 +14,12 @@ import Button from "../../ui/button/Button";
 import { MoreVertical } from "lucide-react";
 import ComponentCard from "../../common/ComponentCard";
 import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
-import { clearMessages, deleteEmployee, } from "../../../store/slices/employee";
+import { clearMessages, deleteUser } from "../../../store/slices/userEditSlicet";
 import toast from "react-hot-toast";
 import ConfirmDeleteModal from "../../common/ConfirmDeleteModal";
-import Select from "../../form/Select";
-import DatePicker from "../../form/date-picker";
 import AssignEmployeeModal from "../AssignEmployeeModal";
 import { formatDate } from "../../../hooks/FormatDate";
-import { deleteUser } from "../../../store/slices/userEditSlicet";
-
-
+import FilterBar from "../../common/FilterBar"; // Import the FilterBar component
 
 // User type mapping
 const userTypeMap: { [key: number]: string } = {
@@ -45,15 +41,15 @@ const paymentStatusOptions: { value: string; label: string }[] = [
   { value: "inactive", label: "Inactive" },
 ];
 
-// Format date function
 export default function BasicTableOne() {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const { users, loading, error } = useSelector((state: RootState) => state.users);
-  const { deleteError, deleteSuccess, } = useSelector(
+  const { deleteError, deleteSuccess } = useSelector(
     (state: RootState) => state.userEdit
   );
+  const { states, cities } = useSelector((state: RootState) => state.places);
   const pageuserType = useSelector((state: RootState) => state.auth.user?.user_type);
 
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
@@ -63,11 +59,11 @@ export default function BasicTableOne() {
   const [userToDelete, setUserToDelete] = useState<{ id: number; name: string } | null>(null);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<string>("");
-   const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
-  const [userToAssign, setUserToAssign] = useState<{ id: number; name: string,user_type:number } | null>(null);
-
-
+  const [paymentStatus, setPaymentStatus] = useState<string>("All"); // Default to "All"
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
+  const [userToAssign, setUserToAssign] = useState<{ id: number; name: string; user_type: number } | null>(null);
+  const [selectedState, setSelectedState] = useState<string>("");
+  const [selectedCity, setSelectedCity] = useState<string>("");
 
   const itemsPerPage = 10;
 
@@ -80,25 +76,23 @@ export default function BasicTableOne() {
   const showGstNumber = userType && specificUserTypes.includes(parseInt(userType));
   const showReraNumber = userType && specificUserTypes.includes(parseInt(userType));
 
-  const AssignEmployessUserTypes = [2,3,4,5,6];
+  const AssignEmployessUserTypes = [2, 3, 4, 5, 6];
   const showAssign = userType && AssignEmployessUserTypes.includes(parseInt(userType));
 
   // Condition to show Mobile and Email columns
-    const showMobileAndEmail =
-  (pageuserType === 1 && userType !== null && parseInt(userType) === 2) || // Admin viewing Users
-  ([1,7, 8, 9].includes(pageuserType!) && userType !== null && [3, 4, 5, 6].includes(parseInt(userType))); // Manager, Telecaller, Marketing Executive viewing Builder, Agent, Owner, Channel Partner
-
-
+  const showMobileAndEmail =
+    (pageuserType === 1 && userType !== null && parseInt(userType) === 2) ||
+    ([1, 7, 8, 9].includes(pageuserType!) && userType !== null && [3, 4, 5, 6].includes(parseInt(userType)));
 
   useEffect(() => {
     if (userType) {
       dispatch(fetchUsersByType({ user_type: parseInt(userType) }));
     }
   }, [dispatch, userType]);
-  
+
   useEffect(() => {
-  setCurrentPage(1); // Reset to page 1 when filters change
-}, [paymentStatus, startDate, endDate]);
+    setCurrentPage(1); // Reset to page 1 when filters change
+  }, [paymentStatus, startDate, endDate, selectedCity]);
 
   useEffect(() => {
     if (deleteSuccess) {
@@ -113,9 +107,7 @@ export default function BasicTableOne() {
       toast.error(deleteError);
       dispatch(clearMessages());
     }
-   
-    
-  }, [deleteSuccess, deleteError,  dispatch, userType]);
+  }, [deleteSuccess, deleteError, dispatch, userType]);
 
   const handleEditUser = (user: any) => {
     navigate("/edit-user-details", { state: { user } });
@@ -127,8 +119,8 @@ export default function BasicTableOne() {
     setActiveMenu(null);
   };
 
-   const handleAssignClick = (user: { id: number; name: string,user_type:number }) => {
-    setUserToAssign({ id: user.id, name: user.name,user_type:user.user_type });
+  const handleAssignClick = (user: { id: number; name: string; user_type: number }) => {
+    setUserToAssign({ id: user.id, name: user.name, user_type: user.user_type });
     setIsAssignModalOpen(true);
     setActiveMenu(null);
   };
@@ -142,57 +134,56 @@ export default function BasicTableOne() {
   };
 
   const filteredUsers = useMemo(
-  () =>
-    users && Array.isArray(users)
-      ? users.filter((user) => {
-          const searchableFields = [
-            user.name,
-            ...(showMobileAndEmail ? [] : [user.mobile, user.email]),
-            user.city,
-            user.state,
-            user.address,
-            user.pincode,
-            user.gst_number,
-            user.rera_number,
-          ];
-          const matchesSearch = searchableFields
-            .filter((field): field is string => field !== null && field !== undefined)
-            .map((field) => field.toLowerCase())
-            .some((field) => field.includes(filterValue.toLowerCase()));
+    () =>
+      users && Array.isArray(users)
+        ? users.filter((user) => {
+            const searchableFields = [
+              user.name,
+              ...(showMobileAndEmail ? [] : [user.mobile, user.email]),
+              user.city,
+              user.state,
+              user.address,
+              user.pincode,
+              user.gst_number,
+              user.rera_number,
+            ];
+            const matchesSearch = searchableFields
+              .filter((field): field is string => field !== null && field !== undefined)
+              .map((field) => field.toLowerCase())
+              .some((field) => field.includes(filterValue.toLowerCase()));
 
-          // Payment status filter
-          const matchesPaymentStatus =
-            paymentStatus === "" || // Treat empty as "All"
-            paymentStatus === "All" ||
-            (paymentStatus === "active" && user.subscription_status === "active") ||
-            (paymentStatus === "inactive" &&
-              (user.subscription_status === "inactive" || user.subscription_status === null));
+            // Payment status filter
+            const matchesPaymentStatus =
+              paymentStatus === "All" ||
+              (paymentStatus === "active" && user.subscription_status === "active") ||
+              (paymentStatus === "inactive" &&
+                (user.subscription_status === "inactive" || user.subscription_status === null));
 
-          // Date range filter
-          let matchesDate = true;
-          if (startDate || endDate) {
-            if (!user.created_date) {
-              matchesDate = false; // Exclude null created_date when date filter is active
-            } else {
-              try {
-                const userDate = user.created_date.split("T")[0]; // Extract YYYY-MM-DD
-                matchesDate =
-                  (!startDate || userDate >= startDate) &&
-                  (!endDate || userDate <= endDate);
-              } catch {
-                matchesDate = false; // Exclude invalid dates
+            // Date range filter
+            let matchesDate = true;
+            if (startDate || endDate) {
+              if (!user.created_date) {
+                matchesDate = false; // Exclude null created_date when date filter is active
+              } else {
+                try {
+                  const userDate = user.created_date.split("T")[0]; // Extract YYYY-MM-DD
+                  matchesDate =
+                    (!startDate || userDate >= startDate) &&
+                    (!endDate || userDate <= endDate);
+                } catch {
+                  matchesDate = false; // Exclude invalid dates
+                }
               }
             }
-          }
 
-          return matchesSearch && matchesPaymentStatus && matchesDate;
-        })
-      : [],
-  [users, filterValue, paymentStatus, startDate, endDate, showMobileAndEmail]
-);
+            // City filter
+            const matchesCity = !selectedCity || user.city === selectedCity;
 
-
-
+            return matchesSearch && matchesPaymentStatus && matchesDate && matchesCity;
+          })
+        : [],
+    [users, filterValue, paymentStatus, startDate, endDate, selectedCity, showMobileAndEmail]
+  );
 
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -213,19 +204,16 @@ export default function BasicTableOne() {
     navigate("/accounts/create-new-user");
   };
 
-  
-
- const handleUserClick = (userId: number, userType: number, name: string, userActivity: any[]) => {
-  if(pageuserType === 1){
+  const handleUserClick = (userId: number, userType: number, name: string, userActivity: any[]) => {
+    if (pageuserType === 1) {
       if (userType === 2) {
-    navigate('/buyers-activities', { state: { userActivity, userId, name } });
-  }
-  if ([3, 4, 5, 6].includes(userType)) {
-    navigate(`/user/propertyDetails?userId=${userId}&name=${encodeURIComponent(name)}`);
+        navigate("/buyers-activities", { state: { userActivity, userId, name } });
+      }
     }
-  }
-  
-};
+    if ([3, 4, 5, 6].includes(userType)) {
+      navigate(`/user/propertyDetails?userId=${userId}&name=${encodeURIComponent(name)}`);
+    }
+  };
 
   const goToPage = (page: number) => {
     setCurrentPage(page);
@@ -278,35 +266,6 @@ export default function BasicTableOne() {
   if (loading) return <div>Loading users...</div>;
   if (error) return <div>Error: {error}</div>;
 
-  
-  const handleStartDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-    }
-    setStartDate(date || null);
-  };
-
-  const handleEndDateChange = (selectedDates: Date[]) => {
-    const dateObj = selectedDates[0];
-    let date = "";
-    if (dateObj) {
-      const year = dateObj.getFullYear();
-      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
-      const day = String(dateObj.getDate()).padStart(2, "0");
-      date = `${year}-${month}-${day}`;
-      if (startDate && date < startDate) {
-        alert("End date cannot be before start date");
-        return;
-      }
-    }
-  setEndDate(date || null);
-};
-
   return (
     <div className="relative min-h-screen">
       <PageBreadcrumbList
@@ -314,63 +273,50 @@ export default function BasicTableOne() {
         pagePlacHolder="Filter users by name, mobile, email, city"
         onFilter={handleFilter}
       />
-    
-        <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
-      <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
-        {[2, 3, 4, 5, 6].includes(parseInt(userType || "0")) && (
-          <div className="w-full sm:w-43">
-            <Select
-              options={paymentStatusOptions}
-              placeholder="Select Payment Status"
-              onChange={(value: string) => setPaymentStatus(value)}
-              value={paymentStatus}
-              className="dark:bg-dark-900"
-            />
-          </div>
-        )}
-        <DatePicker
-          id="startDate"
-          placeholder="Select start date"
-          onChange={handleStartDateChange}
-          defaultDate={startDate ? new Date(startDate) : undefined}
-        />
-        <DatePicker
-          id="endDate"
-          placeholder="Select end date"
-          onChange={handleEndDateChange}
-          defaultDate={endDate ? new Date(endDate) : undefined}
-        />
-        <Button
-          variant="outline"
-          onClick={() => {
-            setPaymentStatus(""); // Reset to empty for placeholder
+
+      <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
+        <FilterBar
+          showUserTypeFilter={[2, 3, 4, 5, 6].includes(parseInt(userType || "0"))}
+          showDateFilters={true}
+          showStateFilter={true} // Disable state filter for user filtering
+          showCityFilter={true}
+          userFilterOptions={paymentStatusOptions}
+          onUserTypeChange={(value) => setPaymentStatus(value || "All")}
+          onStartDateChange={setStartDate}
+          onEndDateChange={setEndDate}
+          onStateChange={setSelectedState} // Still used for city fetching
+          onCityChange={setSelectedCity}
+          onClearFilters={() => {
+            setPaymentStatus("All");
             setStartDate(null);
             setEndDate(null);
+            setSelectedState("");
+            setSelectedCity("");
             setFilterValue("");
             setCurrentPage(1);
           }}
-          className="px-4 py-2 w-full sm:w-auto"
-        >
-          Clear Filters
-        </Button>
-      </div>
+          selectedUserType={paymentStatus}
+          startDate={startDate}
+          endDate={endDate}
+          stateValue={selectedState}
+          cityValue={selectedCity}
+        />
 
         <button
-            type="submit"
-            className="px-6 py-2 bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed"
-            onClick={handleCreate}
-          >
-            Create new user
-          </button>
-    </div>
-    
-       
-        {(paymentStatus || startDate || endDate || filterValue) && (
+          type="submit"
+                     className="px-3 text-sm bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed  sm:w-auto"
+          onClick={handleCreate}
+        >
+          Create user
+        </button>
+      </div>
+
+      {(paymentStatus !== "All" || startDate || endDate || selectedCity || filterValue) && (
         <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-          Filters: {paymentStatus || "All"} | Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
+          Filters: {paymentStatus} | Date: {startDate || "Any"} to {endDate || "Any"} | 
+          City: {selectedCity || "Any"} | Search: {filterValue || "None"}
         </div>
       )}
-
 
       {deleteSuccess && (
         <div className="p-3 bg-green-100 text-green-700 rounded-md">{deleteSuccess}</div>
@@ -378,7 +324,6 @@ export default function BasicTableOne() {
       {deleteError && (
         <div className="p-3 bg-red-100 text-red-700 rounded-md">{deleteError}</div>
       )}
-      
 
       <div className="space-y-6">
         <ComponentCard title={`${categoryLabel} Table`}>
@@ -397,7 +342,7 @@ export default function BasicTableOne() {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                       Id
+                      Id
                     </TableCell>
                     <TableCell
                       isHeader
@@ -415,7 +360,6 @@ export default function BasicTableOne() {
                         </TableCell>
                       </>
                     )}
-                  
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -432,7 +376,7 @@ export default function BasicTableOne() {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Paynment Status
+                      Payment Status
                     </TableCell>
                     {showGstNumber && (
                       <TableCell
@@ -471,9 +415,9 @@ export default function BasicTableOne() {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedUsers.map((user,index) => (
+                  {paginatedUsers.map((user, index) => (
                     <TableRow key={user.id}>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
@@ -501,7 +445,6 @@ export default function BasicTableOne() {
                           </TableCell>
                         </>
                       )}
-                     
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.city}
                       </TableCell>
@@ -556,32 +499,24 @@ export default function BasicTableOne() {
                             <div className="py-2">
                               <button
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                 onClick={() => handleEditUser(user)}
+                                onClick={() => handleEditUser(user)}
                               >
                                 Edit
                               </button>
                               <button
                                 className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                 onClick={() => handleDeleteClick(user)}
+                                onClick={() => handleDeleteClick(user)}
                               >
                                 Delete
                               </button>
-                              {/* <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                // onClick={() => handleStatusChangeClick(user)}
-                              >
-                                {user.status === 0 ? "Suspend" : "Activate"}
-                                 </button> */}
-                                {showAssign && (
-                                 
-                               <button
-                                className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                 onClick={() => handleAssignClick(user)}
-                              >
-                                Assign Employee
-                              </button>
-                                )}
-                              
+                              {showAssign && (
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => handleAssignClick(user)}
+                                >
+                                  Assign Employee
+                                </button>
+                              )}
                             </div>
                           </div>
                         )}
@@ -593,13 +528,12 @@ export default function BasicTableOne() {
             </div>
           </div>
 
-         {totalItems > itemsPerPage && (
+          {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Showing {startIndex + 1} to {endIndex} of {totalItems} entries
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
-                {/* Previous Button */}
                 <Button
                   variant={currentPage === 1 ? "outline" : "primary"}
                   size="sm"
@@ -608,8 +542,6 @@ export default function BasicTableOne() {
                 >
                   Previous
                 </Button>
-
-                {/* Page Buttons */}
                 {getPaginationItems().map((page, index) =>
                   page === "..." ? (
                     <span
@@ -634,7 +566,6 @@ export default function BasicTableOne() {
                     </Button>
                   )
                 )}
-                {/* Next Button */}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"
@@ -647,7 +578,6 @@ export default function BasicTableOne() {
             </div>
           )}
 
-
           <ConfirmDeleteModal
             isOpen={isDeleteModalOpen}
             propertyName={userToDelete?.name || ""}
@@ -658,7 +588,7 @@ export default function BasicTableOne() {
             }}
           />
 
-           <AssignEmployeeModal
+          <AssignEmployeeModal
             isOpen={isAssignModalOpen}
             onClose={() => {
               setIsAssignModalOpen(false);
@@ -666,11 +596,8 @@ export default function BasicTableOne() {
             }}
             userToAssign={userToAssign}
           />
-
         </ComponentCard>
       </div>
     </div>
   );
 }
-
-
