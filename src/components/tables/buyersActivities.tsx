@@ -31,6 +31,7 @@ const UserActivities: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 10;
+   const userType = useSelector((state: RootState) => state.auth.user?.user_type);
 
   // Activity type filter options
   const activityTypeOptions = [
@@ -272,18 +273,22 @@ const UserActivities: React.FC = () => {
                     >
                       Name
                     </TableCell>
+                    {userType === 1 && (
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Email
                     </TableCell>
+                    )}
+                    {userType === 1 && (
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
                       Mobile
                     </TableCell>
+                    )}
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -352,12 +357,16 @@ const UserActivities: React.FC = () => {
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {activity.name || activity.userName || activity.fullname || "N/A"}
                         </TableCell>
+                        {userType === 1 && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {activity.email || activity.userEmail || "N/A"}
                         </TableCell>
+                        )}
+                        {userType === 1 && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {activity.mobile || activity.userMobile || "N/A"}
                         </TableCell>
+                        )}
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {formatDate(activity.searched_on_date! || activity.created_date!) || "N/A"}
                         </TableCell>
