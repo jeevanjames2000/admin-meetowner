@@ -20,6 +20,7 @@ import shortsSlice from './slices/shortsSlice';
 import locationsSlice from './slices/locationsSlice';
 import employeeUsersSlice from './slices/employeeUsers';
 import userEditSlice from './slices/userEditSlicet';
+import userActivitySlice from './slices/user_activity';
 
 const preloadedState = {
     auth : initializeAuthState()
@@ -45,7 +46,8 @@ const store =  configureStore({
         career:carrerSlice,
         shorts:shortsSlice,
         locations:locationsSlice,
-        userEdit:userEditSlice
+        userEdit:userEditSlice,
+        userActivity:userActivitySlice
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),

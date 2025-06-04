@@ -204,10 +204,10 @@ export default function BasicTableOne() {
     navigate("/accounts/create-new-user");
   };
 
-  const handleUserClick = (userId: number, userType: number, name: string, userActivity: any[]) => {
+  const handleUserClick = (userId: number, userType: number, name: string,) => {
     if (pageuserType === 1) {
       if (userType === 2) {
-        navigate("/buyers-activities", { state: { userActivity, userId, name } });
+        navigate("/buyers-activities", { state: {  userId, name } });
       }
     }
     if ([3, 4, 5, 6].includes(userType)) {

@@ -38,7 +38,7 @@ export const filterNavItemsByUserType = (navItems: NavItem[], userType: number |
       if (userType === 8) return !["Pages", "Packages", "Ads", "Maps", "Employees", "Lead Management", "Ads", "Packages", "Push Notifications", "Dynamic Screens"].includes(item.name); // Telecaller
       if (userType === 9) return !["Pages", "Maps", "Employees", "Ads", "Packages", "Push Notifications", "Dynamic Screens"].includes(item.name); // Marketing Executive
       if (userType === 10) return !["Accounts", "Employees", "Pages", "Maps", "Lead Management", "Users", "Ads", "Packages", "Push Notifications", "Dynamic Screens"].includes(item.name); // Customer Support
-      return true; // Default: allow all for other user types
+      return true; 
     })
     .map((item) => {
      

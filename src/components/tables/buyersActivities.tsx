@@ -1,5 +1,6 @@
-import { useEffect, useState } from "react";
-import { useLocation } from "react-router";
+import React, { useEffect, useState } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { useLocation, useParams } from "react-router";
 import {
   Table,
   TableBody,
@@ -11,46 +12,63 @@ import Button from "../ui/button/Button";
 import ComponentCard from "../common/ComponentCard";
 import PageBreadcrumbList from "../common/PageBreadCrumbLists";
 import { formatDate } from "../../hooks/FormatDate";
-import FilterBar from "../common/FilterBar"; // Import the FilterBar component
+import FilterBar from "../common/FilterBar";
+import { AppDispatch, RootState } from "../../store/store";
+import { fetchUserActivity } from "../../store/slices/user_activity";
 
-export default function BuyersActivities() {
+
+const UserActivities: React.FC = () => {
   const location = useLocation();
+    const {  userId, name } = location.state || {};
+
+  const dispatch = useDispatch<AppDispatch>();
+ 
+  const { user, loading, error } = useSelector((state: RootState) => state.userActivity);
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [startDate, setStartDate] = useState<string | null>(null); // State for start date
-  const [endDate, setEndDate] = useState<string | null>(null); // State for end date
+  const [startDate, setStartDate] = useState<string | null>(null);
+  const [endDate, setEndDate] = useState<string | null>(null);
   const itemsPerPage = 10;
 
-  // Get userActivity from location state
-  const { userActivity = [], userId, name } = location.state || {};
-
-  // Reset pagination when filters change
   useEffect(() => {
-    setCurrentPage(1);
+    if(userId){
+       dispatch(fetchUserActivity(Number(userId)));
+    }
+  
+     
+    
+  }, [dispatch,userId]);
+
+  useEffect(() => {
+    setCurrentPage(1); // Reset pagination when filters change
   }, [filterValue, startDate, endDate]);
 
   // Filter activities based on search input and date range
-  const filteredActivities = userActivity.filter((activity: any) => {
+  const filteredActivities = user?.userActivity?.filter((activity) => {
     const searchableFields = [
-      activity.name || "",
-      activity.email || "",
-      activity.mobile || "",
-      activity.property_id || "",
-      formatDate(activity.searched_on_date),
+      activity.name || activity.userName || activity.fullname || "",
+      activity.email || activity.userEmail || "",
+      activity.mobile || activity.userMobile || "",
+      activity.property_id || activity.unique_property_id || "",
       activity.property_name || "",
+      activity.sub_type || "",
+      activity.property_for || "",
+      activity.city_id || "",
+      activity.property_cost || "",
+      formatDate(activity.searched_on_date! || activity.created_date!) || "",
     ];
     const matchesSearch = searchableFields
       .map((field: string) => field.toLowerCase())
       .some((field: string) => field.includes(filterValue.toLowerCase()));
 
-    // Date range filter based on searched_on_date (contacted_date)
+    // Date range filter based on searched_on_date or created_date
     let matchesDate = true;
     if (startDate || endDate) {
-      if (!activity.searched_on_date) {
+      const activityDate = (activity.searched_on_date || activity.created_date)?.split("T")[0];
+      if (!activityDate) {
         matchesDate = false;
       } else {
         try {
-          const activityDate = activity.searched_on_date.split("T")[0]; // Extract YYYY-MM-DD
           matchesDate =
             (!startDate || activityDate >= startDate) &&
             (!endDate || activityDate <= endDate);
@@ -61,7 +79,7 @@ export default function BuyersActivities() {
     }
 
     return matchesSearch && matchesDate;
-  });
+  }) || [];
 
   const totalItems = filteredActivities.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -74,7 +92,6 @@ export default function BuyersActivities() {
     setCurrentPage(1);
   };
 
-  // Clear all filters
   const clearFilters = () => {
     setFilterValue("");
     setStartDate(null);
@@ -94,7 +111,7 @@ export default function BuyersActivities() {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
 
-  const getPaginationItems = () => {
+   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 7;
     let startPage = Math.max(1, currentPage - Math.floor(totalVisiblePages / 2));
@@ -115,19 +132,21 @@ export default function BuyersActivities() {
     if (endPage < totalPages) pages.push(totalPages);
 
     return pages;
+
   };
+
+
 
   return (
     <div className="relative min-h-screen p-6">
       <PageBreadcrumbList
-        pageTitle={`Activities for ${name || "User"} (ID: ${userId || "N/A"})`}
-        pagePlacHolder="Filter activities by name, email, mobile, property ID, or date"
+        pageTitle={`Activities for ${user?.name || "User"} (ID: ${userId || "N/A"})`}
+        pagePlacHolder="Filter activities by name, email, mobile, property ID, type, or city"
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        {/* Integrate FilterBar with date filters and clear button */}
         <FilterBar
-          showDateFilters={true} // Enable date filters
+          showDateFilters={true}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onClearFilters={clearFilters}
@@ -135,7 +154,6 @@ export default function BuyersActivities() {
           endDate={endDate}
         />
 
-        {/* Display active filters */}
         {(startDate || endDate || filterValue) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
             Filters: Date: {startDate || "Any"} to {endDate || "Any"} | Search: {filterValue || "None"}
@@ -158,6 +176,12 @@ export default function BuyersActivities() {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
+                      Activity Type
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
                       Property ID
                     </TableCell>
                     <TableCell
@@ -166,6 +190,8 @@ export default function BuyersActivities() {
                     >
                       Property Name
                     </TableCell>
+                    
+                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -188,52 +214,70 @@ export default function BuyersActivities() {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
-                      Contacted Date
-                    </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Interested Status
+                      Date
                     </TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-200 dark:divide-white/[0.05]">
-                  {filteredActivities.length === 0 && (
+                  {loading && (
                     <TableRow>
                       <TableCell
+                        
+                        className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
+                      >
+                        Loading...
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {error && (
+                    <TableRow>
+                      <TableCell
+                       
+                        className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
+                      >
+                        Error: {error}
+                      </TableCell>
+                    </TableRow>
+                  )}
+                  {!loading && !error && filteredActivities.length === 0 && (
+                    <TableRow>
+                      <TableCell
+                     
                         className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
                       >
                         No activities found
                       </TableCell>
                     </TableRow>
                   )}
-                  {filteredActivities.length > 0 &&
-                    paginatedActivities.map((activity: any, index: number) => (
+                  {!loading &&
+                    !error &&
+                    filteredActivities.length > 0 &&
+                    paginatedActivities.map((activity, index) => (
                       <TableRow key={activity.id}>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {startIndex + index + 1}
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {activity.property_id || "N/A"}
+                          {activity.activityType}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {activity.property_id || activity.unique_property_id || "N/A"}
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {activity.property_name || "N/A"}
                         </TableCell>
+                        
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {activity.name || "N/A"}
+                          {activity.name || activity.userName || activity.fullname || "N/A"}
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {activity.email || "N/A"}
+                          {activity.email || activity.userEmail || "N/A"}
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {activity.mobile || "N/A"}
+                          {activity.mobile || activity.userMobile || "N/A"}
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {formatDate(activity.searched_on_date)}
-                        </TableCell>
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {activity.interested_status === 1 ? "Interested" : "Not Intersted"}
+                          {formatDate(activity.searched_on_date! || activity.created_date!) || "N/A"}
                         </TableCell>
                       </TableRow>
                     ))}
@@ -290,4 +334,6 @@ export default function BuyersActivities() {
       </div>
     </div>
   );
-}
+};
+
+export default UserActivities;
