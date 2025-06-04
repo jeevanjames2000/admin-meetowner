@@ -167,34 +167,10 @@ const MostSearchedLocations: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        {/* FilterBar for city */}
-        <div className="flex flex-col sm:flex-row justify-between gap-3">
-          <FilterBar
-            showUserTypeFilter={false}
-            showDateFilters={false}
-            showStateFilter={false}
-            showCityFilter={true}
-            userFilterOptions={[]}
-            onUserTypeChange={() => {}}
-            onStartDateChange={() => {}}
-            onEndDateChange={() => {}}
-            onStateChange={() => {}}
-            onCityChange={setCityFilter}
-            onClearFilters={clearFilters}
-            selectedUserType={null}
-            startDate={null}
-            endDate={null}
-            stateValue=""
-            cityValue={cityFilter}
-          />
-        </div>
+        
+        
 
-        {/* Display active filters */}
-        {(filterValue || cityFilter) && (
-          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: Search: {filterValue || "None"} | City: {cityFilter || "Any"}
-          </div>
-        )}
+    
 
         <ComponentCard title="Most Searched Locations">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">

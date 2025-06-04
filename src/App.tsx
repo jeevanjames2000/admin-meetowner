@@ -78,6 +78,8 @@ import ActiveUsersTable from "./components/ecommerce/ActiveUsersTable";
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, token,user } = useSelector((state: RootState) => state.auth);
+  const userType = user?.user_type;
+ 
 
 
   const tokenExpired = isTokenExpired(token);

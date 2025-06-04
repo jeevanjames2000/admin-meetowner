@@ -2,28 +2,24 @@ import { useEffect, useMemo, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchCurrentActiveUsers } from "../../store/slices/employeeUsers";
 import { RootState, AppDispatch } from "../../store/store";
-import { Table,TableBody,
-  TableCell,
-  TableHeader,
-  TableRow, } from "../ui/table";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "../ui/table";
 import Button from "../ui/button/Button";
 import ComponentCard from "../common/ComponentCard";
 import PageBreadcrumbList from "../common/PageBreadCrumbLists";
 import FilterBar from "../common/FilterBar";
 import { formatDate } from "../../hooks/FormatDate";
 
-
-
 export default function ActiveUsersTable() {
   const dispatch = useDispatch<AppDispatch>();
   const { activeUsers, activeUsersLoading, activeUsersError } = useSelector(
     (state: RootState) => state.employeeUsers
   );
- const userType = useSelector((state: RootState) => state.auth.user?.user_type);
+  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
+  const [cityValue, setCityValue] = useState<string>(""); // Added for city filter
 
   const itemsPerPage = 10;
 
@@ -37,9 +33,9 @@ export default function ActiveUsersTable() {
   // Reset page when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [startDate, endDate, filterValue]);
+  }, [startDate, endDate, filterValue, cityValue]);
 
-  // Filter active users based on search and date range
+  // Filter active users based on search, date range, and city
   const filteredUsers = useMemo(
     () =>
       activeUsers && Array.isArray(activeUsers)
@@ -57,14 +53,14 @@ export default function ActiveUsersTable() {
               .map((field) => field.toLowerCase())
               .some((field) => field.includes(filterValue.toLowerCase()));
 
-            // Date range filter (based on last_active)
+            
             let matchesDate = true;
             if (startDate || endDate) {
               if (!user.last_active) {
                 matchesDate = false;
               } else {
                 try {
-                  const userDate = user.last_active.split("T")[0]; // Extract YYYY-MM-DD
+                  const userDate = user.last_active.split("T")[0]; 
                   matchesDate =
                     (!startDate || userDate >= startDate) &&
                     (!endDate || userDate <= endDate);
@@ -74,10 +70,13 @@ export default function ActiveUsersTable() {
               }
             }
 
-            return matchesSearch && matchesDate;
+            // City filter
+            const matchesCity = !cityValue || user.city?.toLowerCase() === cityValue.toLowerCase();
+
+            return matchesSearch && matchesDate && matchesCity;
           })
         : [],
-    [activeUsers, filterValue, startDate, endDate]
+    [activeUsers, filterValue, startDate, endDate, cityValue]
   );
 
   const totalItems = filteredUsers.length;
@@ -143,6 +142,7 @@ export default function ActiveUsersTable() {
     setStartDate(null);
     setEndDate(null);
     setFilterValue("");
+    setCityValue(""); // Clear city filter
     setCurrentPage(1);
   };
 
@@ -161,24 +161,25 @@ export default function ActiveUsersTable() {
         <FilterBar
           showUserTypeFilter={false}
           showDateFilters={true}
-          showStateFilter={false}
-          showCityFilter={false}
+          showStateFilter={true}
+          showCityFilter={true} // Enable city filter
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
-          onStateChange={() => {}}
-          onCityChange={() => {}}
+          onStateChange={() => {}} // Not used
+          onCityChange={setCityValue} // Handle city changes
           onClearFilters={handleClearFilters}
           startDate={startDate}
           endDate={endDate}
           stateValue=""
-          cityValue=""
+          cityValue={cityValue}
         />
       </div>
 
-      {(startDate || endDate || filterValue) && (
+      {(startDate || endDate || filterValue || cityValue) && (
         <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
           Filters: Date: {startDate || "Any"} to {endDate || "Any"} | 
-          Search: {filterValue || "None"}
+          Search: {filterValue || "None"} | 
+          City: {cityValue || "None"}
         </div>
       )}
 
@@ -199,24 +200,30 @@ export default function ActiveUsersTable() {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
+                      User Id
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
                       Name
                     </TableCell>
-                     {userType === 1 && (
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Email
-                    </TableCell>
-                     )}
-                      {userType === 1 && (
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Mobile
-                    </TableCell>
-                      )}
+                    {userType === 1 && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Email
+                      </TableCell>
+                    )}
+                    {userType === 1 && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Mobile
+                      </TableCell>
+                    )}
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -256,19 +263,22 @@ export default function ActiveUsersTable() {
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {startIndex + index + 1}
                         </TableCell>
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {user.user_id || "N/A"}
+                        </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {user.name || "N/A"}
                         </TableCell>
-                         {userType === 1 && (
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {user.email || "N/A"}
-                        </TableCell>
-                         )}
-                          {userType === 1 && (
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {user.mobile}
-                        </TableCell>
-                          )}
+                        {userType === 1 && (
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {user.email || "N/A"}
+                          </TableCell>
+                        )}
+                        {userType === 1 && (
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {user.mobile}
+                          </TableCell>
+                        )}
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {user.city || "N/A"}
                         </TableCell>
@@ -298,7 +308,7 @@ export default function ActiveUsersTable() {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell  className="px-5 py-4 text-center text-gray-500">
+                      <TableCell className="px-5 py-4 text-center text-gray-500">
                         No active users found.
                       </TableCell>
                     </TableRow>

@@ -233,7 +233,7 @@ export default function BuyersActivities() {
                           {formatDate(activity.searched_on_date)}
                         </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {activity.interested_status === 2 ? "Interested" : "Not Interested"}
+                          {activity.interested_status === 1 ? "Interested" : "Not Intersted"}
                         </TableCell>
                       </TableRow>
                     ))}

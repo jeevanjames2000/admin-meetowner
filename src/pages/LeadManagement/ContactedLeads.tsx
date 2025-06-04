@@ -46,7 +46,7 @@ const ContactedLeads: React.FC = () => {
  
 
   useEffect(() => {
-    dispatch(fetchLeadsByContacted({})); // Pass an empty object since no filters are required
+    dispatch(fetchLeadsByContacted()); 
   }, [dispatch]);
 
   const formatDate = (dateString: string | null) => {

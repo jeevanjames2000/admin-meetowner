@@ -10,7 +10,7 @@ import {
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import { FaAd, FaBell,FaBusinessTime,FaUserTie,FaHouseUser,FaRegUser ,FaMapMarkerAlt, FaVideo    } from "react-icons/fa";
+import { FaAd, FaBell,FaBusinessTime,FaUserTie,FaHouseUser ,FaMapMarkerAlt, FaVideo    } from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { filterNavItemsByUserType, NavItem } from "../hooks/navFilter";
@@ -110,15 +110,15 @@ export const navItems: NavItem[] = [
     name: "Employees",
     icon: <FaUserTie />,
     subItems: [
-      { name: "Create Employee", path: "/create-employee", pro: false },
-      { name: "All Employees", path: "/all-employees", pro: false },
+      { name: "Create Employee", path: "/create-employee", },
+      { name: "All Employees", path: "/all-employees",  },
     ],
   },
   {
     name: "Projects",
     icon: <FaHouseUser />,
     subItems: [
-      { name: "Add Projects", path: "/projects/add-projects", pro: false },
+      { name: "Add Projects", path: "/projects/add-projects",},
       // { name: "All Projects", path: "/projects/all-projects", pro: false },
     ],
   },

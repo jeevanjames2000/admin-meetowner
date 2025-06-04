@@ -96,6 +96,7 @@ export default function EditUserDetails() {
 
   // Designation options
   const allDesignationOptions: Option[] = [
+    {value :"2",text:"User"},
     { value: "3", text: "Builder" },
     { value: "4", text: "Agent" },
     { value: "5", text: "Owner" },
@@ -103,13 +104,7 @@ export default function EditUserDetails() {
   ];
 
   const designationOptions: Option[] = (() => {
-    if (pageUserType === 7 || pageUserType === 9) {
-      return allDesignationOptions.filter((option) =>
-        ["3", "4", "6"].includes(option.value)
-      );
-    } else if (pageUserType === 1) {
-      return allDesignationOptions;
-    }
+    
     return allDesignationOptions;
   })();
 

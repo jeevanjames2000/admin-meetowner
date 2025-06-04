@@ -61,6 +61,7 @@ const AllEmployees: React.FC = () => {
   const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
   const [employeeToUpdateStatus, setEmployeeToUpdateStatus] = useState<{ employee: any; action: "Active" | "Suspend" } | null>(null);
   const itemsPerPage = 10;
+  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
 
   const transformedEmployees = useMemo(() => {
     return employees.map(emp => {
@@ -121,7 +122,7 @@ const AllEmployees: React.FC = () => {
 
   useEffect(() => {
     setCurrentPage(1);
-  }, [filterValue, selectedDesignation, startDate, endDate, cityFilter]); // Removed stateFilter from dependencies
+  }, [filterValue, selectedDesignation, startDate, endDate, cityFilter]); 
 
   const filteredEmployees = useMemo(() => {
     return transformedEmployees.filter((employee) => {
@@ -154,7 +155,7 @@ const AllEmployees: React.FC = () => {
         }
       }
 
-      // City filter (not state filter)
+     
       const matchesCity = !cityFilter || (employee.city.length > 0 && employee.city[0].toLowerCase() === cityFilter.toLowerCase());
 
       return matchesSearch && matchesDesignation && matchesDate && matchesCity;
@@ -338,15 +339,15 @@ const AllEmployees: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        {/* Integrate FilterBar with designation, date, state, and city filters */}
+      
         <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
           <FilterBar
-            showUserTypeFilter={true} // Use for designation filter
+            showUserTypeFilter={true} 
             showDateFilters={true}
-            showStateFilter={true} // State filter is enabled to fetch cities
+            showStateFilter={true} 
             showCityFilter={true}
-            userFilterOptions={designationOptions} // Pass designation options as user type options
-            onUserTypeChange={setSelectedDesignation} // Handle designation as user type
+            userFilterOptions={designationOptions} 
+            onUserTypeChange={setSelectedDesignation} 
             onStartDateChange={setStartDate}
             onEndDateChange={setEndDate}
             onStateChange={setStateFilter}
@@ -360,7 +361,7 @@ const AllEmployees: React.FC = () => {
           />
         </div>
 
-        {/* Display active filters (exclude state since it's not used for filtering) */}
+   
         {(filterValue || selectedDesignation || startDate || endDate || cityFilter) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
             Filters: Designation: {selectedDesignation || "All"} | 
@@ -405,7 +406,9 @@ const AllEmployees: React.FC = () => {
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">State</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Since</TableCell>
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Status</TableCell>
+                     {userType === 1 && (
                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                     )}
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -451,6 +454,7 @@ const AllEmployees: React.FC = () => {
                              employee.status === 3 ? "Deleted" : "Inactive"}
                           </span>
                         </TableCell>
+                      {userType === 1 &&(
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           <div className="relative" ref={(el) => el && dropdownRefs.current.set(employee.id, el)}>
                             <button
@@ -487,6 +491,7 @@ const AllEmployees: React.FC = () => {
                             )}
                           </div>
                         </TableCell>
+                        )}
                       </TableRow>
                     ))
                   )}

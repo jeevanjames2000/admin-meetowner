@@ -49,7 +49,7 @@ export default function BasicTableOne() {
   const { deleteError, deleteSuccess } = useSelector(
     (state: RootState) => state.userEdit
   );
-  const { states, cities } = useSelector((state: RootState) => state.places);
+
   const pageuserType = useSelector((state: RootState) => state.auth.user?.user_type);
 
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
@@ -304,7 +304,7 @@ export default function BasicTableOne() {
 
         <button
           type="submit"
-                     className="px-3 text-sm bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed  sm:w-auto"
+                     className="px-3 py-1 text-sm bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed  sm:w-auto"
           onClick={handleCreate}
         >
           Create user
@@ -406,12 +406,15 @@ export default function BasicTableOne() {
                     >
                       Status
                     </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
+                    {pageuserType === 1 && (
+                          <TableCell
+                            isHeader
+                            className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
                       Actions
                     </TableCell>
+                  )}
+                  
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -432,7 +435,7 @@ export default function BasicTableOne() {
                             <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
                               {user.name}
                             </span>
-                            <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                            <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
                               {userTypeMap[user.user_type] || "Unknown"}
                             </span>
                           </div>
@@ -490,6 +493,7 @@ export default function BasicTableOne() {
                             : "Inactive"}
                         </span>
                       </TableCell>
+                    {pageuserType === 1 && (
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                         <Button variant="outline" size="sm" onClick={() => toggleMenu(user.id)}>
                           <MoreVertical className="size-5 text-gray-500 dark:text-gray-400" />
@@ -521,6 +525,7 @@ export default function BasicTableOne() {
                           </div>
                         )}
                       </TableCell>
+                      )}
                     </TableRow>
                   ))}
                 </TableBody>

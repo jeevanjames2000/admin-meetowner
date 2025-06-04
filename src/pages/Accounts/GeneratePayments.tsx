@@ -1,5 +1,5 @@
 import { useEffect, useState, ChangeEvent, FormEvent, useMemo, useRef } from "react";
-import { useLocation, useNavigate } from "react-router";
+import {  useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllUsers } from "../../store/slices/users";
 import { RootState, AppDispatch } from "../../store/store";
@@ -91,7 +91,7 @@ export default function GeneratePayments() {
   const [cityFilter, setCityFilter] = useState<string>(""); // City filter for filtering users
   const [isStateDropdownOpen, setIsStateDropdownOpen] = useState<boolean>(false);
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  
 
   const itemsPerPage = 10;
   const packageOptions: SelectOption[] = [
@@ -460,7 +460,7 @@ export default function GeneratePayments() {
           />
            <button
             type="button"
-            className="px-3 text-sm bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed w-[50%] sm:w-auto"
+            className="px-3 py-1 text-sm bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed w-[50%] sm:w-auto"
             onClick={handleCreate}
           >
             Create  User
