@@ -139,7 +139,8 @@ export default function BasicTableOne() {
         ? users.filter((user) => {
             const searchableFields = [
               user.name,
-              ...(showMobileAndEmail ? [] : [user.mobile, user.email]),
+             user.mobile,
+              user.email,
               user.city,
               user.state,
               user.address,
