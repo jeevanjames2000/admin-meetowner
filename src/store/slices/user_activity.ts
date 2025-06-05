@@ -106,11 +106,11 @@ export const fetchUserActivity = createAsyncThunk(
         `/user/v1/getUserCompleteActivity?user_id=${userId}`
       );
 
-      toast.promise(promise, {
-        loading: "Fetching user activity...",
-        success: "User activity fetched successfully!",
-        error: "Failed to fetch user activity",
-      });
+      // toast.promise(promise, {
+      //   loading: "Fetching user activity...",
+      //   success: "User activity fetched successfully!",
+      //   error: "Failed to fetch user activity",
+      // });
 
       const response = await promise;
       return response.data;

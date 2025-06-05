@@ -8,7 +8,6 @@ import { BoxIconLine } from "../../icons";
 import { ArrowUpIcon, ArrowDownIcon } from "lucide-react";
 import Badge from "../ui/badge/Badge";
 import { useNavigate } from "react-router";
-
 const userTypeMap: { [key: string]: string } = {
   "1": "Admin",
   "2": "User",
@@ -18,7 +17,6 @@ const userTypeMap: { [key: string]: string } = {
   "6": "Channel Partner",
   Total: "Total",
 };
-
 const EmployeeTypeMap: { [key: string]: string } = {
   "1": "Admin",
   "7": "Manager",
@@ -27,12 +25,10 @@ const EmployeeTypeMap: { [key: string]: string } = {
   "10": "Customer Support",
   Total: "Total",
 };
-
 interface Option {
   value: number;
   text: string;
 }
-
 const designationOptions: Option[] = [
   { value: 1, text: "Admin" },
   { value: 7, text: "Manager" },
@@ -40,17 +36,14 @@ const designationOptions: Option[] = [
   { value: 9, text: "Marketing Executive" },
   { value: 10, text: "Customer Support" },
 ];
-
 interface UserCountItem {
   user_type: string;
   count: number;
 }
-
 interface EmployeeCountItem {
   user_type: string;
   count: number;
 }
-
 export default function Home() {
   const dispatch = useDispatch<AppDispatch>();
   const { userCounts, loading, error, user } = useSelector((state: RootState) => state.auth);
@@ -58,56 +51,40 @@ export default function Home() {
     (state: RootState) => state.employeeUsers
   );
   const navigate = useNavigate();
-
-  // Fetch user counts, employee counts, and active users
   useEffect(() => {
-    // Fetch user counts
+    console.log("loop");
     if (!userCounts && !loading && !error) {
       dispatch(getAllUsersCount());
     }
-
-    // Fetch employee counts
     if (!employeeCounts && !countsLoading && !countsError) {
       dispatch(fetchEmployeeCounts());
     }
-
-    // Fetch active users
     if (!activeUsers.length && !activeUsersLoading && !activeUsersError) {
       dispatch(fetchCurrentActiveUsers());
     }
   }, [
-    userCounts, loading, error,
-    employeeCounts, countsLoading, countsError,
-    activeUsers, activeUsersLoading, activeUsersError,
     dispatch
   ]);
-
   const handleCardClick = (item: UserCountItem) => {
     if (item.user_type !== "Total") {
       navigate(`/basic-tables-one?userType=${item.user_type}`);
     }
   };
-
   const handleActiveCardClick = () => {
      navigate('/activeusers');
   }
-
   const handleEmployeeCardClick = (item: EmployeeCountItem) => {
     if (item.user_type !== "Total") {
       navigate(`/basic-tables-employees?userType=${item.user_type}`);
     }
   };
-
   const getDesignationText = (userType: number | undefined): string => {
     const designation = designationOptions.find((option) => option.value === userType);
     return designation ? designation.text : "Unknown Designation";
   };
-
-  // Show loading or error states
   if (loading || countsLoading || activeUsersLoading) {
     return <div className="p-6">Loading...</div>;
   }
-
   if (error || countsError || activeUsersError) {
     return (
       <div className="p-6 text-red-500">
@@ -115,14 +92,12 @@ export default function Home() {
       </div>
     );
   }
-
   return (
     <div className="p-6">
       <h1 className="mb-4 text-2xl font-semibold text-[#1D3A76] dark:text-white">
         Welcome {user?.name || "User"}! Your role is {getDesignationText(user?.user_type)}
       </h1>
       <div className="flex flex-col sm:flex-row gap-6 mb-6">
-     
         <div  onClick={() => handleActiveCardClick()}
           className="w-full sm:w-[20%] rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800
            dark:bg-white/[0.03] md:p-6 transition-shadow duration-200 cursor-pointer hover:shadow-lg"
@@ -141,15 +116,11 @@ export default function Home() {
             </div>
           </div>
         </div>
-
-       
-       
       </div>
       <h1 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white">
         Dashboard
       </h1>
-
-      {/* Row for Non-Employee User Types */}
+      {}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {userCounts && userCounts.length > 0 ? (
           userCounts.map((item, index) => (
@@ -189,8 +160,7 @@ export default function Home() {
           </p>
         )}
       </div>
-
-      {/* Row for Employees */}
+      {}
       {employeeCounts && employeeCounts.length > 0 && (
         <div className="mt-6">
           <h2 className="m-4 text-2xl font-semibold text-gray-800 dark:text-white underline decoration-[#1D3A76] dark:decoration-white">

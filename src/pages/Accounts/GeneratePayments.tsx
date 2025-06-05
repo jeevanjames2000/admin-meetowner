@@ -428,7 +428,14 @@ export default function GeneratePayments() {
   if (loading) return <div>Loading users...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!users || users.length === 0) return <div>No users found.</div>;
-
+  const hideUserDetails = (mobile, user_type) => {
+    const isBuyer = user_type === 2;
+    if (isBuyer && pageuserType !== 1) {
+      return `${mobile?.slice(0, 3)}xxxxxxx`;
+    }
+    return mobile;
+  };
+  
   return (
     <div className="relative min-h-screen">
       <PageBreadcrumbList
@@ -501,22 +508,22 @@ export default function GeneratePayments() {
                     >
                       User
                     </TableCell>
-                    {canShowMobileAndEmail && (
+                    
                       <TableCell
                         isHeader
                         className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                       >
                         Mobile
                       </TableCell>
-                    )}
-                    {canShowMobileAndEmail && (
+                  
+                   
                       <TableCell
                         isHeader
                         className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                       >
                         Email
                       </TableCell>
-                    )}
+                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -551,12 +558,6 @@ export default function GeneratePayments() {
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {paginatedUsers.map((user, index) => {
-                    const showMobileAndEmail =
-                      pageuserType === 1 ||
-                      (pageuserType !== null &&
-                       pageuserType !== undefined &&
-                       [7, 8, 9].includes(pageuserType) &&
-                       user.user_type !== 2);
                     return (
                       <TableRow key={user.id}>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
@@ -577,16 +578,17 @@ export default function GeneratePayments() {
                             </div>
                           </div>
                         </TableCell>
-                        {showMobileAndEmail && (
+                        
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {user.mobile}
+                            {hideUserDetails(user.mobile,user.user_type)}
                           </TableCell>
-                        )}
-                        {showMobileAndEmail && (
+                        
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {user.email}
+                         
+                          {hideUserDetails(user.email,user.user_type)}
+
                           </TableCell>
-                        )}
+                      
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {user.city}
                         </TableCell>

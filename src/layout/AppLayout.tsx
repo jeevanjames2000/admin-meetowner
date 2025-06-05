@@ -22,7 +22,7 @@ const LayoutContent: React.FC = () => {
         <AppHeader />
         <div className="p-4 mx-auto max-w-(--breakpoint-2xl) md:p-6">
           <Outlet />
-          <Toaster position="top-right" toastOptions={{ duration: 3000, style: { zIndex: 9999 } }} />
+          {/* <Toaster position="top-right" toastOptions={{ duration: 3000, style: { zIndex: 9999 } }} /> */}
         </div>
       </div>
     </div>

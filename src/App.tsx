@@ -74,6 +74,7 @@ import MostViewedDetailsPage from "./pages/LeadManagement/MostViewedLeadsDetails
 import MostSearchedLocations from "./pages/LeadManagement/MostSearchedLocations";
 import MostSearchedDetail from "./pages/LeadManagement/MostSearchedDetails";
 import ActiveUsersTable from "./components/ecommerce/ActiveUsersTable";
+import { Toaster } from "react-hot-toast";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
@@ -720,6 +721,9 @@ export default function App() {
             <Route path="/signup" element={<SignUp />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
+          <Toaster position="top-right" toastOptions={{ duration: 3000, style: { zIndex: 9999 }, }}
+            containerStyle={{ top: '5rem' }} />
+
         </ServerStatusCheck>
        
       </Router>

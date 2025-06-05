@@ -8,7 +8,6 @@ import ComponentCard from "../common/ComponentCard";
 import PageBreadcrumbList from "../common/PageBreadCrumbLists";
 import FilterBar from "../common/FilterBar";
 import { formatDate } from "../../hooks/FormatDate";
-
 export default function ActiveUsersTable() {
   const dispatch = useDispatch<AppDispatch>();
   const { activeUsers, activeUsersLoading, activeUsersError } = useSelector(
@@ -19,28 +18,20 @@ export default function ActiveUsersTable() {
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-  const [cityValue, setCityValue] = useState<string>(""); // Added for city filter
-
+  const [cityValue, setCityValue] = useState<string>("");
   const itemsPerPage = 10;
-
-  // Fetch active users
   useEffect(() => {
     if (!activeUsers.length && !activeUsersLoading && !activeUsersError) {
       dispatch(fetchCurrentActiveUsers());
     }
-  }, [activeUsers, activeUsersLoading, activeUsersError, dispatch]);
-
-  // Reset page when filters change
+  }, [dispatch]);
   useEffect(() => {
     setCurrentPage(1);
   }, [startDate, endDate, filterValue, cityValue]);
-
-  // Filter active users based on search, date range, and city
   const filteredUsers = useMemo(
     () =>
       activeUsers && Array.isArray(activeUsers)
         ? activeUsers.filter((user) => {
-            // Search filter
             const searchableFields = [
               user.mobile,
               user.device_type,
@@ -52,8 +43,6 @@ export default function ActiveUsersTable() {
               .filter((field): field is string => field !== null && field !== undefined)
               .map((field) => field.toLowerCase())
               .some((field) => field.includes(filterValue.toLowerCase()));
-
-            
             let matchesDate = true;
             if (startDate || endDate) {
               if (!user.last_active) {
@@ -69,43 +58,33 @@ export default function ActiveUsersTable() {
                 }
               }
             }
-
-            // City filter
             const matchesCity = !cityValue || user.city?.toLowerCase() === cityValue.toLowerCase();
-
             return matchesSearch && matchesDate && matchesCity;
           })
         : [],
     [activeUsers, filterValue, startDate, endDate, cityValue]
   );
-
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
-
   const goToPage = (page: number) => {
     setCurrentPage(page);
   };
-
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
-
     if (totalPages <= totalVisiblePages + 2) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -113,42 +92,33 @@ export default function ActiveUsersTable() {
     } else {
       let start = Math.max(2, currentPage - 2);
       let end = Math.min(totalPages - 1, currentPage + 2);
-
       if (currentPage <= 3) {
         start = 2;
         end = 5;
       }
-
       if (currentPage >= totalPages - 2) {
         start = totalPages - 4;
         end = totalPages - 1;
       }
-
       pages.push(1);
       if (start > 2) pages.push("...");
-
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-
       if (end < totalPages - 1) pages.push("...");
       if (totalPages > 1) pages.push(totalPages);
     }
-
     return pages;
   };
-
   const handleClearFilters = () => {
     setStartDate(null);
     setEndDate(null);
     setFilterValue("");
-    setCityValue(""); // Clear city filter
+    setCityValue("");
     setCurrentPage(1);
   };
-
   if (activeUsersLoading) return <div className="p-6">Loading active users...</div>;
   if (activeUsersError) return <div className="p-6 text-red-500">Error: {activeUsersError}</div>;
-
   return (
     <div className="relative min-h-screen p-6">
       <PageBreadcrumbList
@@ -156,17 +126,16 @@ export default function ActiveUsersTable() {
         pagePlacHolder="Filter by mobile, device type, name, email, or city"
         onFilter={handleFilter}
       />
-
       <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
         <FilterBar
           showUserTypeFilter={false}
           showDateFilters={true}
           showStateFilter={true}
-          showCityFilter={true} // Enable city filter
+          showCityFilter={true}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
-          onStateChange={() => {}} // Not used
-          onCityChange={setCityValue} // Handle city changes
+          onStateChange={() => {}}
+          onCityChange={setCityValue}
           onClearFilters={handleClearFilters}
           startDate={startDate}
           endDate={endDate}
@@ -174,7 +143,6 @@ export default function ActiveUsersTable() {
           cityValue={cityValue}
         />
       </div>
-
       {(startDate || endDate || filterValue || cityValue) && (
         <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
           Filters: Date: {startDate || "Any"} to {endDate || "Any"} | 
@@ -182,7 +150,6 @@ export default function ActiveUsersTable() {
           City: {cityValue || "None"}
         </div>
       )}
-
       <div className="space-y-6">
         <ComponentCard title="Active Users Table">
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -317,7 +284,6 @@ export default function ActiveUsersTable() {
               </Table>
             </div>
           </div>
-
           {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
