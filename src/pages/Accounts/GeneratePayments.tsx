@@ -1,5 +1,12 @@
-import { useEffect, useState, ChangeEvent, FormEvent, useMemo, useRef } from "react";
-import {  useNavigate } from "react-router";
+import {
+  useEffect,
+  useState,
+  ChangeEvent,
+  FormEvent,
+  useMemo,
+  useRef,
+} from "react";
+import { useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllUsers } from "../../store/slices/users";
 import { RootState, AppDispatch } from "../../store/store";
@@ -18,9 +25,9 @@ import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
 import axios from "axios";
-import FilterBar from "../../components/common/FilterBar"; // Import FilterBar
+import FilterBar from "../../components/common/FilterBar";
 import { fetchAllCities, fetchAllStates } from "../../store/slices/places";
-
+import toast from "react-hot-toast";
 const userTypeMap: { [key: number]: string } = {
   2: "User",
   3: "Builder",
@@ -28,12 +35,10 @@ const userTypeMap: { [key: number]: string } = {
   5: "Owner",
   6: "Channel Partner",
 };
-
 interface SelectOption {
   value: string;
   label: string;
 }
-
 interface FormData {
   user_id: string;
   amount: string;
@@ -45,16 +50,16 @@ interface FormData {
   userType: string;
   package: string;
 }
-
 const formatDate = (dateString: string): string => {
   const date = new Date(dateString);
   return date.toISOString().split("T")[0];
 };
-
 export default function GeneratePayments() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { users, loading, error } = useSelector((state: RootState) => state.users);
+  const { users, loading, error } = useSelector(
+    (state: RootState) => state.users
+  );
   const {
     states,
     statesLoading,
@@ -63,8 +68,9 @@ export default function GeneratePayments() {
     citiesLoading,
     citiesError,
   } = useSelector((state: RootState) => state.places);
-  const pageuserType = useSelector((state: RootState) => state.auth.user?.user_type);
-
+  const pageuserType = useSelector(
+    (state: RootState) => state.auth.user?.user_type
+  );
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
@@ -87,35 +93,27 @@ export default function GeneratePayments() {
   const [paymentLink, setPaymentLink] = useState<string>("");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
-  const [stateFilter, setStateFilter] = useState<string>(""); // State filter for fetching cities
-  const [cityFilter, setCityFilter] = useState<string>(""); // City filter for filtering users
-  const [isStateDropdownOpen, setIsStateDropdownOpen] = useState<boolean>(false);
+  const [stateFilter, setStateFilter] = useState<string>("");
+  const [cityFilter, setCityFilter] = useState<string>("");
+  const [isStateDropdownOpen, setIsStateDropdownOpen] =
+    useState<boolean>(false);
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
-  
-
   const itemsPerPage = 10;
   const packageOptions: SelectOption[] = [
     { value: "Basic", label: "Basic" },
     { value: "Prime", label: "Prime" },
     { value: "Prime Plus", label: "Prime Plus" },
-    { value: "Custom", label: "Custom" },
   ];
-
-  // Determine if Mobile and Email columns should be shown in the header
   const canShowMobileAndEmail =
     pageuserType === 1 ||
     (pageuserType !== null &&
-     pageuserType !== undefined &&
-     [7, 8, 9].includes(pageuserType) &&
-     selectedUserType !== "User");
-
-  // Fetch states and users
+      pageuserType !== undefined &&
+      [7, 8, 9].includes(pageuserType) &&
+      selectedUserType !== "User");
   useEffect(() => {
     dispatch(fetchAllStates());
     dispatch(fetchAllUsers());
   }, [dispatch]);
-
-  // Fetch cities when state changes or on popup open
   useEffect(() => {
     if (formData.state) {
       dispatch(fetchAllCities({ state: formData.state }));
@@ -123,8 +121,6 @@ export default function GeneratePayments() {
       dispatch(fetchAllCities());
     }
   }, [dispatch, formData.state]);
-
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutsideDropdowns = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -140,12 +136,9 @@ export default function GeneratePayments() {
       document.removeEventListener("mousedown", handleClickOutsideDropdowns);
     };
   }, []);
-
-  // Reset pagination when filters change
   useEffect(() => {
     setCurrentPage(1);
-  }, [selectedUserType, startDate, endDate, cityFilter, filterValue]); // Removed stateFilter from dependencies
-
+  }, [selectedUserType, startDate, endDate, cityFilter, filterValue]);
   const filteredUsers = useMemo(
     () =>
       users && Array.isArray(users)
@@ -160,15 +153,16 @@ export default function GeneratePayments() {
               user.designation,
             ];
             const matchesSearch = searchableFields
-              .filter((field): field is string => field !== null && field !== undefined)
+              .filter(
+                (field): field is string =>
+                  field !== null && field !== undefined
+              )
               .map((field) => field.toLowerCase())
               .some((field) => field.includes(filterValue.toLowerCase()));
-
             const matchesUserType =
               selectedUserType === null ||
               selectedUserType === "" ||
               userTypeMap[user.user_type] === selectedUserType;
-
             let matchesDate = true;
             if (startDate || endDate) {
               if (!user.created_date) {
@@ -184,36 +178,32 @@ export default function GeneratePayments() {
                 }
               }
             }
-
-            // City filter (not state filter)
-            const matchesCity = !cityFilter || (user.city && user.city.toLowerCase() === cityFilter.toLowerCase());
-
-            return matchesSearch && matchesUserType && matchesDate && matchesCity;
+            const matchesCity =
+              !cityFilter ||
+              (user.city &&
+                user.city.toLowerCase() === cityFilter.toLowerCase());
+            return (
+              matchesSearch && matchesUserType && matchesDate && matchesCity
+            );
           })
         : [],
     [users, filterValue, selectedUserType, startDate, endDate, cityFilter]
   );
-
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-
   const toggleMenu = (id: number) => {
     setActiveMenu(activeMenu === id ? null : id);
   };
-
   const handleCreate = () => {
     navigate("/accounts/create-new-user");
   };
-
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
-
-  // Clear all filters
   const clearFilters = () => {
     setSelectedUserType(null);
     setStartDate(null);
@@ -223,19 +213,15 @@ export default function GeneratePayments() {
     setFilterValue("");
     setCurrentPage(1);
   };
-
   const goToPage = (page: number) => {
     setCurrentPage(page);
   };
-
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
@@ -264,7 +250,6 @@ export default function GeneratePayments() {
     }
     return pages;
   };
-
   const openPopup = (user: any) => {
     setSelectedUser(user);
     setFormData({
@@ -286,62 +271,60 @@ export default function GeneratePayments() {
       dispatch(fetchAllCities({ state: user.state }));
     }
   };
-
   const closePopup = () => {
     setShowPopup(false);
     setSelectedUser(null);
     setActiveMenu(null);
   };
-
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setErrors((prev) => ({ ...prev, [name]: "" }));
     setApiError("");
   };
-
-  const handleSelectChange = (name: keyof FormData) => async (value: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      [name]: value,
-      amount: value === "Custom" ? "" : prev.amount,
-    }));
-    setErrors((prev) => ({ ...prev, [name]: "" }));
-    setApiError("");
-    if (name === "package" && value !== "Custom") {
-      try {
-        const { state, city, userType } = formData;
-        if (!state || !city || !userType) {
-          return setApiError("State, city, and user type are required to fetch pricing");
-        }
-
-        const apiUserType = userType.toLowerCase().replace(" ", "_");
-
-        const response = await axios.get(
-          `https://api.meetowner.in/packages/v1/getPackagePrice`,
-          {
-            params: {
-              package_for: apiUserType,
-              packageName: value.toLowerCase().replace(" ", " "),
-              city,
-            },
+  const handleSelectChange =
+    (name: keyof FormData) => async (value: string) => {
+      setFormData((prev) => ({
+        ...prev,
+        [name]: value,
+        amount: value === "Custom" ? "" : prev.amount,
+      }));
+      setErrors((prev) => ({ ...prev, [name]: "" }));
+      setApiError("");
+      if (name === "package" && value !== "Custom") {
+        try {
+          const { state, city, userType } = formData;
+          if (!state || !city || !userType) {
+            return setApiError(
+              "State, city, and user type are required to fetch pricing"
+            );
           }
-        );
-        if (response.data?.price) {
-          setFormData((prev) => ({
-            ...prev,
-            amount: response.data.price.toString(),
-          }));
-        } else {
-          setApiError("Price not found for selected package, state, and city");
+          const apiUserType = userType.toLowerCase().replace(" ", "_");
+          const response = await axios.get(
+            `https://api.meetowner.in/packages/v1/getPackagePrice`,
+            {
+              params: {
+                package_for: apiUserType,
+                packageName: value.toLowerCase().replace(" ", " "),
+                city,
+              },
+            }
+          );
+          if (response.data?.price) {
+            setFormData((prev) => ({
+              ...prev,
+              amount: response.data.price.toString(),
+            }));
+          } else {
+            setApiError(
+              "Price not found for selected package, state, and city"
+            );
+          }
+        } catch (err: any) {
+          setApiError("Failed to fetch price from server");
         }
-      } catch (err: any) {
-        console.error("Price fetch error:", err);
-        setApiError("Failed to fetch price from server");
       }
-    }
-  };
-
+    };
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
     if (!formData.package) {
@@ -371,7 +354,6 @@ export default function GeneratePayments() {
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setApiError("");
@@ -379,10 +361,42 @@ export default function GeneratePayments() {
     if (!validateForm()) {
       return;
     }
+    const apiURL = "https://api.meetowner.in";
+
+    try {
+      const checkResponse = await fetch(
+        `${apiURL}/payments/checkSubscription`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            user_id: formData.user_id,
+            city: formData?.city || "",
+          }),
+        }
+      );
+      const checkData = await checkResponse.json();
+      if (!checkData.success) {
+        return;
+      }
+      const { isSubscriptionActive, payment_status } = checkData;
+      if (payment_status === "processing") {
+        toast.error("Your plan is in processing. Please wait.");
+        return;
+      }
+      if (isSubscriptionActive) {
+        toast.error("You already have an active subscription.");
+        return;
+      }
+    } catch (error) {
+      toast.error("Error checking subscription status. Please try again.");
+      return;
+    }
     const payload = {
       amount: parseFloat(formData.amount),
       currency: "INR",
       user_id: parseInt(formData.user_id),
+      user_type: formData?.userType || "N/A",
       name: formData.name,
       mobile: formData.mobile,
       email: formData.email,
@@ -393,7 +407,7 @@ export default function GeneratePayments() {
     };
     try {
       const response = await axios.post(
-        "https://api.meetowner.in/payments/createPaymentLink",
+        `${apiURL}/payments/createPaymentLink`,
         payload,
         {
           headers: { "Content-Type": "application/json" },
@@ -408,7 +422,6 @@ export default function GeneratePayments() {
         setApiError(response.data.message || "Failed to generate payment link");
       }
     } catch (error) {
-      console.error("CreatePaymentLink API error:", error);
       setApiError(
         (error as any).response?.data?.message ||
           (error as any).message ||
@@ -416,7 +429,6 @@ export default function GeneratePayments() {
       );
     }
   };
-
   const userFilterOptions: SelectOption[] = [
     { value: "", label: "All Users" },
     ...Object.entries(userTypeMap).map(([key, value]) => ({
@@ -424,7 +436,6 @@ export default function GeneratePayments() {
       label: value,
     })),
   ];
-
   if (loading) return <div>Loading users...</div>;
   if (error) return <div>Error: {error}</div>;
   if (!users || users.length === 0) return <div>No users found.</div>;
@@ -435,7 +446,6 @@ export default function GeneratePayments() {
     }
     return mobile;
   };
-  
   return (
     <div className="relative min-h-screen">
       <PageBreadcrumbList
@@ -443,14 +453,12 @@ export default function GeneratePayments() {
         pagePlacHolder="Filter users by name, mobile, email, city, state, address, or designation"
         onFilter={handleFilter}
       />
-      
       <div className="space-y-6">
-     
         <div className="flex flex-col sm:flex-row justify-between gap-3">
           <FilterBar
             showUserTypeFilter={true}
             showDateFilters={true}
-            showStateFilter={true} // State filter is enabled to fetch cities
+            showStateFilter={true}
             showCityFilter={true}
             userFilterOptions={userFilterOptions}
             onUserTypeChange={setSelectedUserType}
@@ -465,27 +473,28 @@ export default function GeneratePayments() {
             stateValue={stateFilter}
             cityValue={cityFilter}
           />
-           <button
+          <button
             type="button"
             className="px-3 py-1 text-sm bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed w-[50%] sm:w-auto"
             onClick={handleCreate}
           >
-            Create  User
+            Create User
           </button>
-         
         </div>
-
-        {/* Display active filters (exclude state since it's not used for filtering) */}
-        {(selectedUserType || startDate || endDate || cityFilter || filterValue) && (
+        {}
+        {(selectedUserType ||
+          startDate ||
+          endDate ||
+          cityFilter ||
+          filterValue) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: User Type: {selectedUserType || "All"} | Date: {startDate || "Any"} to{" "}
-            {endDate || "Any"} | City: {cityFilter || "Any"} | Search: {filterValue || "None"}
+            Filters: User Type: {selectedUserType || "All"} | Date:{" "}
+            {startDate || "Any"} to {endDate || "Any"} | City:{" "}
+            {cityFilter || "Any"} | Search: {filterValue || "None"}
           </div>
         )}
-         
         <ComponentCard title="All Users Table">
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-          
             <div className="max-w-full overflow-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
@@ -508,22 +517,18 @@ export default function GeneratePayments() {
                     >
                       User
                     </TableCell>
-                    
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        Mobile
-                      </TableCell>
-                  
-                   
-                      <TableCell
-                        isHeader
-                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                      >
-                        Email
-                      </TableCell>
-                   
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Mobile
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Email
+                    </TableCell>
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -578,17 +583,12 @@ export default function GeneratePayments() {
                             </div>
                           </div>
                         </TableCell>
-                        
-                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {hideUserDetails(user.mobile,user.user_type)}
-                          </TableCell>
-                        
-                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                         
-                          {hideUserDetails(user.email,user.user_type)}
-
-                          </TableCell>
-                      
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {hideUserDetails(user.mobile, user.user_type)}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {hideUserDetails(user.email, user.user_type)}
+                        </TableCell>
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {user.city}
                         </TableCell>
@@ -708,7 +708,9 @@ export default function GeneratePayments() {
             </h2>
             <form onSubmit={handleSubmit} className="space-y-4">
               {apiError && (
-                <p className="text-sm text-red-600 dark:text-red-400">{apiError}</p>
+                <p className="text-sm text-red-600 dark:text-red-400">
+                  {apiError}
+                </p>
               )}
               {paymentLink && (
                 <div className="text-sm text-green-600 dark:text-green-400">
@@ -732,7 +734,12 @@ export default function GeneratePayments() {
                     name="state"
                     value={formData.state}
                     onChange={(e) => {
-                      setFormData((prev) => ({ ...prev, state: e.target.value, city: "", amount: "" }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        state: e.target.value,
+                        city: "",
+                        amount: "",
+                      }));
                       setErrors((prev) => ({ ...prev, state: "", city: "" }));
                     }}
                     onClick={() => setIsStateDropdownOpen(true)}
@@ -748,13 +755,20 @@ export default function GeneratePayments() {
                     disabled={statesLoading}
                   >
                     <svg
-                      className={`w-4 h-4 transform ${isStateDropdownOpen ? "rotate-180" : ""}`}
+                      className={`w-4 h-4 transform ${
+                        isStateDropdownOpen ? "rotate-180" : ""
+                      }`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </button>
                   {isStateDropdownOpen && states.length > 0 && (
@@ -763,9 +777,18 @@ export default function GeneratePayments() {
                         <li
                           key={state.name}
                           onClick={() => {
-                            setFormData((prev) => ({ ...prev, state: state.name, city: "", amount: "" }));
+                            setFormData((prev) => ({
+                              ...prev,
+                              state: state.name,
+                              city: "",
+                              amount: "",
+                            }));
                             setIsStateDropdownOpen(false);
-                            setErrors((prev) => ({ ...prev, state: "", city: "" }));
+                            setErrors((prev) => ({
+                              ...prev,
+                              state: "",
+                              city: "",
+                            }));
                             dispatch(fetchAllCities({ state: state.name }));
                           }}
                           className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
@@ -776,10 +799,14 @@ export default function GeneratePayments() {
                     </ul>
                   )}
                   {statesError && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{statesError}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {statesError}
+                    </p>
                   )}
                   {errors.state && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.state}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {errors.state}
+                    </p>
                   )}
                 </div>
               </div>
@@ -792,7 +819,11 @@ export default function GeneratePayments() {
                     name="city"
                     value={formData.city}
                     onChange={(e) => {
-                      setFormData((prev) => ({ ...prev, city: e.target.value, amount: "" }));
+                      setFormData((prev) => ({
+                        ...prev,
+                        city: e.target.value,
+                        amount: "",
+                      }));
                       setErrors((prev) => ({ ...prev, city: "" }));
                     }}
                     onClick={() => setIsCityDropdownOpen(true)}
@@ -808,13 +839,20 @@ export default function GeneratePayments() {
                     disabled={citiesLoading || !formData.state}
                   >
                     <svg
-                      className={`w-4 h-4 transform ${isCityDropdownOpen ? "rotate-180" : ""}`}
+                      className={`w-4 h-4 transform ${
+                        isCityDropdownOpen ? "rotate-180" : ""
+                      }`}
                       fill="none"
                       stroke="currentColor"
                       viewBox="0 0 24 24"
                       xmlns="http://www.w3.org/2000/svg"
                     >
-                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M19 9l-7 7-7-7"
+                      />
                     </svg>
                   </button>
                   {isCityDropdownOpen && cities.length > 0 && (
@@ -823,10 +861,16 @@ export default function GeneratePayments() {
                         <li
                           key={city.name}
                           onClick={() => {
-                            setFormData((prev) => ({ ...prev, city: city.name }));
+                            setFormData((prev) => ({
+                              ...prev,
+                              city: city.name,
+                            }));
                             setIsCityDropdownOpen(false);
                             setErrors((prev) => ({ ...prev, city: "" }));
-                            if (formData.package && formData.package !== "Custom") {
+                            if (
+                              formData.package &&
+                              formData.package !== "Custom"
+                            ) {
                               handleSelectChange("package")(formData.package);
                             }
                           }}
@@ -838,10 +882,14 @@ export default function GeneratePayments() {
                     </ul>
                   )}
                   {citiesError && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{citiesError}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {citiesError}
+                    </p>
                   )}
                   {errors.city && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.city}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {errors.city}
+                    </p>
                   )}
                 </div>
               </div>
@@ -855,7 +903,9 @@ export default function GeneratePayments() {
                   className="dark:bg-dark-900"
                 />
                 {errors.package && (
-                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.package}</p>
+                  <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                    {errors.package}
+                  </p>
                 )}
               </div>
               {formData.package && (
@@ -866,17 +916,27 @@ export default function GeneratePayments() {
                     id="amount"
                     name="amount"
                     value={formData.amount}
-                    onChange={formData.package === "Custom" ? handleInputChange : undefined}
+                    onChange={
+                      formData.package === "Custom"
+                        ? handleInputChange
+                        : undefined
+                    }
                     className={`dark:bg-dark-900 ${
-                      formData.package !== "Custom" ? "bg-gray-100 cursor-not-allowed" : ""
+                      formData.package !== "Custom"
+                        ? "bg-gray-100 cursor-not-allowed"
+                        : ""
                     }`}
                     placeholder={
-                      formData.package === "Custom" ? "Enter custom amount" : "Amount set by package"
+                      formData.package === "Custom"
+                        ? "Enter custom amount"
+                        : "Amount set by package"
                     }
                     disabled={formData.package !== "Custom"}
                   />
                   {errors.amount && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.amount}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {errors.amount}
+                    </p>
                   )}
                 </div>
               )}
@@ -893,7 +953,9 @@ export default function GeneratePayments() {
                     placeholder="Enter user email"
                   />
                   {errors.email && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.email}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {errors.email}
+                    </p>
                   )}
                 </div>
               )}
@@ -910,12 +972,18 @@ export default function GeneratePayments() {
                     placeholder="Enter 10-digit mobile number"
                   />
                   {errors.mobile && (
-                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">{errors.mobile}</p>
+                    <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                      {errors.mobile}
+                    </p>
                   )}
                 </div>
               )}
               <div className="flex justify-end gap-4">
-                <Button variant="outline" onClick={closePopup} className="px-4 py-2">
+                <Button
+                  variant="outline"
+                  onClick={closePopup}
+                  className="px-4 py-2"
+                >
                   Cancel
                 </Button>
                 <Button className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700">
