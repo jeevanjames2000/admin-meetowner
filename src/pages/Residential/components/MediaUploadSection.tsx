@@ -1,181 +1,191 @@
-import React, { ChangeEvent, useState } from "react";
-import { FaPlay, FaTrash } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import { FaTrash } from "react-icons/fa";
+import axios from "axios";
+import toast from "react-hot-toast";
+import { useSelector } from "react-redux";
+import { RootState } from "../../../store/store";
 
 interface MediaUploadSectionProps {
-  photos: File[];
-  setPhotos: (photos: File[]) => void;
-  video: File | null;
-  setVideo: (video: File | null) => void;
-  floorPlan: File | null;
-  setFloorPlan: (floorPlan: File | null) => void;
-  featuredImageIndex: number | null;
-  setFeaturedImageIndex: (index: number | null) => void;
-  photoError?: string; // New prop for photo error from parent
-  videoError?: string; // New prop for video error from parent
-  floorPlanError?: string; // New prop for floor plan error from parent
-  featuredImageError?: string; // New prop for featured image error from parent
+  unique_property_id: string;
 }
 
-const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
-  photos,
-  setPhotos,
-  video,
-  setVideo,
-  floorPlan,
-  setFloorPlan,
-  featuredImageIndex,
-  setFeaturedImageIndex,
-  photoError,
-  videoError,
-  floorPlanError,
-  featuredImageError,
-}) => {
-  const [localPhotoErrors, setLocalPhotoErrors] = useState<string[]>([]);
-  const [localVideoError, setLocalVideoError] = useState<string>("");
-  const [localFloorPlanError, setLocalFloorPlanError] = useState<string>("");
+interface ApiImage {
+  id: number;
+  url: string;
+}
 
-  const handlePhotoUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const files = Array.from(e.target.files || []);
-    const newPhotos: File[] = [];
-    const errors: string[] = [];
+interface ApiVideo {
+  id: number;
+  url: string;
+  type: string;
+}
 
-    files.forEach((file, index) => {
-      const validTypes = ["image/jpeg", "image/jpg", "image/png"];
-      if (!validTypes.includes(file.type)) {
-        errors[index] = "Only JPG, JPEG, and PNG files are allowed.";
+const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({ unique_property_id }) => {
+  const [apiPhotos, setApiPhotos] = useState<ApiImage[]>([]);
+  const [apiVideo, setApiVideo] = useState<ApiVideo | null>(null);
+  const [apiFloorPlan, setApiFloorPlan] = useState<ApiImage | null>(null);
+  const [featuredImageIndex, setFeaturedImageIndex] = useState<number | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
+  const { user } = useSelector((state: RootState) => state.auth);
+
+  // Fetch media from APIs when component mounts or unique_property_id changes
+  useEffect(() => {
+    const fetchMedia = async () => {
+      setLoading(true);
+      try {
+        // Fetch photos
+        const photosResponse = await axios.get(
+          `https://api.meetowner.in/property/getpropertyphotos?unique_property_id=${unique_property_id}`
+        );
+        if (photosResponse.data.status === "success") {
+          setApiPhotos(photosResponse.data.images);
+          setFeaturedImageIndex(photosResponse.data.featuredImageIndex);
+        }
+
+        // Fetch videos
+        const videosResponse = await axios.get(
+          `https://api.meetowner.in/property/getpropertyvideos?unique_property_id=${unique_property_id}`
+        );
+        if (videosResponse.data.status === "success" && videosResponse.data.videos.length > 0) {
+          setApiVideo(videosResponse.data.videos[0]);
+        }
+
+        // Fetch floor plans
+        const floorPlansResponse = await axios.get(
+          `https://api.meetowner.in/property/getfloorplansphotos?unique_property_id=${unique_property_id}`
+        );
+        if (floorPlansResponse.data.status === "success" && floorPlansResponse.data.images.length > 0) {
+          setApiFloorPlan(floorPlansResponse.data.images[0]);
+        }
+      } catch (error) {
+        console.error("Error fetching media:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    if (unique_property_id) {
+      fetchMedia();
+    }
+  }, [unique_property_id]);
+
+  console.log(featuredImageIndex, "featuredImageIndex");
+
+  const deletePropertyImage = async (image_id: number) => {
+    try {
+      const response = await axios.post("https://api.meetowner.in/property/deletePropertyPhoto", {
+        photo_id: image_id,
+        user_id: user!.user_id,
+        unique_property_id,
+      });
+      if (response.data.status === "error") {
+        toast.error(response.data.message || "Failed to delete image");
         return;
       }
-      if (file.size > 10 * 1024 * 1024) {
-        errors[index] = "File size must be less than 10MB.";
+      setApiPhotos((prev) => prev.filter((photo) => photo.id !== image_id));
+      if (featuredImageIndex !== null && apiPhotos[featuredImageIndex]?.id === image_id) {
+        setFeaturedImageIndex(null);
+      }
+      toast.success("Image removed successfully");
+    } catch (error) {
+      toast.error("Error deleting image");
+    }
+  };
+
+  const deletePropertyVideo = async (video_id: number) => {
+    try {
+      const response = await axios.post("https://api.meetowner.in/property/deletepropertyvideo", {
+        video_id,
+        user_id: user!.user_id,
+        unique_property_id,
+      });
+      if (response.data.status === "error") {
+        toast.error(response.data.message || "Failed to delete video");
         return;
       }
-      newPhotos.push(file);
-    });
-
-    const totalPhotos = photos.length + newPhotos.length;
-    if (totalPhotos > 5) {
-      setLocalPhotoErrors(["You can only upload a maximum of 5 photos."]);
-      return;
-    }
-
-    setLocalPhotoErrors(errors);
-    if (errors.length === 0) {
-      setPhotos([...photos, ...newPhotos]);
+      setApiVideo(null);
+      toast.success("Video removed successfully");
+    } catch (error) {
+      toast.error("Error deleting video");
     }
   };
 
-  const handleVideoUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const validTypes = ["video/mp4"];
-    if (!validTypes.includes(file.type)) {
-      setLocalVideoError("Only MP4 files are allowed.");
-      return;
-    }
-    if (file.size > 30 * 1024 * 1024) {
-      setLocalVideoError("File size must be less than 30MB.");
-      return;
-    }
-    setLocalVideoError("");
-    setVideo(file);
-  };
-
-  const handleFloorPlanUpload = (e: ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const validTypes = ["image/jpeg", "image/jpg", "image/png"];
-    if (!validTypes.includes(file.type)) {
-      setLocalFloorPlanError("Only JPG, JPEG, and PNG files are allowed.");
-      return;
-    }
-    if (file.size > 10 * 1024 * 1024) {
-      setLocalFloorPlanError("File size must be less than 10MB.");
-      return;
-    }
-    setLocalFloorPlanError("");
-    setFloorPlan(file);
-  };
-
-  const handleDeletePhoto = (index: number) => {
-    const updatedPhotos = photos.filter((_, i) => i !== index);
-    setPhotos(updatedPhotos);
-    if (featuredImageIndex === index) {
-      setFeaturedImageIndex(null);
-    } else if (featuredImageIndex !== null && index < featuredImageIndex) {
-      setFeaturedImageIndex(featuredImageIndex - 1);
+  const deletePropertyFloorPlan = async (image_id: number) => {
+    try {
+      const response = await axios.post("https://api.meetowner.in/property/deletepropertyfloorplan", {
+        photo_id: image_id,
+        user_id: user!.user_id,
+        unique_property_id,
+      });
+      if (response.data.status === "error") {
+        toast.error(response.data.message || "Failed to delete floor plan");
+        return;
+      }
+      setApiFloorPlan(null);
+      toast.success("Floorplan removed successfully");
+    } catch (error) {
+      toast.error("Error deleting floor plan");
     }
   };
 
-  const handleDeleteVideo = () => {
-    setVideo(null);
-    setLocalVideoError("");
+  const handleDeletePhoto = async (index: number) => {
+    const photoToDelete = apiPhotos[index];
+    const confirmDelete = window.confirm("Are you sure you want to delete this photo?");
+    if (confirmDelete) {
+      await deletePropertyImage(photoToDelete.id);
+    }
   };
 
-  const handleDeleteFloorPlan = () => {
-    setFloorPlan(null);
-    setLocalFloorPlanError("");
+  const handleDeleteVideo = async () => {
+    if (apiVideo) {
+      const confirmDelete = window.confirm("Are you sure you want to delete this video?");
+      if (confirmDelete) {
+        await deletePropertyVideo(apiVideo.id);
+      }
+    }
   };
 
-  const handleSetFeaturedImage = (index: number) => {
-    setFeaturedImageIndex(index);
+  const handleDeleteFloorPlan = async () => {
+    if (apiFloorPlan) {
+      const confirmDelete = window.confirm("Are you sure you want to delete this floor plan?");
+      if (confirmDelete) {
+        await deletePropertyFloorPlan(apiFloorPlan.id);
+      }
+    }
   };
+
+  const hasVideo = !!apiVideo;
+  const hasFloorPlan = !!apiFloorPlan;
 
   return (
     <div className="space-y-6">
       {/* Photos Section */}
       <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center">
-        <div className="flex justify-center mb-4">
-          <svg className="w-12 h-12 text-blue-500" /* ... */ />
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-          + Add Photos
-        </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Upload exactly 5 photos of max size 10 MB in format JPG, JPEG & PNG
-        </p>
-        <input
-          type="file"
-          multiple
-          accept=".jpg,.jpeg,.png"
-          onChange={handlePhotoUpload}
-          className="hidden"
-          id="photo-upload"
-        />
-        <label
-          htmlFor="photo-upload"
-          className="mt-4 inline-block px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
-        >
-          Upload Photos
-        </label>
-        {(photoError || localPhotoErrors.length > 0) && (
-          <div className="mt-2 text-red-500 text-sm">
-            {photoError && <p>{photoError}</p>}
-            {localPhotoErrors.map((error, index) => (
-              <p key={index}>{error}</p>
-            ))}
-          </div>
-        )}
-        {photos.length > 0 && (
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Photos</h3>
+        {loading ? (
+          <p>Loading media...</p>
+        ) : apiPhotos.length > 0 ? (
           <div className="mt-4 grid grid-cols-2 gap-4">
-            {photos.map((photo, index) => (
-              <div key={index} className="relative">
+            {apiPhotos.map((photo, index) => (
+              <div key={`api-${photo.id}`} className="relative">
                 <img
-                  src={URL.createObjectURL(photo)}
-                  alt={`Uploaded ${index}`}
+                  src={photo.url}
+                  alt={`Property ${index}`}
                   className="w-full h-40 object-cover rounded-lg"
+                  crossOrigin="anonymous"
                 />
+                {featuredImageIndex === index && (
+                  <span className="absolute top-2 left-2 px-3 py-1 bg-green-500 text-white rounded-lg text-sm">
+                    Featured Image
+                  </span>
+                )}
+                
                 <button
-                  onClick={() => handleSetFeaturedImage(index)}
-                  className={`absolute top-2 left-2 px-3 py-1 rounded-lg text-sm ${
-                    featuredImageIndex === index
-                      ? "bg-[#1D3A76] text-white"
-                      : "bg-gray-200 text-gray-700"
-                  }`}
-                >
-                  Set as Featured Image
-                </button>
-                <button
-                  onClick={() => handleDeletePhoto(index)}
+                  type="button"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDeletePhoto(index);
+                  }}
                   className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"
                 >
                   <FaTrash />
@@ -183,101 +193,70 @@ const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({
               </div>
             ))}
           </div>
-        )}
-        {featuredImageError && (
-          <p className="mt-2 text-red-500 text-sm">{featuredImageError}</p>
+        ) : (
+          <p className="mt-4 text-gray-500 dark:text-gray-400">No photos available.</p>
         )}
       </div>
 
       {/* Videos Section */}
       <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center">
-        <div className="flex justify-center mb-4">
-          <svg className="w-12 h-12 text-blue-500" /* ... */ />
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-          + Add Videos
-        </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Upload a video of max size of 30MB in format MP4 (Required)
-        </p>
-        <input
-          type="file"
-          accept=".mp4"
-          onChange={handleVideoUpload}
-          className="hidden"
-          id="video-upload"
-        />
-        <label
-          htmlFor="video-upload"
-          className="mt-4 inline-block px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
-        >
-          Upload Video
-        </label>
-        {(videoError || localVideoError) && (
-          <p className="mt-2 text-red-500 text-sm">{videoError || localVideoError}</p>
-        )}
-        {video && (
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Videos</h3>
+        {loading ? (
+          <p>Loading media...</p>
+        ) : hasVideo ? (
           <div className="mt-4 flex justify-center">
             <div className="relative max-w-[80%]">
               <video
-                src={URL.createObjectURL(video)}
+                src={apiVideo.url}
                 controls
                 className="w-full h-50 object-cover rounded-lg"
+                crossOrigin="anonymous"
               />
               <button
-                onClick={handleDeleteVideo}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteVideo();
+                }}
                 className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"
               >
                 <FaTrash />
               </button>
             </div>
           </div>
+        ) : (
+          <p className="mt-4 text-gray-500 dark:text-gray-400">No video available.</p>
         )}
       </div>
 
       {/* Floor Plans Section */}
       <div className="border border-dashed border-gray-300 rounded-lg p-6 text-center">
-        <div className="flex justify-center mb-4">
-          <svg className="w-12 h-12 text-blue-500" /* ... */ />
-        </div>
-        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">
-          + Add Floor Plans
-        </h3>
-        <p className="text-sm text-gray-500 dark:text-gray-400">
-          Upload a floor plan of max size 10 MB in format JPG, JPEG & PNG (Required)
-        </p>
-        <input
-          type="file"
-          accept=".jpg,.jpeg,.png"
-          onChange={handleFloorPlanUpload}
-          className="hidden"
-          id="floor-plan-upload"
-        />
-        <label
-          htmlFor="floor-plan-upload"
-          className="mt-4 inline-block px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 cursor-pointer transition-colors duration-200"
-        >
-          Upload Floor Plan
-        </label>
-        {(floorPlanError || localFloorPlanError) && (
-          <p className="mt-2 text-red-500 text-sm">{floorPlanError || localFloorPlanError}</p>
-        )}
-        {floorPlan && (
+        <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100">Floor Plan</h3>
+        {loading ? (
+          <p>Loading media...</p>
+        ) : hasFloorPlan ? (
           <div className="mt-4 flex justify-center">
             <div className="relative max-w-[50%]">
               <img
-                src={URL.createObjectURL(floorPlan)}
+                src={apiFloorPlan.url}
                 alt="Floor Plan"
                 className="w-full h-50 object-cover rounded-lg"
+                crossOrigin="anonymous"
               />
               <button
-                onClick={handleDeleteFloorPlan}
+                type="button"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleDeleteFloorPlan();
+                }}
                 className="absolute top-2 right-2 p-2 bg-red-500 text-white rounded-full"
               >
                 <FaTrash />
               </button>
             </div>
           </div>
+        ) : (
+          <p className="mt-4 text-gray-500 dark:text-gray-400">No floor plan available.</p>
         )}
       </div>
     </div>
