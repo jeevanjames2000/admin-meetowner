@@ -178,11 +178,7 @@ export const fetchListings = createAsyncThunk(
         }
       );
 
-      toast.promise(promise, {
-        loading: "Fetching listings...",
-        success: "Listings fetched successfully!",
-        error: "Failed to fetch listings",
-      });
+    
 
       const response = await promise;
       return response.data;

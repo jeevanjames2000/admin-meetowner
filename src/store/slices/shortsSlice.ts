@@ -117,11 +117,7 @@ export const fetchShorts = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.get<Short[]>("/user/v1/getAllShorts");
-      toast.promise(promise, {
-        loading: "Fetching shorts...",
-        success: "Shorts fetched successfully!",
-        error: "Failed to fetch shorts",
-      });
+    
       const response = await promise;
       return response.data;
     } catch (error) {

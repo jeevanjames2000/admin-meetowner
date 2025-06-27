@@ -136,11 +136,7 @@ export const getAllApprovedListing = createAsyncThunk(
       const promise = axiosInstance.get<ListingsResponse>(
         "/listings/v1/getAllListings");
 
-      toast.promise(promise, {
-        loading: "Fetching approved listings...",
-        success: "Approved listings fetched successfully!",
-        error: "Failed to fetch approved listings",
-      });
+ 
 
       const response = await promise;
       return response.data;

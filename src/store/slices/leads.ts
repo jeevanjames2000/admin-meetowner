@@ -166,11 +166,7 @@ export const fetchLeads = createAsyncThunk(
       const promise = axiosInstance.get<LeadsResponse>("/listings/v1/getAllLeads", {
         params: { property_for },
       });
-      toast.promise(promise, {
-        loading: "Fetching leads...",
-        success: "Leads fetched successfully!",
-        error: "Failed to fetch leads",
-      });
+    
 
       const response = await promise;
       return response.data;
@@ -190,11 +186,6 @@ export const fetchLeadsByContacted = createAsyncThunk(
         "/enquiry/v1/getAllContactSellersByFilter"
       );
 
-      // toast.promise(promise, {
-      //   loading: "Fetching contacted leads...",
-      //   success: "Contacted leads fetched successfully!",
-      //   error: "Failed to fetch contacted leads",
-      // });
 
       const response = await promise;
       return response.data;
@@ -214,11 +205,7 @@ export const fetchPropertyViews = createAsyncThunk(
         "/listings/v1/getAllPropertyViews"
       );
 
-      toast.promise(promise, {
-        loading: "Fetching property views...",
-        success: "Property views fetched successfully!",
-        error: "Failed to fetch property views",
-      });
+     
 
       const response = await promise;
       return response.data;
@@ -242,12 +229,7 @@ export const fetchPropertyViewDetails = createAsyncThunk(
         }
       );
 
-      // toast.promise(promise, {
-      //   loading: "Fetching property view details...",
-      //   success: "Property view details fetched successfully!",
-      //   error: "Failed to fetch property view details",
-      // });
-
+      
       const response = await promise;
       return response.data;
     } catch (error) {
@@ -267,11 +249,7 @@ export const fetchMostSearchedLocations = createAsyncThunk(
         "/enquiry/v1/getMostSearchedLocations"
       );
 
-      // toast.promise(promise, {
-      //   loading: "Fetching most searched locations...",
-      //   success: "Most searched locations fetched successfully!",
-      //   error: "Failed to fetch most searched locations",
-      // });
+      
 
       const response = await promise;
       return response.data;
@@ -297,12 +275,7 @@ export const fetchUserSearchDataByCity = createAsyncThunk(
         }
       );
 
-      // toast.promise(promise, {
-      //   loading: `Fetching user search data for city: ${city}...`,
-      //   success: "User search data fetched successfully!",
-      //   error: "Failed to fetch user search data",
-      // });
-
+     
       const response = await promise;
       console.log("API Response for city", city, ":", response.data); // Log response
       return response.data;

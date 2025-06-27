@@ -570,17 +570,17 @@ const CommercialBuyEdit: React.FC = () => {
       facing: { apiField: "facing", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
       carParking: { 
         apiField: "car_parking", 
-        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)), // Transform "4+" to 5
+       transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
         applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] 
       },
       bikeParking: { 
         apiField: "bike_parking", 
-        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)), // Transform "4+" to 5
+        transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
         applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] 
       },
       openParking: { 
         apiField: "open_parking", 
-        transform: (value: string) => (value === "4+" ? 5 : parseInt(value)), // Transform "4+" to 5
+        transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
         applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] 
       },
       pantryRoom: { apiField: "pantry_room", applicableTo: ["Office", "Show Room", "Others"] },

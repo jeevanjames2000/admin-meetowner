@@ -62,11 +62,7 @@ export const fetchAds = createAsyncThunk(
           ads_page
         }
       });
-      toast.promise(promise, {
-        loading: "Fetching ads...",
-        success: "Ads fetched successfully!",
-        error: "Failed to fetch ads",
-      });
+     
       const response = await promise;
       return response.data;
     } catch (error) {

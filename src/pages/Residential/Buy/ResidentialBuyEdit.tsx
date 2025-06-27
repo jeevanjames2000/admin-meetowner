@@ -557,19 +557,19 @@ const ResidentialBuyEdit: React.FC = () => {
       investorProperty: { apiField: "investor_property", applicableTo: ["Apartment", "Independent Villa", "Plot"] },
       loanFacility: { apiField: "loan_facility", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
       facing: { apiField: "facing", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
-      carParking: { 
-        apiField: "car_parking", 
-        transform: (value: string) => (value === "4+" ? 5 :value), // Transform "4+" to 5
+      carParking: {
+        apiField: "car_parking",
+        transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
         applicableTo: ["Apartment", "Independent House", "Independent Villa"],
       },
-      bikeParking: { 
-        apiField: "bike_parking", 
-        transform: (value: string) => (value === "4+" ? 5 : value), // Transform "4+" to 5
+      bikeParking: {
+        apiField: "bike_parking",
+        transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
         applicableTo: ["Apartment", "Independent House", "Independent Villa"],
       },
-      openParking: { 
-        apiField: "open_parking", 
-        transform: (value: string) => (value === "4+" ? 5 :value), // Transform "4+" to 5
+      openParking: {
+        apiField: "open_parking",
+        transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
         applicableTo: ["Apartment", "Independent House", "Independent Villa"],
       },
       servantRoom: { apiField: "servant_room", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
