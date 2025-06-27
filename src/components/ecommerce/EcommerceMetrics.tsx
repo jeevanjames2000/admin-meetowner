@@ -108,7 +108,7 @@ export default function Home() {
           <div className="flex items-end justify-between mt-5">
             <div>
               <span className="text-sm text-gray-500 dark:text-gray-400">
-                Current Active Users
+                Today's Active Users
               </span>
               <h4 className="mt-2 font-bold text-gray-800 text-title-sm dark:text-white/90">
                 {activeUsers.length}

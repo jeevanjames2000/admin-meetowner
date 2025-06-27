@@ -3,7 +3,6 @@ import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageMeta from "../../../components/common/PageMeta";
 import { useNavigate } from "react-router";
-
 import {
   Table,
   TableBody,
@@ -11,8 +10,6 @@ import {
   TableHeader,
   TableRow,
 } from "../../../components/ui/table";
-
-// Define the type for the residential buy review data
 interface ResidentialBuyData {
   id: string;
   slNo: number;
@@ -21,8 +18,6 @@ interface ResidentialBuyData {
   userType: "Owner" | "Builder" | "Agent" | "Channel Partner";
   listingTimeAndDate: string;
 }
-
-// Generate random data
 const generateRandomData = (): ResidentialBuyData[] => {
   const propertyTypes: ("Apartment" | "Independent Villa" | "Independent House" | "Plot" | "Land")[] = [
     "Apartment",
@@ -49,13 +44,11 @@ const generateRandomData = (): ResidentialBuyData[] => {
     "Riverfront Plaza",
     "Skyline Residences",
   ];
-
   const data: ResidentialBuyData[] = [];
   for (let i = 1; i <= 10; i++) {
     const randomDate = new Date(
       Date.now() - Math.floor(Math.random() * 30 * 24 * 60 * 60 * 1000)
     ).toLocaleString();
-
     data.push({
       id: `ID-${i.toString().padStart(3, "0")}`,
       slNo: i,
@@ -67,14 +60,11 @@ const generateRandomData = (): ResidentialBuyData[] => {
   }
   return data;
 };
-
 const ResidentialRentReview: React.FC = () => {
   const [reviewList, setReviewList] = useState<ResidentialBuyData[]>(generateRandomData());
-  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null); // Track which dropdown is open by ID
+  const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
-
-  // Handle clicking outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
@@ -84,24 +74,19 @@ const ResidentialRentReview: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Action handlers
   const handleEdit = (item: ResidentialBuyData) => {
-    console.log("Edit:", item); // Replace with your edit logic
+    console.log("Edit:", item);
     setDropdownOpen(null);
     navigate('/residential-rent-edit');
   };
-
   const handleDelete = (id: string) => {
     setReviewList(reviewList.filter((item) => item.id !== id));
     setDropdownOpen(null);
   };
-
   const handleApprove = (item: ResidentialBuyData) => {
-    console.log("Approve:", item); // Replace with your approve logic
+    console.log("Approve:", item);
     setDropdownOpen(null);
   };
-
   if (!reviewList || reviewList.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -111,7 +96,6 @@ const ResidentialRentReview: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="relative min-h-screen">
       <PageMeta
@@ -124,7 +108,7 @@ const ResidentialRentReview: React.FC = () => {
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
               <Table>
-                {/* Table Header */}
+                {}
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
                     <TableCell
@@ -171,8 +155,7 @@ const ResidentialRentReview: React.FC = () => {
                     </TableCell>
                   </TableRow>
                 </TableHeader>
-
-                {/* Table Body */}
+                {}
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {reviewList.map((item) => (
                     <TableRow key={item.id}>
@@ -245,5 +228,4 @@ const ResidentialRentReview: React.FC = () => {
     </div>
   );
 };
-
 export default ResidentialRentReview;

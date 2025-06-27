@@ -18,7 +18,7 @@ import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 import FilterBar from "../../components/common/FilterBar";
 
 const userTypeMap: { [key: string]: string } = {
-  "1":"Admin",
+  "1": "Admin",
   "3": "Builder",
   "4": "Agent",
   "5": "Owner",
@@ -31,21 +31,29 @@ interface SelectOption {
 }
 
 const PropertyLeadsBuy: React.FC = () => {
-  const { property_for, status } = useParams<{ property_for: string; status: string }>();
+  const { property_for, status } = useParams<{
+    property_for: string;
+    status: string;
+  }>();
   const dispatch = useDispatch<AppDispatch>();
-  const { leads, totalCount, loading, error } = useSelector((state: RootState) => state.leads as LeadsState);
+  const { leads, totalCount, loading, error } = useSelector(
+    (state: RootState) => state.leads as LeadsState
+  );
   const [currentPage, setCurrentPage] = useState<number>(1);
   const itemsPerPage = 10;
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
-  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
+  const userType = useSelector(
+    (state: RootState) => state.auth.user?.user_type
+  );
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
- 
+
   const filters = {
-    property_for: status === "1" ? "Sell" : status === "2" ? "Rent" : property_for || "",
+    property_for:
+      status === "1" ? "Sell" : status === "2" ? "Rent" : property_for || "",
   };
 
   useEffect(() => {
@@ -71,7 +79,7 @@ const PropertyLeadsBuy: React.FC = () => {
     return `${String(formattedHour).padStart(2, "0")}:${minutes} ${period}`;
   };
 
-   const clearFilters = () => {
+  const clearFilters = () => {
     setFilterValue("");
     setSelectedUserType(null);
     setStartDate(null);
@@ -86,9 +94,13 @@ const PropertyLeadsBuy: React.FC = () => {
         lead.name || "",
         lead.mobile || "",
         lead.email || "",
-        lead.interested_status === 1 ? "Interested" :
-        lead.interested_status === 2 ? "Follows-up" :
-        lead.interested_status === 3 ? "Site Visited" : "Contacted",
+        lead.interested_status === 1
+          ? "Interested"
+          : lead.interested_status === 2
+          ? "Follows-up"
+          : lead.interested_status === 3
+          ? "Site Visited"
+          : "Contacted",
         lead.property_name || "",
         lead.owner_name || "",
         lead.owner_mobile || "",
@@ -183,7 +195,10 @@ const PropertyLeadsBuy: React.FC = () => {
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setDropdownOpen(null);
       }
     };
@@ -199,10 +214,6 @@ const PropertyLeadsBuy: React.FC = () => {
     })),
   ];
 
- 
-
-  
-
   // Handle View action
   const handleView = (property_id: string) => {
     if (!property_id) {
@@ -210,7 +221,9 @@ const PropertyLeadsBuy: React.FC = () => {
       return;
     }
     try {
-      const url = `https://meetowner.in/property?Id_${encodeURIComponent(property_id)}`;
+      const url = `https://meetowner.in/property?Id_${encodeURIComponent(
+        property_id
+      )}`;
       window.open(url, "_blank"); // Open in new tab
     } catch (error) {
       console.error("Error navigating to property:", error);
@@ -220,91 +233,166 @@ const PropertyLeadsBuy: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Loading...</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+          Loading...
+        </h2>
       </div>
     );
   }
 
-    if (error || !leads || leads.length === 0) {
+  if (error || !leads || leads.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
         <PageMeta
-          title={`Meet Owner Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
+          title={`Meet Owner Lead Management ${
+            filters.property_for === "Sell" ? "Buy" : "Rent"
+          }`}
           description="This is the Property Leads Table page"
         />
         <PageBreadcrumbList
-          pageTitle={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
+          pageTitle={`Lead Management ${
+            filters.property_for === "Sell" ? "Buy" : "Rent"
+          }`}
           pagePlacHolder="Filter leads"
           onFilter={handleFilter}
         />
-        <ComponentCard title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}>
+        <ComponentCard
+          title={`Lead Management ${
+            filters.property_for === "Sell" ? "Buy" : "Rent"
+          }`}
+        >
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
             {error ? `${error}` : "No Data Available"}
           </h2>
         </ComponentCard>
       </div>
     );
-    }
+  }
 
-     return (
-            <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-              <PageMeta
-                title={`Meet Owner Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
-                description="This is the Property Leads Table page"
-              />
-              <PageBreadcrumbList
-                pageTitle={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}
-                pagePlacHolder="Filter leads"
-                onFilter={handleFilter}
-              />
-              <div className="space-y-6">
-                 <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
-                  <FilterBar
-                    showUserTypeFilter={true}
-                    showDateFilters={true}
-                    showStateFilter={false}
-                    showCityFilter={false}
-                    userFilterOptions={userFilterOptions}
-                    onUserTypeChange={setSelectedUserType}
-                    onStartDateChange={setStartDate}
-                    onEndDateChange={setEndDate}
-                    onStateChange={() => {}}
-                    onCityChange={() => {}}
-                    onClearFilters={clearFilters}
-                    selectedUserType={selectedUserType}
-                    startDate={startDate}
-                    endDate={endDate}
-                    stateValue=""
-                    cityValue=""
-                  />
+  return (
+    <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
+      <PageMeta
+        title={`Meet Owner Lead Management ${
+          filters.property_for === "Sell" ? "Buy" : "Rent"
+        }`}
+        description="This is the Property Leads Table page"
+      />
+      <PageBreadcrumbList
+        pageTitle={`Lead Management ${
+          filters.property_for === "Sell" ? "Buy" : "Rent"
+        }`}
+        pagePlacHolder="Filter leads"
+        onFilter={handleFilter}
+      />
+      <div className="space-y-6">
+        <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
+          <FilterBar
+            showUserTypeFilter={true}
+            showDateFilters={true}
+            showStateFilter={false}
+            showCityFilter={false}
+            userFilterOptions={userFilterOptions}
+            onUserTypeChange={setSelectedUserType}
+            onStartDateChange={setStartDate}
+            onEndDateChange={setEndDate}
+            onStateChange={() => {}}
+            onCityChange={() => {}}
+            onClearFilters={clearFilters}
+            selectedUserType={selectedUserType}
+            startDate={startDate}
+            endDate={endDate}
+            stateValue=""
+            cityValue=""
+          />
+        </div>
+        {(filterValue || selectedUserType || startDate || endDate) && (
+          <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
+            Filters: Search: {filterValue || "None"} | User Type:{" "}
+            {selectedUserType || "All"} | Date: {startDate || "Any"} to{" "}
+            {endDate || "Any"}
           </div>
-            {(filterValue || selectedUserType || startDate || endDate) && (
-              <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-                Filters: Search: {filterValue || "None"} | User Type: {selectedUserType || "All"} | Date: {startDate || "Any"} to {endDate || "Any"}
-              </div>
-            )}
+        )}
 
-        <ComponentCard title={`Lead Management ${filters.property_for === "Sell" ? "Buy" : "Rent"}`}>
+        <ComponentCard
+          title={`Lead Management ${
+            filters.property_for === "Sell" ? "Buy" : "Rent"
+          }`}
+        >
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Sl. No</TableCell>
-                     <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Customer Id</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Approach</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Customer Name</TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Sl. No
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Customer Id
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Approach
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Customer Name
+                    </TableCell>
                     {userType === 1 && (
-                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Mobile Number</TableCell>
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Mobile Number
+                      </TableCell>
                     )}
                     {userType === 1 && (
-                      <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Email</TableCell>
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Email
+                      </TableCell>
                     )}
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Property For</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Id</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Project Name</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Date & Time</TableCell>
-                    <TableCell isHeader className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">Actions</TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Property For
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Project Id
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Project Name
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Date & Time
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
+                      Actions
+                    </TableCell>
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
@@ -313,13 +401,17 @@ const PropertyLeadsBuy: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1}
                       </TableCell>
-                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {lead.user_id}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.interested_status === 1 ? "Interested" :
-                         lead.interested_status === 2 ? "Follows-up" :
-                         lead.interested_status === 3 ? "Site Visited" : "Closed"}
+                        {lead.interested_status === 1
+                          ? "Interested"
+                          : lead.interested_status === 2
+                          ? "Follows-up"
+                          : lead.interested_status === 3
+                          ? "Site Visited"
+                          : "Closed"}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {lead.name}
@@ -346,28 +438,57 @@ const PropertyLeadsBuy: React.FC = () => {
                         </span>
                         <div className="absolute z-10 w-64 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 left-0 top-full mt-1 hidden group-hover:block">
                           <div className="text-sm text-gray-800 dark:text-gray-200">
-                            <p className="font-semibold">User Name: <span className="font-normal">{lead.owner_name}</span></p>
-                            <p className="font-semibold">Phone Number: <span className="font-normal">{lead.owner_mobile}</span></p>
-                            <p className="font-semibold">Owner Type: <span className="font-normal">{userTypeMap[lead.owner_type!] || "Unknown"}</span></p>
+                            <p className="font-semibold">
+                              User Name:{" "}
+                              <span className="font-normal">
+                                {lead.owner_name}
+                              </span>
+                            </p>
+                            <p className="font-semibold">
+                              Phone Number:{" "}
+                              <span className="font-normal">
+                                {lead.owner_mobile}
+                              </span>
+                            </p>
+                            <p className="font-semibold">
+                              Owner Type:{" "}
+                              <span className="font-normal">
+                                {userTypeMap[lead.owner_type!] || "Unknown"}
+                              </span>
+                            </p>
                           </div>
                           <div className="absolute top-[-6px] left-10 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white dark:border-b-gray-800" />
                         </div>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {`${formatDate(lead.searched_on_date)} ${formatTime(lead.searched_on_time)}`}
+                        {`${formatDate(lead.searched_on_date)} ${formatTime(
+                          lead.searched_on_time
+                        )}`}
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                      <TableCell className="relative px-5 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 whitespace-nowrap">
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setDropdownOpen(dropdownOpen === lead.id ? null : lead.id)}
+                          onClick={() =>
+                            setDropdownOpen(
+                              dropdownOpen === lead.id ? null : lead.id
+                            )
+                          }
                         >
-                          <svg className="w-5 h-5 text-gray-500 dark:text-gray-400" fill="currentColor" viewBox="0 0 20 20" xmlns="http://www.w3.org/2000/svg">
+                          <svg
+                            className="w-5 h-5 text-gray-500 dark:text-gray-400"
+                            fill="currentColor"
+                            viewBox="0 0 20 20"
+                            xmlns="http://www.w3.org/2000/svg"
+                          >
                             <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
                         </Button>
                         {dropdownOpen === lead.id && (
-                          <div ref={dropdownRef} className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10">
+                          <div
+                            ref={dropdownRef}
+                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
+                          >
                             <button
                               onClick={() => {
                                 handleView(lead.property_id);

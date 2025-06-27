@@ -1,11 +1,7 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
-import  { AxiosError } from "axios";
+import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
-
-
-
-
 interface Employee {
   id?: number;
   user_type: number;
@@ -35,53 +31,81 @@ interface Employee {
   assigned_user_id?: number | null;
   assigned_user_type?: number | null;
   assigned_user_name?: string | null;
- 
+  verified?: number;
 }
-
 interface EmployeeResponse {
+  success: boolean;
   message: string;
   userId?: number;
 }
-
 interface ErrorResponse {
   message?: string;
 }
-
-
-
-
-
 export interface EmployeeState {
- 
   updateLoading: boolean;
   updateError: string | null;
   updateSuccess: string | null;
   deleteLoading: boolean;
   deleteError: string | null;
   deleteSuccess: string | null;
+  profileStatusLoading: boolean;
+  profileStatusError: string | null;
+  profileStatusSuccess: string | null;
 }
-
 const initialState: EmployeeState = {
-  
-  
-  
-  // Initial states for update
   updateLoading: false,
   updateError: null,
   updateSuccess: null,
-
- 
-
   deleteLoading: false,
   deleteError: null,
   deleteSuccess: null,
- 
+  profileStatusLoading: false,
+  profileStatusError: null,
+  profileStatusSuccess: null,
 };
-
-
-
-
-// Update Employee Thunk
+export const updateProfileStatus = createAsyncThunk(
+  "employee/updateProfileStatus",
+  async (
+    { user_id, verified }: { user_id: number; verified: number },
+    { rejectWithValue }
+  ) => {
+    try {
+      const promise = axiosInstance.post<EmployeeResponse>(
+        "/user/v1/updateProfileStatus",
+        { user_id, verified }
+      );
+      toast.promise(promise, {
+        loading: `Updating profile status...`,
+        success: `Profile ${verified === 1 ? "verified" : "rejected"} successfully!`,
+        error: "Failed to update profile status",
+      });
+      const response = await promise;
+      if (!response.data.success) {
+        return rejectWithValue(response.data.message || "Failed to update profile status");
+      }
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      console.error("Update profile status error:", axiosError);
+      if (axiosError.response) {
+        const status = axiosError.response.status;
+        switch (status) {
+          case 404:
+            return rejectWithValue("User not found");
+          case 403:
+            return rejectWithValue("You don't have permission to update profile status");
+          case 400:
+            return rejectWithValue(axiosError.response.data?.message || "Invalid request data");
+          default:
+            return rejectWithValue(
+              axiosError.response.data?.message || "Failed to update profile status"
+            );
+        }
+      }
+      return rejectWithValue("Network error. Please try again.");
+    }
+  }
+);
 export const updateUser = createAsyncThunk(
   "employee/updateUser",
   async (employeeData: Employee, { rejectWithValue }) => {
@@ -90,19 +114,16 @@ export const updateUser = createAsyncThunk(
         "/user/v1/updateUser",
         employeeData
       );
-
       toast.promise(promise, {
         loading: "Updating employee...",
         success: "Employee updated successfully!",
         error: "Failed to update employee",
       });
-
       const response = await promise;
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       console.error("Update employee error:", axiosError);
-
       if (axiosError.response) {
         const status = axiosError.response.status;
         switch (status) {
@@ -122,30 +143,23 @@ export const updateUser = createAsyncThunk(
     }
   }
 );
-
-
-
-
 export const deleteUser = createAsyncThunk(
   "employee/deleteUser",
   async (employeeId: number, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.delete<EmployeeResponse>("/user/v1/deleteUser", {
-        data: { id: employeeId }, 
+        data: { id: employeeId },
       });
-
       toast.promise(promise, {
         loading: "Deleting employee...",
         success: "Employee deleted successfully!",
         error: "Failed to delete employee",
       });
-
       const response = await promise;
-      return { message: response.data.message, id: employeeId }; 
+      return { message: response.data.message, id: employeeId };
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       console.error("Delete employee error:", axiosError);
-
       if (axiosError.response) {
         const status = axiosError.response.status;
         switch (status) {
@@ -165,11 +179,6 @@ export const deleteUser = createAsyncThunk(
     }
   }
 );
-
-
-
-
-
 const employeeSlice = createSlice({
   name: "employee",
   initialState,
@@ -179,11 +188,25 @@ const employeeSlice = createSlice({
       state.updateSuccess = null;
       state.deleteError = null;
       state.deleteSuccess = null;
+      state.profileStatusError = null;
+      state.profileStatusSuccess = null;
     },
   },
   extraReducers: (builder) => {
     builder
-      
+      .addCase(updateProfileStatus.pending, (state) => {
+        state.profileStatusLoading = true;
+        state.profileStatusError = null;
+        state.profileStatusSuccess = null;
+      })
+      .addCase(updateProfileStatus.fulfilled, (state, action) => {
+        state.profileStatusLoading = false;
+        state.profileStatusSuccess = action.payload.message;
+      })
+      .addCase(updateProfileStatus.rejected, (state, action) => {
+        state.profileStatusLoading = false;
+        state.profileStatusError = action.payload as string;
+      })
       .addCase(updateUser.pending, (state) => {
         state.updateLoading = true;
         state.updateError = null;
@@ -197,7 +220,6 @@ const employeeSlice = createSlice({
         state.updateLoading = false;
         state.updateError = action.payload as string;
       })
-
       .addCase(deleteUser.pending, (state) => {
         state.deleteLoading = true;
         state.deleteError = null;
@@ -210,10 +232,8 @@ const employeeSlice = createSlice({
       .addCase(deleteUser.rejected, (state, action) => {
         state.deleteLoading = false;
         state.deleteError = action.payload as string;
-      })
-     
+      });
   },
 });
-
 export const { clearMessages } = employeeSlice.actions;
 export default employeeSlice.reducer;

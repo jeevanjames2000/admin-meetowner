@@ -11,19 +11,20 @@ import {
   TableRow,
 } from "../../ui/table";
 import Button from "../../ui/button/Button";
-import { MoreVertical } from "lucide-react";
+import { BadgeCheck, MoreVertical, XCircle } from "lucide-react";
 import ComponentCard from "../../common/ComponentCard";
 import PageBreadcrumbList from "../../common/PageBreadCrumbLists";
-import {
-  clearMessages,
-  deleteUser,
-} from "../../../store/slices/userEditSlicet";
 import toast from "react-hot-toast";
 import ConfirmDeleteModal from "../../common/ConfirmDeleteModal";
 import AssignEmployeeModal from "../AssignEmployeeModal";
 import { formatDate } from "../../../hooks/FormatDate";
 import FilterBar from "../../common/FilterBar";
-const userTypeMap: { [key: number]: string } = {
+import {
+  clearMessages,
+  deleteUser,
+  updateProfileStatus,
+} from "../../../store/slices/userEditSlicet";
+const userTypeMap = {
   1: "Admin",
   2: "User",
   3: "Builder",
@@ -35,7 +36,7 @@ const userTypeMap: { [key: number]: string } = {
   9: "Marketing Executive",
   10: "Customer Support",
 };
-const paymentStatusOptions: { value: string; label: string }[] = [
+const paymentStatusOptions = [
   { value: "All", label: "All" },
   { value: "active", label: "Active" },
   { value: "inactive", label: "Inactive" },
@@ -47,31 +48,28 @@ export default function BasicTableOne() {
   const { users, loading, error } = useSelector(
     (state: RootState) => state.users
   );
-  const { deleteError, deleteSuccess } = useSelector(
-    (state: RootState) => state.userEdit
-  );
+  const {
+    deleteError,
+    deleteSuccess,
+    profileStatusLoading,
+    profileStatusError,
+    profileStatusSuccess,
+  } = useSelector((state: RootState) => state.employee);
   const pageuserType = useSelector(
     (state: RootState) => state.auth.user?.user_type
   );
-  const [activeMenu, setActiveMenu] = useState<number | null>(null);
-  const [filterValue, setFilterValue] = useState<string>("");
-  const [currentPage, setCurrentPage] = useState<number>(1);
-  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
-  const [userToDelete, setUserToDelete] = useState<{
-    id: number;
-    name: string;
-  } | null>(null);
-  const [startDate, setStartDate] = useState<string | null>(null);
-  const [endDate, setEndDate] = useState<string | null>(null);
-  const [paymentStatus, setPaymentStatus] = useState<string>("All");
-  const [isAssignModalOpen, setIsAssignModalOpen] = useState<boolean>(false);
-  const [userToAssign, setUserToAssign] = useState<{
-    id: number;
-    name: string;
-    user_type: number;
-  } | null>(null);
-  const [selectedState, setSelectedState] = useState<string>("");
-  const [selectedCity, setSelectedCity] = useState<string>("");
+  const [activeMenu, setActiveMenu] = useState(null);
+  const [filterValue, setFilterValue] = useState("");
+  const [currentPage, setCurrentPage] = useState(1);
+  const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
+  const [userToDelete, setUserToDelete] = useState(null);
+  const [startDate, setStartDate] = useState(null);
+  const [endDate, setEndDate] = useState(null);
+  const [paymentStatus, setPaymentStatus] = useState("All");
+  const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
+  const [userToAssign, setUserToAssign] = useState(null);
+  const [selectedState, setSelectedState] = useState("");
+  const [selectedCity, setSelectedCity] = useState("");
   const itemsPerPage = 10;
   const queryParams = new URLSearchParams(location.search);
   const userType = queryParams.get("userType");
@@ -86,7 +84,7 @@ export default function BasicTableOne() {
     userType && AssignEmployessUserTypes.includes(parseInt(userType));
   const showMobileAndEmail =
     (pageuserType === 1 && userType !== null && parseInt(userType) === 2) ||
-    ([1, 7, 8, 9].includes(pageuserType!) &&
+    ([1, 7, 8, 9].includes(pageuserType) &&
       userType !== null &&
       [3, 4, 5, 6].includes(parseInt(userType)));
   useEffect(() => {
@@ -100,12 +98,16 @@ export default function BasicTableOne() {
   useEffect(() => {
     if (deleteSuccess) {
       toast.success(deleteSuccess);
-      if (userType) {
-        dispatch(fetchUsersByType({ user_type: parseInt(userType) })).then(
-          () => {
+      if (userType && !isNaN(parseInt(userType))) {
+        dispatch(fetchUsersByType({ user_type: parseInt(userType) }))
+          .unwrap()
+          .then(() => {
             dispatch(clearMessages());
-          }
-        );
+          })
+          .catch((err) => {
+            console.error("Failed to refresh users after delete:", err);
+            toast.error("Failed to refresh user list");
+          });
       }
     }
     if (deleteError) {
@@ -113,19 +115,41 @@ export default function BasicTableOne() {
       dispatch(clearMessages());
     }
   }, [deleteSuccess, deleteError, dispatch, userType]);
-  const handleEditUser = (user: any) => {
+  useEffect(() => {
+    if (profileStatusSuccess) {
+      toast.success(profileStatusSuccess);
+      if (userType && !isNaN(parseInt(userType))) {
+        dispatch(fetchUsersByType({ user_type: parseInt(userType) }))
+          .unwrap()
+          .then(() => {
+            dispatch(clearMessages());
+          })
+          .catch((err) => {
+            console.error(
+              "Failed to refresh users after profile status update:",
+              err
+            );
+            toast.error("Failed to refresh user list");
+          });
+      } else {
+        console.warn("Invalid userType for refresh:", userType);
+        dispatch(clearMessages());
+      }
+    }
+    if (profileStatusError) {
+      toast.error(profileStatusError);
+      dispatch(clearMessages());
+    }
+  }, [profileStatusSuccess, profileStatusError, dispatch, userType]);
+  const handleEditUser = (user) => {
     navigate("/edit-user-details", { state: { user } });
   };
-  const handleDeleteClick = (user: { id: number; name: string }) => {
+  const handleDeleteClick = (user) => {
     setUserToDelete({ id: user.id, name: user.name });
     setIsDeleteModalOpen(true);
     setActiveMenu(null);
   };
-  const handleAssignClick = (user: {
-    id: number;
-    name: string;
-    user_type: number;
-  }) => {
+  const handleAssignClick = (user) => {
     setUserToAssign({
       id: user.id,
       name: user.name,
@@ -157,10 +181,7 @@ export default function BasicTableOne() {
               user.rera_number,
             ];
             const matchesSearch = searchableFields
-              .filter(
-                (field): field is string =>
-                  field !== null && field !== undefined
-              )
+              .filter((field) => field !== null && field !== undefined)
               .map((field) => field.toLowerCase())
               .some((field) => field.includes(filterValue.toLowerCase()));
             const matchesPaymentStatus =
@@ -194,32 +215,24 @@ export default function BasicTableOne() {
             );
           })
         : [],
-    [
-      users,
-      filterValue,
-      paymentStatus,
-      startDate,
-      endDate,
-      selectedCity,
-      showMobileAndEmail,
-    ]
+    [users, filterValue, paymentStatus, startDate, endDate, selectedCity]
   );
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedUsers = filteredUsers.slice(startIndex, endIndex);
-  const toggleMenu = (id: number) => {
+  const toggleMenu = (id) => {
     setActiveMenu(activeMenu === id ? null : id);
   };
-  const handleFilter = (value: string) => {
+  const handleFilter = (value) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
   const handleCreate = () => {
     navigate("/accounts/create-new-user");
   };
-  const handleUserClick = (userId: number, userType: number, name: string) => {
+  const handleUserClick = (userId, userType, name) => {
     if (pageuserType !== 1) {
       toast.error("You're not authorized to view this section.");
       return;
@@ -230,12 +243,14 @@ export default function BasicTableOne() {
     }
     if ([3, 4, 5, 6].includes(userType)) {
       navigate(
-        `/user/propertyDetails?userId=${userId}&name=${encodeURIComponent(name)}`
+        `/user/propertyDetails?userId=${userId}&name=${encodeURIComponent(
+          name
+        )}`
       );
       return;
     }
   };
-  const goToPage = (page: number) => {
+  const goToPage = (page) => {
     setCurrentPage(page);
   };
   const goToPreviousPage = () => {
@@ -245,7 +260,7 @@ export default function BasicTableOne() {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
   const getPaginationItems = () => {
-    const pages: (number | string)[] = [];
+    const pages = [];
     const totalVisiblePages = 5;
     if (totalPages <= totalVisiblePages + 2) {
       for (let i = 1; i <= totalPages; i++) {
@@ -312,7 +327,7 @@ export default function BasicTableOne() {
         />
         <button
           type="submit"
-          className="px-3 py-1 text-sm bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed  sm:w-auto"
+          className="px-3 py-1 text-sm bg-[#1D3A76] text-white rounded-md hover:bg-brand-600 transition-colors duration-200 disabled:opacity-50 disabled:cursor-not-allowed sm:w-auto"
           onClick={handleCreate}
         >
           Create user
@@ -329,20 +344,10 @@ export default function BasicTableOne() {
           {filterValue || "None"}
         </div>
       )}
-      {deleteSuccess && (
-        <div className="p-3 bg-green-100 text-green-700 rounded-md">
-          {deleteSuccess}
-        </div>
-      )}
-      {deleteError && (
-        <div className="p-3 bg-red-100 text-red-700 rounded-md">
-          {deleteError}
-        </div>
-      )}
       <div className="space-y-6">
         <ComponentCard title={`${categoryLabel} Table`}>
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
-            <div className="max-w-full overflow-auto">
+            <div className="max-w-full overflow-auto min-h-100">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
@@ -365,14 +370,12 @@ export default function BasicTableOne() {
                       Name
                     </TableCell>
                     {showMobileAndEmail && (
-                      <>
-                        <TableCell
-                          isHeader
-                          className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                        >
-                          Mobile
-                        </TableCell>
-                      </>
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Mobile
+                      </TableCell>
                     )}
                     <TableCell
                       isHeader
@@ -418,6 +421,12 @@ export default function BasicTableOne() {
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
                     >
+                      Profile Verified
+                    </TableCell>
+                    <TableCell
+                      isHeader
+                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                    >
                       Status
                     </TableCell>
                     {pageuserType === 1 && (
@@ -457,11 +466,9 @@ export default function BasicTableOne() {
                         </div>
                       </TableCell>
                       {showMobileAndEmail && (
-                        <>
-                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {user.mobile}
-                          </TableCell>
-                        </>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {user.mobile}
+                        </TableCell>
                       )}
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {user.city}
@@ -485,6 +492,26 @@ export default function BasicTableOne() {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(user.created_date)}
                       </TableCell>
+
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-xs">
+                        <span
+                          className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 font-medium
+      ${user?.verified === 1 ? " text-blue-700" : " text-red-500"}`}
+                        >
+                          {user?.verified === 1 ? (
+                            <>
+                              <BadgeCheck size={18} className="text-blue-600" />
+                              Verified
+                            </>
+                          ) : (
+                            <>
+                              <XCircle size={14} className="text-red-600" />
+                              Not Verified
+                            </>
+                          )}
+                        </span>
+                      </TableCell>
+
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         <span
                           className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
@@ -540,6 +567,29 @@ export default function BasicTableOne() {
                                     Assign Employee
                                   </button>
                                 )}
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => {
+                                    dispatch(
+                                      updateProfileStatus({
+                                        user_id: user.id,
+                                        verified: user.verified === 1 ? 0 : 1,
+                                      })
+                                    );
+                                    dispatch(
+                                      fetchUsersByType({
+                                        user_type: parseInt(userType),
+                                      })
+                                    );
+                                  }}
+                                  disabled={profileStatusLoading}
+                                >
+                                  {profileStatusLoading
+                                    ? "Updating..."
+                                    : user.verified === 1
+                                    ? "Reject Profile"
+                                    : "Verify Profile"}
+                                </button>
                               </div>
                             </div>
                           )}
@@ -578,7 +628,7 @@ export default function BasicTableOne() {
                       key={page}
                       variant={page === currentPage ? "primary" : "outline"}
                       size="sm"
-                      onClick={() => goToPage(page as number)}
+                      onClick={() => goToPage(page)}
                       className={
                         page === currentPage
                           ? "bg-[#1D3A76] text-white"
