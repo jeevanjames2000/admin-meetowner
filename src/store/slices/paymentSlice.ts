@@ -115,7 +115,7 @@ export const fetchAllSubscriptions = createAsyncThunk<
         {
           params: {
             payment_status,
-            payment_status,
+            
           },
         }
       );
