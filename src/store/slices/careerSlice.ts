@@ -61,11 +61,7 @@ export const fetchAllCareers = createAsyncThunk(
     try {
       const promise = axiosInstance.get<Career[]>("/api/v1/careers");
 
-      toast.promise(promise, {
-        loading: "Fetching careers...",
-        success: "Careers fetched successfully!",
-        error: "Failed to fetch careers",
-      });
+      
 
       const response = await promise;
       return response.data;

@@ -115,6 +115,7 @@ export const fetchAllSubscriptions = createAsyncThunk<
         {
           params: {
             payment_status,
+            payment_status,
           },
         }
       );
@@ -150,11 +151,7 @@ export const fetchAllSubscriptionsHistory = createAsyncThunk<
           },
         }
       );
-      toast.promise(promise, {
-        loading: "Fetching subscription history...",
-        success: "Subscription history fetched successfully!",
-        error: "Failed to fetch subscription history",
-      });
+     
       const response = await promise;
       return response.data.subscriptions;
     } catch (error) {

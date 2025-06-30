@@ -8,14 +8,13 @@ import Select from "../../../components/form/Select";
 import DatePicker from "../../../components/form/date-picker";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import PropertyLocationFields from "../components/propertyLocationFields";
-// import MediaUploadSection from "../components/MediaUploadSection";
+
 import { updateListing } from "../../../store/slices/listings";
 import { AppDispatch } from "../../../store/store";
+import MediaUploadSection from "../components/MediaUploadSection";
+import AroundThisProperty from "../components/AroundThisProperty";
 
-interface AroundProperty {
-  place: string;
-  distance: string;
-}
+
 
 interface ResidentialBuyFormData {
   propertyType: "Residential" | "Commercial";
@@ -48,7 +47,6 @@ interface ResidentialBuyFormData {
   carParking: "0" | "1" | "2" | "3" | "4+";
   bikeParking: "0" | "1" | "2" | "3" | "4+";
   openParking: "0" | "1" | "2" | "3" | "4+";
-  aroundProperty: AroundProperty[];
   servantRoom: "Yes" | "No";
   propertyDescription: string;
   city: string;
@@ -58,10 +56,7 @@ interface ResidentialBuyFormData {
   plotNumber: string;
   floorNo: string;
   totalFloors: string;
-  // photos: File[];
-  // video: File | null;
-  // floorPlan: File | null;
-  // featuredImageIndex: number | null;
+
 }
 
 interface SelectOption {
@@ -164,10 +159,9 @@ const ResidentialBuyEdit: React.FC = () => {
         investorProperty: property.investor_property || "No",
         loanFacility: property.loan_facility || "No",
         facing: property.facing || "",
-        carParking: transformParkingValue(property.car_parking), // Transform "5" or 5 to "4+"
-        bikeParking: transformParkingValue(property.bike_parking), // Transform "5" or 5 to "4+"
-        openParking: transformParkingValue(property.open_parking), // Transform "5" or 5 to "4+"
-        aroundProperty: [],
+        carParking: transformParkingValue(property.car_parking), 
+        bikeParking: transformParkingValue(property.bike_parking), 
+        openParking: transformParkingValue(property.open_parking), 
         servantRoom: property.servant_room || "No",
         propertyDescription: property.description || "",
         city: property.city_id || "",
@@ -177,10 +171,7 @@ const ResidentialBuyEdit: React.FC = () => {
         plotNumber: property.plot_number || "",
         floorNo: property.floors || "",
         totalFloors: property.total_floors || "",
-        // photos: [],
-        // video: null,
-        // floorPlan: null,
-        // featuredImageIndex: null,
+       
       };
     }
     return {
@@ -214,7 +205,6 @@ const ResidentialBuyEdit: React.FC = () => {
       carParking: "0",
       bikeParking: "0",
       openParking: "0",
-      aroundProperty: [],
       servantRoom: "No",
       propertyDescription: "",
       city: "",
@@ -224,10 +214,7 @@ const ResidentialBuyEdit: React.FC = () => {
       plotNumber: "",
       floorNo: "",
       totalFloors: "",
-      // photos: [],
-      // video: null,
-      // floorPlan: null,
-      // featuredImageIndex: null,
+    
     };
   });
 
@@ -251,7 +238,7 @@ const ResidentialBuyEdit: React.FC = () => {
     propertyCost: "",
     investorProperty: "",
     loanFacility: "",
-    aroundProperty: "",
+
     servantRoom: "",
     propertyDescription: "",
     city: "",
@@ -261,16 +248,11 @@ const ResidentialBuyEdit: React.FC = () => {
     plotNumber: "",
     floorNo: "",
     totalFloors: "",
-    // photos: "",
-    // video: "",
-    // floorPlan: "",
-    // featuredImage: "",
+  
   });
 
-  const [placeAroundProperty, setPlaceAroundProperty] = useState("");
-  const [distanceFromProperty, setDistanceFromProperty] = useState("");
-
-  // Select options
+  
+ 
   const propertyTypeOptions: SelectOption[] = [
     { value: "Residential", label: "Residential" },
     { value: "Commercial", label: "Commercial" },
@@ -322,9 +304,9 @@ const ResidentialBuyEdit: React.FC = () => {
     { value: "Unfurnished", label: "Unfurnished" },
   ];
   const ageOfPropertyOptions: SelectOption[] = [
-    { value: "5", label: "0-5" }, // Updated to send 5
-    { value: "10", label: "5-10" }, // Updated to send 10
-    { value: "11", label: "Above 10" }, // Updated to send 11
+    { value: "5", label: "0-5" }, 
+    { value: "10", label: "5-10" }, 
+    { value: "11", label: "Above 10" },
   ];
   const areaUnitsOptions: SelectOption[] = [
     { value: "Sq.ft", label: "Sq.ft" },
@@ -462,26 +444,14 @@ const ResidentialBuyEdit: React.FC = () => {
         ...prev,
         facilities: {
           ...prev.facilities,
-          None: false, // Uncheck "None" when any other facility is selected
+          None: false, 
           [id]: checked,
         },
       }));
     }
   };
 
-  const handleAddAroundProperty = () => {
-    if (placeAroundProperty && distanceFromProperty) {
-      setFormData((prev) => ({
-        ...prev,
-        aroundProperty: [...prev.aroundProperty, { place: placeAroundProperty, distance: distanceFromProperty }],
-      }));
-      setPlaceAroundProperty("");
-      setDistanceFromProperty("");
-      // setErrors((prev) => ({ ...prev, aroundProperty: "" }));
-    } else {
-      // setErrors((prev) => ({ ...prev, aroundProperty: "Both place and distance are required" }));
-    }
-  };
+  
 
   const handleDateChange = (selectedDates: Date[]) => {
     const dateObj = selectedDates[0] ;
@@ -557,19 +527,19 @@ const ResidentialBuyEdit: React.FC = () => {
       investorProperty: { apiField: "investor_property", applicableTo: ["Apartment", "Independent Villa", "Plot"] },
       loanFacility: { apiField: "loan_facility", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
       facing: { apiField: "facing", applicableTo: ["Apartment", "Independent House", "Independent Villa", "Plot", "Land"] },
-      carParking: { 
-        apiField: "car_parking", 
-        transform: (value: string) => (value === "4+" ? 5 :value), // Transform "4+" to 5
+      carParking: {
+        apiField: "car_parking",
+        transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
         applicableTo: ["Apartment", "Independent House", "Independent Villa"],
       },
-      bikeParking: { 
-        apiField: "bike_parking", 
-        transform: (value: string) => (value === "4+" ? 5 : value), // Transform "4+" to 5
+      bikeParking: {
+        apiField: "bike_parking",
+        transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
         applicableTo: ["Apartment", "Independent House", "Independent Villa"],
       },
-      openParking: { 
-        apiField: "open_parking", 
-        transform: (value: string) => (value === "4+" ? 5 :value), // Transform "4+" to 5
+      openParking: {
+        apiField: "open_parking",
+        transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
         applicableTo: ["Apartment", "Independent House", "Independent Villa"],
       },
       servantRoom: { apiField: "servant_room", applicableTo: ["Apartment", "Independent House", "Independent Villa"] },
@@ -699,9 +669,6 @@ const ResidentialBuyEdit: React.FC = () => {
     ) {
       newErrors.loanFacility = "Loan facility is required";
     }
-    // if (formData.aroundProperty.length === 0) {
-    //   newErrors.aroundProperty = "At least one place around property is required";
-    // }
     if (
       (formData.propertySubType === "Apartment" ||
         formData.propertySubType === "Independent House" ||
@@ -718,36 +685,38 @@ const ResidentialBuyEdit: React.FC = () => {
     if (formData.propertySubType === "Plot" && !formData.plotNumber) newErrors.plotNumber = "Plot number is required";
     if (formData.propertySubType !== "Plot" && !formData.floorNo) newErrors.floorNo = "Floor number is required";
     if (formData.propertySubType !== "Plot" && !formData.totalFloors) newErrors.totalFloors = "Total floors is required";
-    // if (formData.photos.length === 0) newErrors.photos = "At least one photo is required";
+    
 
     setErrors((prev) => ({ ...prev, ...newErrors }));
 
-    if (Object.values(newErrors).every((error) => !error)) {
-      const changedFields = getChangedFields();
+  if (Object.values(newErrors).every((error) => !error)) {
+    const changedFields = getChangedFields();
+    if (Object.keys(changedFields).length > 0) {
+      const confirmSubmit = window.confirm("Are you sure you want to save changes and go back?");
+      if (!confirmSubmit) return; // Cancel submission if user clicks "Cancel"
 
-      if (Object.keys(changedFields).length > 0) {
-        const payload = {
-          unique_property_id: property.unique_property_id,
-          updates: changedFields,
-        };
+      const payload = {
+        unique_property_id: property.unique_property_id,
+        updates: changedFields,
+      };
 
-        console.log("API Call: Post /listings/updateListing");
-        console.log("Payload:", JSON.stringify(payload, null, 2));
+      console.log("API Call: Post /listings/updateListing");
+      console.log("Payload:", JSON.stringify(payload, null, 2));
 
-        dispatch(updateListing(payload))
-          .unwrap()
-          .then((response) => {
-            console.log("API Response:", JSON.stringify(response, null, 2));
-            navigate(-1);
-          })
-          .catch((err) => {
-            console.error("Update failed:", err);
-          });
-      } else {
-        console.log("No changes detected.");
-        navigate(-1);
-      }
+      dispatch(updateListing(payload))
+        .unwrap()
+        .then((response) => {
+          console.log("API Response:", JSON.stringify(response, null, 2));
+          navigate(-1);
+        })
+        .catch((err) => {
+          console.error("Update failed:", err);
+        });
+    } else {
+      console.log("No changes detected.");
+      navigate(-1);
     }
+  }
   };
 
   useEffect(() => {
@@ -1328,58 +1297,10 @@ const ResidentialBuyEdit: React.FC = () => {
                   </>
                 )}
 
-                <div>
-                  <Label htmlFor="aroundProperty" className="mt-4">Around This Property *</Label>
-                  <div className="flex space-x-6 my-4 w-full">
-                    <Input
-                      type="text"
-                      placeholder="Place around property"
-                      value={placeAroundProperty}
-                      onChange={(e) => setPlaceAroundProperty(e.target.value)}
-                      className="dark:bg-dark-900 w-[30%]"
-                    />
-                    <Input
-                      type="text"
-                      placeholder="Distance from property"
-                      value={distanceFromProperty}
-                      onChange={(e) => setDistanceFromProperty(e.target.value)}
-                      className="dark:bg-dark-900 w-[30%]"
-                    />
-                    <button
-                      type="button"
-                      onClick={handleAddAroundProperty}
-                      className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 w-[20%]"
-                    >
-                      Add
-                    </button>
-                  </div>
-                  {/* {errors.aroundProperty && <p className="text-red-500 text-sm mt-1">{errors.aroundProperty}</p>} */}
-                  {formData.aroundProperty.length > 0 && (
-                    <div className="mt-4">
-                      <ul className="space-y-2">
-                        {formData.aroundProperty.map((entry, index) => (
-                          <li
-                            key={index}
-                            className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
-                          >
-                            <span>{entry.place} - {entry.distance}</span>
-                            <button
-                              type="button"
-                              onClick={() =>
-                                setFormData((prev) => ({
-                                  ...prev,
-                                  aroundProperty: prev.aroundProperty.filter((_, i) => i !== index),
-                                }))
-                              }
-                              className="text-red-500 hover:text-red-700"
-                            >
-                              Remove
-                            </button>
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
+               <div className="py-5">
+
+                 
+                  <AroundThisProperty  unique_property_id={property.unique_property_id} />
                 </div>
 
                 {(formData.propertySubType === "Apartment" ||
@@ -1447,25 +1368,11 @@ const ResidentialBuyEdit: React.FC = () => {
             isPlot={formData.propertySubType === "Plot" || formData.propertySubType === "Land"}
           />
 
-          {/* <div>
-            <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Upload Media</h3>
-            <MediaUploadSection
-              photos={formData.photos}
-              setPhotos={(photos) => setFormData((prev) => ({ ...prev, photos }))}
-              video={formData.video}
-              setVideo={(video) => setFormData((prev) => ({ ...prev, video }))}
-              floorPlan={formData.floorPlan}
-              setFloorPlan={(floorPlan) => setFormData((prev) => ({ ...prev, floorPlan }))}
-              featuredImageIndex={formData.featuredImageIndex}
-              setFeaturedImageIndex={(index) =>
-                setFormData((prev) => ({ ...prev, featuredImageIndex: index }))
-              }
-              photoError={errors.photos}
-              videoError={errors.video}
-              floorPlanError={errors.floorPlan}
-              featuredImageError={errors.featuredImage}
-            />
-          </div> */}
+          <div>
+           
+           <MediaUploadSection
+              unique_property_id={property.unique_property_id} />
+          </div>
 
           <div className="flex justify-end">
             <button

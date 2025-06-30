@@ -381,7 +381,7 @@ const PaymentStatusScreen: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        {/* Integrate FilterBar with user type, date, state, and city filters */}
+     
         <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
           <FilterBar
             showUserTypeFilter={true}
@@ -427,11 +427,7 @@ const PaymentStatusScreen: React.FC = () => {
                     >
                       Sl.No
                     </TableCell>
-                    <TableCell
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      User Id
-                    </TableCell>
+                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -540,9 +536,7 @@ const PaymentStatusScreen: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1} {/* Adjusted to show correct Sl.No */}
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {sub.user_id}
-                      </TableCell>
+                     
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
                           <div className="flex items-center gap-3">
                                   <div>

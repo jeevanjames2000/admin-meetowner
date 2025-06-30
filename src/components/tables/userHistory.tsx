@@ -16,7 +16,6 @@ import { getPropertyActivity } from "../../store/slices/propertyDetailsbyUser";
 import { fetchAllSubscriptionsHistory } from "../../store/slices/paymentSlice";
 import { formatDate } from "../../hooks/FormatDate";
 import FilterBar from "../common/FilterBar";
-
 export default function UserHistory() {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
@@ -38,7 +37,6 @@ export default function UserHistory() {
   const itemsPerPage = 10;
   const queryParams = new URLSearchParams(location.search);
   const propertyId = queryParams.get("user_id");
-
   useEffect(() => {
     if (propertyId) {
       dispatch(getPropertyActivity(propertyId));
@@ -50,12 +48,10 @@ export default function UserHistory() {
       );
     }
   }, [dispatch, propertyId, cityFilter]);
-
   useEffect(() => {
     setCurrentPage(1);
     setHistoryPage(1);
   }, [filterValue, startDate, endDate, cityFilter]);
-
   const filteredActivities = propertyActivities.filter((activity) => {
     const searchableFields = [
       activity.fullname || activity.userDetails?.name || "",
@@ -84,7 +80,6 @@ export default function UserHistory() {
     }
     return matchesSearch && matchesDate;
   });
-
   const filteredHistory = subscriptionHistory.filter((subscription) => {
     const searchableFields = [
       subscription.name || "",
@@ -116,13 +111,11 @@ export default function UserHistory() {
     }
     return matchesSearch && matchesDate;
   });
-
   const totalItems = filteredActivities.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedActivities = filteredActivities.slice(startIndex, endIndex);
-
   const totalHistoryItems = filteredHistory.length;
   const totalHistoryPages = Math.ceil(totalHistoryItems / itemsPerPage);
   const historyStartIndex = (historyPage - 1) * itemsPerPage;
@@ -134,18 +127,15 @@ export default function UserHistory() {
     historyStartIndex,
     historyEndIndex
   );
-
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
     setHistoryPage(1);
   };
-
   const handleCityFilter = (city: string | null) => {
     setCityFilter(city);
     setHistoryPage(1);
   };
-
   const clearFilters = () => {
     setFilterValue("");
     setStartDate(null);
@@ -154,31 +144,24 @@ export default function UserHistory() {
     setCurrentPage(1);
     setHistoryPage(1);
   };
-
   const goToPage = (page: number) => {
     setCurrentPage(page);
   };
-
   const goToHistoryPage = (page: number) => {
     setHistoryPage(page);
   };
-
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const goToPreviousHistoryPage = () => {
     if (historyPage > 1) setHistoryPage(historyPage - 1);
   };
-
   const goToNextHistoryPage = () => {
     if (historyPage < totalHistoryPages) setHistoryPage(historyPage + 1);
   };
-
   const getPaginationItems = (totalPages: number, currentPage: number) => {
     const pages = [];
     const totalVisiblePages = 7;
@@ -199,17 +182,6 @@ export default function UserHistory() {
     if (endPage < totalPages) pages.push(totalPages);
     return pages;
   };
-
-  // Calculate total GST (gst + sgst)
-  const calculateTotalGST = (
-    gst: string | null,
-    sgst: string | null
-  ): string => {
-    if (!gst || !sgst) return "N/A";
-    const total = parseFloat(gst) + parseFloat(sgst);
-    return total.toFixed(2);
-  };
-
   return (
     <div className="relative min-h-screen p-6">
       <PageBreadcrumbList
@@ -226,7 +198,6 @@ export default function UserHistory() {
           startDate={startDate}
           endDate={endDate}
           onCityChange={handleCityFilter}
-          city={cityFilter}
         />
         {(startDate || endDate || filterValue || cityFilter) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
@@ -235,7 +206,6 @@ export default function UserHistory() {
           </div>
         )}
 
-        {/* Subscription History Table */}
         <ComponentCard title="Subscription History">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
@@ -254,7 +224,6 @@ export default function UserHistory() {
                     >
                       Name
                     </TableCell>
-
                     {userType === 1 && (
                       <TableCell
                         isHeader
@@ -263,7 +232,6 @@ export default function UserHistory() {
                         Mobile
                       </TableCell>
                     )}
-
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -318,7 +286,6 @@ export default function UserHistory() {
                     >
                       SGST
                     </TableCell>
-
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -431,7 +398,6 @@ export default function UserHistory() {
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {subscription.remaining}
                         </TableCell>
-
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {subscription.invoice_url ? (
                             <a
