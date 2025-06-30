@@ -144,6 +144,10 @@ export default function BasicTableOne() {
   const handleEditUser = (user) => {
     navigate("/edit-user-details", { state: { user } });
   };
+  const handleUserHisory = (user) => {
+    console.log("user: ", user.id);
+    navigate(`/user-subscriptions?user_id=${user.id}`);
+  };
   const handleDeleteClick = (user) => {
     setUserToDelete({ id: user.id, name: user.name });
     setIsDeleteModalOpen(true);
@@ -567,6 +571,12 @@ export default function BasicTableOne() {
                                     Assign Employee
                                   </button>
                                 )}
+                                <button
+                                  className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                  onClick={() => handleUserHisory(user)}
+                                >
+                                  History
+                                </button>
                                 <button
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                   onClick={() => {

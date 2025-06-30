@@ -22,7 +22,6 @@ import CreateEmployee from "./pages/Employee/CreateEmployee";
 import AllEmployees from "./pages/Employee/AllEmployees";
 import PaymentStatusScreen from "./pages/Accounts/payments/paymentStatusScreen";
 
-
 import BasicTables from "./pages/Tables/BasicTables";
 import { ProtectedRouteProps } from "./types/auth";
 import { AppDispatch, RootState } from "./store/store";
@@ -30,7 +29,7 @@ import { isTokenExpired, logout } from "./store/slices/authSlice";
 import BasicTableOne from "./components/tables/BasicTables/BasicTableOne";
 import LocationManager from "./pages/maps/locality";
 
-import { lazy, Suspense, useState, } from "react";
+import { lazy, Suspense, useState } from "react";
 import { TableLoader } from "./components/Loaders/LoadingLisings";
 import ErrorBoundary from "./hooks/ErrorBoundary";
 
@@ -39,7 +38,6 @@ import HomeFooter from "./pages/Forms/HomeFooter";
 import CreateUser from "./pages/users/CreateUsers";
 import AllAdsPage from "./pages/Ads/AllAds";
 import CreateAds from "./pages/Ads/CreateAds";
-
 
 import GeneratePayments from "./pages/Accounts/GeneratePayments";
 import CitiesManager from "./pages/maps/cities";
@@ -75,13 +73,14 @@ import MostSearchedLocations from "./pages/LeadManagement/MostSearchedLocations"
 import MostSearchedDetail from "./pages/LeadManagement/MostSearchedDetails";
 import ActiveUsersTable from "./components/ecommerce/ActiveUsersTable";
 import { Toaster } from "react-hot-toast";
+import UserHistory from "./components/tables/userHistory";
 
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { isAuthenticated, token,user } = useSelector((state: RootState) => state.auth);
+  const { isAuthenticated, token, user } = useSelector(
+    (state: RootState) => state.auth
+  );
   const userType = user?.user_type;
- 
-
 
   const tokenExpired = isTokenExpired(token);
 
@@ -91,17 +90,18 @@ const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
     }
     return <Navigate to="/signin" replace />;
   }
- 
 
   return children;
-
 };
 
-const ResidentialTypes = lazy(() => import("./pages/Residential/Buy/ResidentialTypes"));
-const CommercialTypes = lazy(() => import("./pages/Commercial/Buy/CommercialType"));
+const ResidentialTypes = lazy(
+  () => import("./pages/Residential/Buy/ResidentialTypes")
+);
+const CommercialTypes = lazy(
+  () => import("./pages/Commercial/Buy/CommercialType")
+);
 
 // Simple server status check component
-
 
 export default function App() {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
@@ -109,7 +109,7 @@ export default function App() {
     <>
       <Router>
         <ScrollToTop />
-         <ServerStatusCheck isOnline={isOnline}>
+        <ServerStatusCheck isOnline={isOnline}>
           <Routes>
             <Route element={<AppLayout />}>
               <Route
@@ -123,7 +123,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 index
                 path="/activeusers"
                 element={
@@ -154,7 +154,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-                <Route
+              <Route
                 path="/basic-tables-employees"
                 element={
                   <ErrorBoundary>
@@ -164,7 +164,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/edit-user-details"
                 element={
                   <ErrorBoundary>
@@ -174,7 +174,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/user/propertyDetails"
                 element={
                   <ErrorBoundary>
@@ -194,7 +194,17 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
+                path="/user-subscriptions"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <UserHistory />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
                 path="/buyers-activities"
                 element={
                   <ErrorBoundary>
@@ -210,7 +220,10 @@ export default function App() {
                 element={
                   <Suspense
                     fallback={
-                      <TableLoader title="Loading Residential Listings" hasActions={true} />
+                      <TableLoader
+                        title="Loading Residential Listings"
+                        hasActions={true}
+                      />
                     }
                   >
                     <ErrorBoundary>
@@ -227,7 +240,10 @@ export default function App() {
                 element={
                   <Suspense
                     fallback={
-                      <TableLoader title="Loading Commercial Listings" hasActions={true} />
+                      <TableLoader
+                        title="Loading Commercial Listings"
+                        hasActions={true}
+                      />
                     }
                   >
                     <ErrorBoundary>
@@ -299,7 +315,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-                <Route
+              <Route
                 path="/leads/contacted"
                 element={
                   <ErrorBoundary>
@@ -309,45 +325,45 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-                <Route
-                  path="/leads/mostviewed"
-                  element={
-                    <ErrorBoundary>
-                      <ProtectedRoute>
-                        <MostViewedLeads />
-                      </ProtectedRoute>
-                    </ErrorBoundary>
-                  }
+              <Route
+                path="/leads/mostviewed"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <MostViewedLeads />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
               />
-               <Route
-                  path="/leads/mostsearched"
-                  element={
-                    <ErrorBoundary>
-                      <ProtectedRoute>
-                        <MostSearchedLocations />
-                      </ProtectedRoute>
-                    </ErrorBoundary>
-                  }
+              <Route
+                path="/leads/mostsearched"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <MostSearchedLocations />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
               />
-               <Route
-                  path="/leads/most-searched-details/:city"
-                  element={
-                    <ErrorBoundary>
-                      <ProtectedRoute>
-                        <MostSearchedDetail />
-                      </ProtectedRoute>
-                    </ErrorBoundary>
-                  }
+              <Route
+                path="/leads/most-searched-details/:city"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <MostSearchedDetail />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
               />
-               <Route
-                  path="/leads/most-viewed-details/:property_id"
-                  element={
-                    <ErrorBoundary>
-                      <ProtectedRoute>
-                        <MostViewedDetailsPage />
-                      </ProtectedRoute>
-                    </ErrorBoundary>
-                  }
+              <Route
+                path="/leads/most-viewed-details/:property_id"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <MostViewedDetailsPage />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
               />
               <Route
                 path="/form-elements"
@@ -389,7 +405,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/careers/create-career"
                 element={
                   <ErrorBoundary>
@@ -399,8 +415,8 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
-               path="/careers/edit/:id"
+              <Route
+                path="/careers/edit/:id"
                 element={
                   <ErrorBoundary>
                     <ProtectedRoute>
@@ -429,7 +445,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-                <Route
+              <Route
                 path="/home-footer"
                 element={
                   <ErrorBoundary>
@@ -439,7 +455,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/accounts/generate-payment-links"
                 element={
                   <ErrorBoundary>
@@ -459,7 +475,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/accounts/create-new-user"
                 element={
                   <ErrorBoundary>
@@ -479,8 +495,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-              
-              
+
               <Route
                 path="/create-employee"
                 element={
@@ -491,7 +506,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-                <Route
+              <Route
                 path="/create-user"
                 element={
                   <ErrorBoundary>
@@ -501,7 +516,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/all-users"
                 element={
                   <ErrorBoundary>
@@ -521,7 +536,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-                <Route
+              <Route
                 path="/projects/all-projects"
                 element={
                   <ErrorBoundary>
@@ -541,7 +556,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-                <Route
+              <Route
                 path="/assignedemployees/:id"
                 element={
                   <ErrorBoundary>
@@ -551,7 +566,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/all-employees/edit-employee"
                 element={
                   <ErrorBoundary>
@@ -571,7 +586,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/maps/cities"
                 element={
                   <ErrorBoundary>
@@ -581,7 +596,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/maps/allPlaces"
                 element={
                   <ErrorBoundary>
@@ -621,7 +636,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/adds/upload-ads"
                 element={
                   <ErrorBoundary>
@@ -631,28 +646,28 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-                  <Route
-                  path="notification/notify"
-                  element={
-                    <ErrorBoundary>
-                      <ProtectedRoute>
-                        <Notify />
-                      </ProtectedRoute>
-                    </ErrorBoundary>
-                  }
+              <Route
+                path="notification/notify"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <Notify />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
               />
-                <Route
-                  path="notifications/all"
-                  element={
-                    <ErrorBoundary>
-                      <ProtectedRoute>
-                        <AllNotifications />
-                      </ProtectedRoute>
-                    </ErrorBoundary>
-                  }
+              <Route
+                path="notifications/all"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <AllNotifications />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
               />
-              
-               <Route
+
+              <Route
                 path="/packages/:status"
                 element={
                   <ErrorBoundary>
@@ -662,7 +677,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-                <Route
+              <Route
                 path="/custompackages"
                 element={
                   <ErrorBoundary>
@@ -682,7 +697,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="/packages/custom/:userId"
                 element={
                   <ErrorBoundary>
@@ -692,7 +707,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="Shorts/all"
                 element={
                   <ErrorBoundary>
@@ -702,7 +717,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-               <Route
+              <Route
                 path="Shorts/Create"
                 element={
                   <ErrorBoundary>
@@ -713,19 +728,18 @@ export default function App() {
                 }
               />
             </Route>
-            
-        
 
             {/* Public Routes */}
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="*" element={<NotFound />} />
           </Routes>
-          <Toaster position="top-right" toastOptions={{ duration: 3000, style: { zIndex: 9999 }, }}
-            containerStyle={{ top: '5rem' }} />
-
+          <Toaster
+            position="top-right"
+            toastOptions={{ duration: 3000, style: { zIndex: 9999 } }}
+            containerStyle={{ top: "5rem" }}
+          />
         </ServerStatusCheck>
-       
       </Router>
     </>
   );
