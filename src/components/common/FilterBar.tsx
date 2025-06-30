@@ -1,5 +1,3 @@
-
-
 import React, { useEffect, useState, useMemo, useRef } from "react";
 import Select from "../form/Select";
 import DatePicker from "../form/date-picker";
@@ -7,12 +5,10 @@ import Button from "../ui/button/Button";
 import { useDispatch, useSelector } from "react-redux";
 import { fetchAllCities, fetchAllStates } from "../../store/slices/places";
 import { RootState, AppDispatch } from "../../store/store";
-
 interface SelectOption {
   value: string;
   label: string;
 }
-
 interface FilterBarProps {
   showUserTypeFilter?: boolean;
   showDateFilters?: boolean;
@@ -32,7 +28,6 @@ interface FilterBarProps {
   cityValue?: string;
   className?: string;
 }
-
 const FilterBar: React.FC<FilterBarProps> = ({
   showUserTypeFilter = false,
   showDateFilters = false,
@@ -53,23 +48,25 @@ const FilterBar: React.FC<FilterBarProps> = ({
   className = "",
 }) => {
   const dispatch = useDispatch<AppDispatch>();
-  const { states, statesLoading, statesError, cities, citiesLoading, citiesError } =
-    useSelector((state: RootState) => state.places);
-
+  const {
+    states,
+    statesLoading,
+    statesError,
+    cities,
+    citiesLoading,
+    citiesError,
+  } = useSelector((state: RootState) => state.places);
   const [stateSearchTerm, setStateSearchTerm] = useState<string>(stateValue);
   const [citySearchTerm, setCitySearchTerm] = useState<string>(cityValue);
-  const [isStateDropdownOpen, setIsStateDropdownOpen] = useState<boolean>(false);
+  const [isStateDropdownOpen, setIsStateDropdownOpen] =
+    useState<boolean>(false);
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Fetch states on mount if state filter is enabled
   useEffect(() => {
     if (showStateFilter || showCityFilter) {
       dispatch(fetchAllStates());
     }
   }, [dispatch, showStateFilter, showCityFilter]);
-
-  // Fetch cities when state changes
   useEffect(() => {
     if (showCityFilter && stateSearchTerm) {
       dispatch(fetchAllCities({ state: stateSearchTerm }));
@@ -77,8 +74,6 @@ const FilterBar: React.FC<FilterBarProps> = ({
       dispatch(fetchAllCities());
     }
   }, [dispatch, stateSearchTerm, showCityFilter]);
-
-  // Close dropdowns when clicking outside
   useEffect(() => {
     const handleClickOutsideDropdowns = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -94,16 +89,15 @@ const FilterBar: React.FC<FilterBarProps> = ({
       document.removeEventListener("mousedown", handleClickOutsideDropdowns);
     };
   }, []);
-
-  // Filtered states and cities
   const filteredStates = useMemo(
     () =>
       states
         .map((state) => state.name)
-        .filter((name) => name.toLowerCase().includes(stateSearchTerm.toLowerCase())),
+        .filter((name) =>
+          name.toLowerCase().includes(stateSearchTerm.toLowerCase())
+        ),
     [stateSearchTerm, states]
   );
-
   const filteredCities = useMemo(
     () =>
       cities
@@ -115,7 +109,6 @@ const FilterBar: React.FC<FilterBarProps> = ({
         .map((city) => city.name),
     [citySearchTerm, cities, stateSearchTerm]
   );
-
   const handleStartDateChange = (selectedDates: Date[]) => {
     const dateObj = selectedDates[0];
     let date = "";
@@ -127,7 +120,6 @@ const FilterBar: React.FC<FilterBarProps> = ({
     }
     onStartDateChange?.(date || null);
   };
-
   const handleEndDateChange = (selectedDates: Date[]) => {
     const dateObj = selectedDates[0];
     let date = "";
@@ -143,7 +135,6 @@ const FilterBar: React.FC<FilterBarProps> = ({
     }
     onEndDateChange?.(date || null);
   };
-
   const handleClearFilters = () => {
     setStateSearchTerm("");
     setCitySearchTerm("");
@@ -151,7 +142,6 @@ const FilterBar: React.FC<FilterBarProps> = ({
     setIsCityDropdownOpen(false);
     onClearFilters?.();
   };
-
   return (
     <div className={`flex flex-col sm:flex-row gap-3 py-2 w-full ${className}`}>
       <div className="flex flex-col sm:flex-row gap-3 w-full sm:w-auto">
@@ -210,13 +200,20 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 disabled={statesLoading}
               >
                 <svg
-                  className={`w-4 h-4 transform ${isStateDropdownOpen ? "rotate-180" : ""}`}
+                  className={`w-4 h-4 transform ${
+                    isStateDropdownOpen ? "rotate-180" : ""
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
               {isStateDropdownOpen && filteredStates.length > 0 && (
@@ -239,7 +236,9 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 </ul>
               )}
               {statesError && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{statesError}</p>
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {statesError}
+                </p>
               )}
             </div>
           </div>
@@ -270,13 +269,20 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 disabled={citiesLoading || !stateSearchTerm}
               >
                 <svg
-                  className={`w-4 h-4 transform ${isCityDropdownOpen ? "rotate-180" : ""}`}
+                  className={`w-4 h-4 transform ${
+                    isCityDropdownOpen ? "rotate-180" : ""
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
               {isCityDropdownOpen && filteredCities.length > 0 && (
@@ -297,23 +303,27 @@ const FilterBar: React.FC<FilterBarProps> = ({
                 </ul>
               )}
               {citiesError && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{citiesError}</p>
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {citiesError}
+                </p>
               )}
             </div>
           </div>
         )}
-        {(showUserTypeFilter || showDateFilters || showStateFilter || showCityFilter) && (
+        {(showUserTypeFilter ||
+          showDateFilters ||
+          showStateFilter ||
+          showCityFilter) && (
           <Button
             variant="outline"
             onClick={handleClearFilters}
             className="px-3 py-1 w-full sm:w-auto"
           >
-            Clear 
+            Clear
           </Button>
         )}
       </div>
     </div>
   );
 };
-
 export default FilterBar;
