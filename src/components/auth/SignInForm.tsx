@@ -7,7 +7,6 @@ import { useDispatch, useSelector } from "react-redux";
 import { Navigate, useNavigate } from "react-router";
 import { loginUser } from "../../store/slices/authSlice";
 import { RootState, AppDispatch } from "../../store/store";
-
 export default function SignInForm() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -19,35 +18,29 @@ export default function SignInForm() {
   const [errors, setErrors] = useState({
     mobile: "",
     password: "",
-    general: "", // Add a general error field for server/network errors
+    general: "",
   });
-
   const { isAuthenticated, loading, error } = useSelector(
     (state: RootState) => state.auth
   );
-
-  const handleInputChange = (e: { target: { name: string; value: string } }) => {
+  const handleInputChange = (e: {
+    target: { name: string; value: string };
+  }) => {
     const { name, value } = e.target;
     setFormData((prevState) => ({
       ...prevState,
       [name]: value,
     }));
-
-    // Clear errors when user starts typing
     setErrors((prevErrors) => ({
       ...prevErrors,
       [name]: "",
       general: "",
     }));
   };
-
   const handleSubmit = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
-
-    // Local validation
     let newErrors = { mobile: "", password: "", general: "" };
     let hasError = false;
-
     if (!formData.mobile.trim()) {
       newErrors.mobile = "Mobile number is required";
       hasError = true;
@@ -56,12 +49,10 @@ export default function SignInForm() {
       newErrors.password = "Password is required";
       hasError = true;
     }
-
     if (hasError) {
       setErrors(newErrors);
       return;
     }
-
     try {
       const resultAction = await dispatch(
         loginUser({
@@ -69,23 +60,17 @@ export default function SignInForm() {
           password: formData.password,
         })
       ).unwrap();
-    console.log(resultAction)
-      // Only navigate on success
       navigate("/");
     } catch (err) {
-      console.log(err)
-      // Error is already handled in the thunk and stored in Redux state
       setErrors((prevErrors) => ({
         ...prevErrors,
-        general: error || "An unexpected error occurred", // Use Redux error state
+        general: err || "An unexpected error occurred",
       }));
     }
   };
-
   if (isAuthenticated) {
     return <Navigate to="/" />;
   }
-
   return (
     <div className="flex flex-col flex-1">
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -138,7 +123,9 @@ export default function SignInForm() {
                   </span>
                 </div>
                 {errors.password && (
-                  <p className="mt-1 text-sm text-error-500">{errors.password}</p>
+                  <p className="mt-1 text-sm text-error-500">
+                    {errors.password}
+                  </p>
                 )}
               </div>
               <div>
@@ -148,9 +135,11 @@ export default function SignInForm() {
               </div>
             </div>
           </form>
-          {/* Display general errors (e.g., network, server issues) */}
+          {}
           {errors.general && (
-            <p className="mt-4 text-sm text-error-500 text-center">{errors.general}</p>
+            <p className="mt-4 text-sm text-error-500 text-center">
+              {errors.general}
+            </p>
           )}
         </div>
       </div>
