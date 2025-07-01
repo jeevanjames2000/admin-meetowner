@@ -2,7 +2,6 @@ import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import axiosInstance from "../../utils/axiosInstance";
-
 interface Property {
   id: number;
   unique_property_id: string;
@@ -105,7 +104,6 @@ interface Property {
     user_type: number;
   };
 }
-
 interface ListingsResponse {
   total_count: number;
   current_page: number;
@@ -113,22 +111,17 @@ interface ListingsResponse {
   total_pages: number;
   properties: Property[];
 }
-
-
 interface UpdateStatusResponse {
   message: string;
 }
-
 interface DeleteListingResponse {
   message: string;
   unique_property_id: string;
   property_name: string | null;
 }
-
 interface ErrorResponse {
   message?: string;
 }
-
 export interface ListingState {
   listings: Property[];
   totalCount: number;
@@ -138,27 +131,20 @@ export interface ListingState {
   loading: boolean;
   error: string | null;
 }
-
 interface ListingFilters {
   property_status:number
   property_for: string;
   property_in: string;
   page:number;
   search:string;
-
- 
 }
-
 interface UpdateStatusPayload {
   property_status: number;
   unique_property_id: string;
 }
-
 interface DeleteListingPayload {
   unique_property_id: string;
 }
-
-// Async thunk for fetching listings
 export const fetchListings = createAsyncThunk(
   "listings/fetchListings",
   async (filters: ListingFilters, { rejectWithValue }) => {
@@ -174,12 +160,8 @@ export const fetchListings = createAsyncThunk(
             page,
             search
           },
-          
         }
       );
-
-    
-
       const response = await promise;
       return response.data;
     } catch (error) {
@@ -191,8 +173,6 @@ export const fetchListings = createAsyncThunk(
     }
   }
 );
-
-// Async thunk for updating property status
 export const updatePropertyStatus = createAsyncThunk(
   "listings/updatePropertyStatus",
   async (payload: UpdateStatusPayload, { rejectWithValue }) => {
@@ -200,15 +180,12 @@ export const updatePropertyStatus = createAsyncThunk(
       const promise = axiosInstance.post<UpdateStatusResponse>(
         "/listings/v1/updateStatus",
         payload,
-       
       );
-
       toast.promise(promise, {
         loading: "Updating property status...",
-        success: (response) => response.data.message, // Changed to response.data.message
+        success: (response) => response.data.message,
         error: "Failed to update property status",
       });
-
       const response = await promise;
       return { ...response.data, unique_property_id: payload.unique_property_id };
     } catch (error) {
@@ -220,8 +197,6 @@ export const updatePropertyStatus = createAsyncThunk(
     }
   }
 );
-
-// Async thunk for deleting a listing
 export const deleteListing = createAsyncThunk(
   "listings/deleteListing",
   async (payload: DeleteListingPayload, { rejectWithValue }) => {
@@ -231,16 +206,13 @@ export const deleteListing = createAsyncThunk(
         "/listings/v1/deleteListing",
         {
           params: { unique_property_id },
-         
         }
       );
-
       toast.promise(promise, {
         loading: "Deleting property...",
         success: (response) => response.data.message, 
         error: "Failed to delete property",
       });
-
       const response = await promise;
       return response.data;
     } catch (error) {
@@ -252,18 +224,14 @@ export const deleteListing = createAsyncThunk(
     }
   }
 );
-
 //updating the edited values 
 interface UpdateListingPayload {
   unique_property_id: string;
-  updates: Partial<Property>; // Allows any subset of Property fields
+  updates: Partial<Property>;
 }
-
-// Define the response interface
 interface UpdateListingResponse {
   message: string;
 }
-
 export const updateListing = createAsyncThunk(
   "listings/updateListing",
   async (payload: UpdateListingPayload, { rejectWithValue }) => {
@@ -273,13 +241,11 @@ export const updateListing = createAsyncThunk(
         `/listings/v1/updateListing?unique_property_id=${unique_property_id}`,
         updates,
       );
-
       toast.promise(promise, {
         loading: "Updating property...",
         success: (response) => response.data.message,
         error: "Failed to update property",
       });
-
       const response = await promise;
       return { ...response.data, unique_property_id, updates };
     } catch (error) {
@@ -291,8 +257,6 @@ export const updateListing = createAsyncThunk(
     }
   }
 );
-
-// Create the slice
 const listingSlice = createSlice({
   name: "listings",
   initialState: {
@@ -311,12 +275,10 @@ const listingSlice = createSlice({
       state.totalPages = 0;
       state.currentCount = 0;
       state.currentPage = 1;
-      
       state.error = null;
     },
   },
   extraReducers: (builder) => {
-    // Fetch Listings
     builder
       .addCase(fetchListings.pending, (state) => {
         state.loading = true;
@@ -334,8 +296,6 @@ const listingSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-
-      // Update Property Status
       .addCase(updatePropertyStatus.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -353,8 +313,6 @@ const listingSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-
-      // Delete Listing
       .addCase(deleteListing.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -370,7 +328,6 @@ const listingSlice = createSlice({
         state.loading = false;
         state.error = action.payload as string;
       })
-
       .addCase(updateListing.pending, (state) => {
         state.loading = true;
         state.error = null;
@@ -381,7 +338,6 @@ const listingSlice = createSlice({
           (listing) => listing.unique_property_id === action.payload.unique_property_id
         );
         if (updatedProperty) {
-          // Merge the updated fields into the existing property
           Object.assign(updatedProperty, action.payload.updates);
         }
       })
@@ -391,6 +347,5 @@ const listingSlice = createSlice({
       });
   },
 });
-
 export const { clearListings } = listingSlice.actions;
 export default listingSlice.reducer;

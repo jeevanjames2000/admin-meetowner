@@ -1,12 +1,19 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { EyeCloseIcon, EyeIcon } from "../../icons";
 import Label from "../form/Label";
 import Input from "../form/input/InputField";
 import Button from "../ui/button/Button";
 import { useDispatch, useSelector } from "react-redux";
 import { Navigate, useNavigate } from "react-router";
-import { loginUser } from "../../store/slices/authSlice";
+import {
+  loginUser,
+  sendOtpAdmin,
+  verifyOtpAdmin,
+  resetOtpState,
+} from "../../store/slices/authSlice";
 import { RootState, AppDispatch } from "../../store/store";
+import { toast } from "react-hot-toast";
+
 export default function SignInForm() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
@@ -14,15 +21,18 @@ export default function SignInForm() {
   const [formData, setFormData] = useState({
     mobile: "",
     password: "",
+    otp: "",
   });
   const [errors, setErrors] = useState({
     mobile: "",
     password: "",
+    otp: "",
     general: "",
   });
-  const { isAuthenticated, loading, error } = useSelector(
+  const { isAuthenticated, loading, error, otpSent, otpVerified } = useSelector(
     (state: RootState) => state.auth
   );
+
   const handleInputChange = (e: {
     target: { name: string; value: string };
   }) => {
@@ -37,10 +47,12 @@ export default function SignInForm() {
       general: "",
     }));
   };
-  const handleSubmit = async (e: { preventDefault: () => void }) => {
+
+  const handleSubmitLogin = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    let newErrors = { mobile: "", password: "", general: "" };
+    let newErrors = { mobile: "", password: "", otp: "", general: "" };
     let hasError = false;
+
     if (!formData.mobile.trim()) {
       newErrors.mobile = "Mobile number is required";
       hasError = true;
@@ -49,18 +61,19 @@ export default function SignInForm() {
       newErrors.password = "Password is required";
       hasError = true;
     }
+
     if (hasError) {
       setErrors(newErrors);
       return;
     }
+
     try {
-      const resultAction = await dispatch(
+      await dispatch(
         loginUser({
           mobile: formData.mobile,
           password: formData.password,
         })
       ).unwrap();
-      navigate("/");
     } catch (err) {
       setErrors((prevErrors) => ({
         ...prevErrors,
@@ -68,9 +81,68 @@ export default function SignInForm() {
       }));
     }
   };
-  if (isAuthenticated) {
+
+  const handleSubmitOtp = async (e: { preventDefault: () => void }) => {
+    e.preventDefault();
+    let newErrors = { mobile: "", password: "", otp: "", general: "" };
+    let hasError = false;
+
+    if (!formData.otp.trim()) {
+      newErrors.otp = "OTP is required";
+      hasError = true;
+    }
+
+    if (hasError) {
+      setErrors(newErrors);
+      return;
+    }
+
+    try {
+      await dispatch(
+        verifyOtpAdmin({
+          mobile: formData.mobile,
+          otp: formData.otp,
+        })
+      ).unwrap();
+      navigate("/");
+    } catch (err) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        otp: err || "Failed to verify OTP",
+      }));
+    }
+  };
+
+  const handleResendOtp = async () => {
+    try {
+      await dispatch(sendOtpAdmin({ mobile: formData.mobile })).unwrap();
+    } catch (err) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        general: err || "Failed to resend OTP",
+      }));
+    }
+  };
+
+  const handleBackToLogin = () => {
+    dispatch(resetOtpState());
+    setFormData((prev) => ({ ...prev, otp: "" }));
+    setErrors({ mobile: "", password: "", otp: "", general: "" });
+  };
+
+  useEffect(() => {
+    if (error) {
+      setErrors((prevErrors) => ({
+        ...prevErrors,
+        general: error,
+      }));
+    }
+  }, [error]);
+
+  if (isAuthenticated && otpVerified) {
     return <Navigate to="/" />;
   }
+
   return (
     <div className="flex flex-col flex-1">
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">
@@ -80,62 +152,117 @@ export default function SignInForm() {
               Sign In
             </h1>
             <p className="text-sm text-gray-500 dark:text-gray-400">
-              Enter your mobile number and password to sign in!
+              {otpSent
+                ? "Enter the OTP sent to your mobile number"
+                : "Enter your mobile number and password to sign in!"}
             </p>
           </div>
-          <form onSubmit={handleSubmit}>
+          <form onSubmit={otpSent ? handleSubmitOtp : handleSubmitLogin}>
             <div className="space-y-6">
-              <div>
-                <Label>
-                  Mobile Number <span className="text-error-500">*</span>
-                </Label>
-                <Input
-                  name="mobile"
-                  placeholder="Enter Mobile number"
-                  value={formData.mobile}
-                  onChange={handleInputChange}
-                />
-                {errors.mobile && (
-                  <p className="mt-1 text-sm text-error-500">{errors.mobile}</p>
-                )}
-              </div>
-              <div>
-                <Label>
-                  Password <span className="text-error-500">*</span>
-                </Label>
-                <div className="relative">
-                  <Input
-                    name="password"
-                    value={formData.password}
-                    onChange={handleInputChange}
-                    type={showPassword ? "text" : "password"}
-                    placeholder="Enter your password"
-                  />
-                  <span
-                    onClick={() => setShowPassword(!showPassword)}
-                    className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
-                  >
-                    {showPassword ? (
-                      <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
-                    ) : (
-                      <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
+              {!otpSent ? (
+                <>
+                  <div>
+                    <Label>
+                      Mobile Number <span className="text-error-500">*</span>
+                    </Label>
+                    <Input
+                      name="mobile"
+                      placeholder="Enter Mobile number"
+                      value={formData.mobile}
+                      onChange={handleInputChange}
+                      disabled={loading}
+                    />
+                    {errors.mobile && (
+                      <p className="mt-1 text-sm text-error-500">
+                        {errors.mobile}
+                      </p>
                     )}
-                  </span>
-                </div>
-                {errors.password && (
-                  <p className="mt-1 text-sm text-error-500">
-                    {errors.password}
-                  </p>
-                )}
-              </div>
+                  </div>
+                  <div>
+                    <Label>
+                      Password <span className="text-error-500">*</span>
+                    </Label>
+                    <div className="relative">
+                      <Input
+                        name="password"
+                        value={formData.password}
+                        onChange={handleInputChange}
+                        type={showPassword ? "text" : "password"}
+                        placeholder="Enter your password"
+                        disabled={loading}
+                      />
+                      <span
+                        onClick={() => setShowPassword(!showPassword)}
+                        className="absolute z-30 -translate-y-1/2 cursor-pointer right-4 top-1/2"
+                      >
+                        {showPassword ? (
+                          <EyeIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
+                        ) : (
+                          <EyeCloseIcon className="fill-gray-500 dark:fill-gray-400 size-5" />
+                        )}
+                      </span>
+                    </div>
+                    {errors.password && (
+                      <p className="mt-1 text-sm text-error-500">
+                        {errors.password}
+                      </p>
+                    )}
+                  </div>
+                </>
+              ) : (
+                <>
+                  <div>
+                    <Label>
+                      OTP <span className="text-error-500">*</span>
+                    </Label>
+                    <Input
+                      name="otp"
+                      placeholder="Enter OTP"
+                      value={formData.otp}
+                      onChange={handleInputChange}
+                      disabled={loading}
+                    />
+                    {errors.otp && (
+                      <p className="mt-1 text-sm text-error-500">
+                        {errors.otp}
+                      </p>
+                    )}
+                  </div>
+                  <div className="flex justify-between">
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleBackToLogin}
+                      disabled={loading}
+                    >
+                      Back
+                    </Button>
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      onClick={handleResendOtp}
+                      disabled={loading}
+                    >
+                      Resend OTP
+                    </Button>
+                  </div>
+                </>
+              )}
               <div>
                 <Button className="w-full" size="sm" disabled={loading}>
-                  {loading ? "Signing in..." : "Sign in"}
+                  {loading
+                    ? otpSent
+                      ? "Verifying OTP..."
+                      : "Signing in..."
+                    : otpSent
+                    ? "Verify OTP"
+                    : "Sign in"}
                 </Button>
               </div>
             </div>
           </form>
-          {}
           {errors.general && (
             <p className="mt-4 text-sm text-error-500 text-center">
               {errors.general}
