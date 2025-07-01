@@ -3,21 +3,17 @@ import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
 import axiosInstance from "../../utils/axiosInstance";
-
 interface LoginRequest {
   mobile: string;
   password: string;
 }
-
 interface SendOtpRequest {
   mobile: string;
 }
-
 interface VerifyOtpRequest {
   mobile: string;
   otp: string;
 }
-
 interface User {
   user_id: number;
   mobile: string;
@@ -44,7 +40,6 @@ interface User {
   from_app?: number | null;
   uploaded_from_seller_panel?: string | null;
 }
-
 interface ProfileResponse {
   id: number;
   mobile: string;
@@ -71,23 +66,19 @@ interface ProfileResponse {
   from_app?: number | null;
   uploaded_from_seller_panel?: string | null;
 }
-
 interface LoginResponse {
   message: string;
   user: User;
   token: string;
 }
-
 interface OtpResponse {
   status: string;
   message: string;
   apiResponse?: any;
 }
-
 interface ErrorResponse {
   message?: string;
 }
-
 export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
@@ -97,40 +88,35 @@ export interface AuthState {
   userCounts: UserCount[] | null;
   otpSent: boolean;
   otpVerified: boolean;
+  tempUser: User | null;
+  tempToken: string | null;
 }
-
 interface DecodedToken {
   exp: number;
   [key: string]: any;
 }
-
 interface UserCount {
   user_type: string;
   count: number;
   trend?: "up" | "down";
   percentage?: number;
 }
-
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (credentials: LoginRequest, { rejectWithValue, dispatch }) => {
     try {
       const promise = axiosInstance.post<LoginResponse>("/auth/v1/loginAgent", credentials);
-
       toast.promise(promise, {
         loading: "Logging in...",
         success: "Login successful! Sending OTP...",
         error: "Login failed",
       });
-
       const response = await promise;
-      // Call sendOtpAdmin after successful login
       await dispatch(sendOtpAdmin({ mobile: credentials.mobile }));
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       console.error("Login error:", axiosError);
-
       if (axiosError.response) {
         const status = axiosError.response.status;
         switch (status) {
@@ -146,16 +132,13 @@ export const loginUser = createAsyncThunk(
             );
         }
       }
-
       if (axiosError.code === "ECONNABORTED" || axiosError.message === "Network Error") {
         return rejectWithValue("Network error. Please check your connection and try again.");
       }
-
       return rejectWithValue("Login failed. Please try again.");
     }
   }
 );
-
 export const sendOtpAdmin = createAsyncThunk(
   "auth/sendOtpAdmin",
   async ({ mobile }: SendOtpRequest, { rejectWithValue }) => {
@@ -175,28 +158,38 @@ export const sendOtpAdmin = createAsyncThunk(
     }
   }
 );
-
 export const verifyOtpAdmin = createAsyncThunk(
   "auth/verifyOtpAdmin",
-  async ({ mobile, otp }: VerifyOtpRequest, { rejectWithValue, dispatch }) => {
+  async ({ mobile, otp }: VerifyOtpRequest, { rejectWithValue, dispatch, getState }) => {
     try {
       const response = await axiosInstance.post<OtpResponse>("/auth/v1/verifyOtpAdmin", {
         mobile,
         otp,
       });
       toast.success(response.data.message);
+      const state = getState() as { auth: AuthState };
+      const userId = state.auth.tempUser?.user_id;
+      if (!userId) {
+        throw new Error("User ID not found in temporary state");
+      }
+      await dispatch(getProfile(userId)).unwrap();
       return response.data;
     } catch (error) {
-      const axiosError = error as AxiosError<ErrorResponse>;
+      const axiosError = error as AxiosError<ErrorResponse> | Error;
       console.error("Verify OTP error:", axiosError);
-      toast.error(axiosError.response?.data?.message || "Failed to verify OTP");
+      toast.error(
+        axiosError instanceof AxiosError
+          ? axiosError.response?.data?.message || "Failed to verify OTP"
+          : axiosError.message || "Failed to verify OTP"
+      );
       return rejectWithValue(
-        axiosError.response?.data?.message || "Failed to verify OTP"
+        axiosError instanceof AxiosError
+          ? axiosError.response?.data?.message || "Failed to verify OTP"
+          : axiosError.message || "Failed to verify OTP"
       );
     }
   }
 );
-
 export const getProfile = createAsyncThunk(
   "auth/getProfile",
   async (user_id: number, { rejectWithValue }) => {
@@ -208,7 +201,6 @@ export const getProfile = createAsyncThunk(
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
       console.error("Get profile error:", axiosError);
-
       if (axiosError.response) {
         const status = axiosError.response.status;
         switch (status) {
@@ -224,27 +216,22 @@ export const getProfile = createAsyncThunk(
             );
         }
       }
-
       if (axiosError.code === "ECONNABORTED" || axiosError.message === "Network Error") {
         return rejectWithValue("Network error. Please check your connection and try again.");
       }
-
       return rejectWithValue("Failed to fetch user profile.");
     }
   }
 );
-
 export const getAllUsersCount = createAsyncThunk(
   "auth/getAllUsersCount",
   async (_, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.get<UserCount[]>("/user/v1/getAllUsersCount");
       const response = await promise;
-
       if (!Array.isArray(response.data)) {
         throw new Error("Invalid response format: Expected an array");
       }
-
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse> | Error;
@@ -257,7 +244,6 @@ export const getAllUsersCount = createAsyncThunk(
     }
   }
 );
-
 const authSlice = createSlice({
   name: "auth",
   initialState: {
@@ -269,6 +255,8 @@ const authSlice = createSlice({
     userCounts: null,
     otpSent: false,
     otpVerified: false,
+    tempUser: null,
+    tempToken: null,
   } as AuthState,
   reducers: {
     logout: (state) => {
@@ -279,7 +267,8 @@ const authSlice = createSlice({
       state.userCounts = null;
       state.otpSent = false;
       state.otpVerified = false;
-
+      state.tempUser = null;
+      state.tempToken = null;
       localStorage.removeItem("token");
       localStorage.removeItem("name");
       localStorage.removeItem("userType");
@@ -294,6 +283,8 @@ const authSlice = createSlice({
       state.otpSent = false;
       state.otpVerified = false;
       state.error = null;
+      state.tempUser = null;
+      state.tempToken = null;
     },
   },
   extraReducers: (builder) => {
@@ -304,7 +295,7 @@ const authSlice = createSlice({
       })
       .addCase(loginUser.fulfilled, (state, action) => {
         state.loading = false;
-        state.user = {
+        state.tempUser = {
           user_id: action.payload.user.user_id,
           mobile: action.payload.user.mobile,
           name: action.payload.user.name,
@@ -318,17 +309,7 @@ const authSlice = createSlice({
           created_by: action.payload.user.created_by || null,
           photo: action.payload.user.photo || null,
         };
-        state.token = action.payload.token;
-
-        localStorage.setItem("token", action.payload.token);
-        localStorage.setItem("name", action.payload.user.name);
-        localStorage.setItem("userType", action.payload.user.user_type.toString());
-        localStorage.setItem("email", action.payload.user.email || "");
-        localStorage.setItem("mobile", action.payload.user.mobile);
-        localStorage.setItem("city", action.payload.user.city || "");
-        localStorage.setItem("state", action.payload.user.state || "");
-        localStorage.setItem("userId", action.payload.user.user_id.toString());
-        localStorage.setItem("photo", action.payload.user.photo || "");
+        state.tempToken = action.payload.token;
       })
       .addCase(loginUser.rejected, (state, action) => {
         state.loading = false;
@@ -345,19 +326,36 @@ const authSlice = createSlice({
       .addCase(sendOtpAdmin.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+        state.tempUser = null;
+        state.tempToken = null;
       })
       .addCase(verifyOtpAdmin.pending, (state) => {
         state.loading = true;
         state.error = null;
       })
-      .addCase(verifyOtpAdmin.fulfilled, (state, action) => {
+      .addCase(verifyOtpAdmin.fulfilled, (state) => {
         state.loading = false;
         state.otpVerified = true;
         state.isAuthenticated = true;
+        state.user = state.tempUser;
+        state.token = state.tempToken;
+        if (state.tempUser && state.tempToken) {
+          localStorage.setItem("token", state.tempToken);
+          localStorage.setItem("name", state.tempUser.name);
+          localStorage.setItem("userType", state.tempUser.user_type.toString());
+          localStorage.setItem("email", state.tempUser.email || "");
+          localStorage.setItem("mobile", state.tempUser.mobile);
+          localStorage.setItem("city", state.tempUser.city || "");
+          localStorage.setItem("state", state.tempUser.state || "");
+          localStorage.setItem("userId", state.tempUser.user_id.toString());
+          localStorage.setItem("photo", state.tempUser.photo || "");
+        }
       })
       .addCase(verifyOtpAdmin.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+        state.tempUser = null;
+        state.tempToken = null;
       })
       .addCase(getProfile.pending, (state) => {
         state.loading = true;
@@ -391,7 +389,6 @@ const authSlice = createSlice({
           from_app: action.payload.from_app || null,
           uploaded_from_seller_panel: action.payload.uploaded_from_seller_panel || null,
         };
-
         localStorage.setItem("name", action.payload.name);
         localStorage.setItem("userType", action.payload.user_type.toString());
         localStorage.setItem("email", action.payload.email || "");
@@ -404,6 +401,13 @@ const authSlice = createSlice({
       .addCase(getProfile.rejected, (state, action) => {
         state.loading = false;
         state.error = action.payload as string;
+        state.isAuthenticated = false;
+        state.user = null;
+        state.token = null;
+        state.otpVerified = false;
+        state.tempUser = null;
+        state.tempToken = null;
+        localStorage.clear();
       })
       .addCase(getAllUsersCount.pending, (state) => {
         state.loading = true;
@@ -419,10 +423,8 @@ const authSlice = createSlice({
       });
   },
 });
-
 export const isTokenExpired = (token: string | null): boolean => {
   if (!token) return true;
-
   try {
     const decoded: DecodedToken = jwtDecode(token);
     const currentTime = Math.floor(Date.now() / 1000);
@@ -432,6 +434,5 @@ export const isTokenExpired = (token: string | null): boolean => {
     return true;
   }
 };
-
 export const { logout, resetOtpState } = authSlice.actions;
 export default authSlice.reducer;
