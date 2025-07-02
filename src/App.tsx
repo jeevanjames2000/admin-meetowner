@@ -1,4 +1,4 @@
-import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router"; // Updated import
+import { BrowserRouter as Router, Routes, Route, Navigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import SignIn from "./pages/AuthPages/SignIn";
 import SignUp from "./pages/AuthPages/SignUp";
@@ -21,24 +21,20 @@ import CommercialRentEdit from "./pages/Commercial/Rent/CommercialRentEdit";
 import CreateEmployee from "./pages/Employee/CreateEmployee";
 import AllEmployees from "./pages/Employee/AllEmployees";
 import PaymentStatusScreen from "./pages/Accounts/payments/paymentStatusScreen";
-
 import BasicTables from "./pages/Tables/BasicTables";
 import { ProtectedRouteProps } from "./types/auth";
 import { AppDispatch, RootState } from "./store/store";
 import { isTokenExpired, logout } from "./store/slices/authSlice";
 import BasicTableOne from "./components/tables/BasicTables/BasicTableOne";
 import LocationManager from "./pages/maps/locality";
-
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { TableLoader } from "./components/Loaders/LoadingLisings";
 import ErrorBoundary from "./hooks/ErrorBoundary";
-
 import EditEmployee from "./pages/Employee/EditEmployee";
 import HomeFooter from "./pages/Forms/HomeFooter";
 import CreateUser from "./pages/users/CreateUsers";
 import AllAdsPage from "./pages/Ads/AllAds";
 import CreateAds from "./pages/Ads/CreateAds";
-
 import GeneratePayments from "./pages/Accounts/GeneratePayments";
 import CitiesManager from "./pages/maps/cities";
 import StatesManager from "./pages/maps/state";
@@ -48,7 +44,6 @@ import AllPlaces from "./pages/maps/allPlaces";
 import Notify from "./pages/Notify/notify";
 import AllProjects from "./pages/Project/AllProjects";
 import PropertyDetailsByUserId from "./components/tables/BasicTables/PropertyDetailsByuserId";
-
 import AllUsers from "./pages/users/AllUsers";
 import EditUserDetails from "./components/tables/BasicTables/EditUserDetails";
 import CreateNewUser from "./pages/Accounts/CreateNewUser";
@@ -74,37 +69,52 @@ import MostSearchedDetail from "./pages/LeadManagement/MostSearchedDetails";
 import ActiveUsersTable from "./components/ecommerce/ActiveUsersTable";
 import { Toaster } from "react-hot-toast";
 import UserHistory from "./components/tables/userHistory";
-
+import { io } from "socket.io-client";
+import { disconnectSocket, initSocket } from "./utils/socketService";
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, token, user } = useSelector(
     (state: RootState) => state.auth
   );
   const userType = user?.user_type;
-
   const tokenExpired = isTokenExpired(token);
-
   if (!isAuthenticated || tokenExpired) {
     if (tokenExpired) {
       dispatch(logout());
     }
     return <Navigate to="/signin" replace />;
   }
-
   return children;
 };
-
 const ResidentialTypes = lazy(
   () => import("./pages/Residential/Buy/ResidentialTypes")
 );
 const CommercialTypes = lazy(
   () => import("./pages/Commercial/Buy/CommercialType")
 );
-
-// Simple server status check component
-
 export default function App() {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
+  const dispatch = useDispatch<AppDispatch>();
+  const { isAuthenticated } = useSelector((state: RootState) => state.auth);
+  useEffect(() => {
+    let socket: ReturnType<typeof initSocket> | null = null;
+    if (isAuthenticated) {
+      socket = initSocket(dispatch, isAuthenticated);
+    }
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      disconnectSocket();
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+    };
+  }, [dispatch, isAuthenticated]);
+
   return (
     <>
       <Router>
@@ -214,7 +224,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-              {/* Residential Listings */}
+              {}
               <Route
                 path="/residential/:property_for/:status"
                 element={
@@ -234,7 +244,7 @@ export default function App() {
                   </Suspense>
                 }
               />
-              {/* Commercial Listings */}
+              {}
               <Route
                 path="/commercial/:property_for/:status"
                 element={
@@ -294,7 +304,7 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-              {/* Other Pages */}
+              {}
               <Route
                 path="/profile"
                 element={
@@ -495,7 +505,6 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-
               <Route
                 path="/create-employee"
                 element={
@@ -666,7 +675,6 @@ export default function App() {
                   </ErrorBoundary>
                 }
               />
-
               <Route
                 path="/packages/:status"
                 element={
@@ -728,8 +736,7 @@ export default function App() {
                 }
               />
             </Route>
-
-            {/* Public Routes */}
+            {}
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="*" element={<NotFound />} />

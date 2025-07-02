@@ -1,4 +1,11 @@
-import { useState, useEffect, useRef, useMemo, ChangeEvent, FormEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  ChangeEvent,
+  FormEvent,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "../../store/store";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -16,42 +23,33 @@ import Button from "../../components/ui/button/Button";
 import { MoreVertical, X } from "lucide-react";
 import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal";
 import * as XLSX from "xlsx";
-
 import { toast } from "react-hot-toast";
 import ActiveStatusModal from "../../components/common/ActiveStatusModel";
 import { getAllCities } from "../../store/slices/locationsSlice";
-
 interface City {
   city: string;
   state: string;
-  status: string; // "active" or "inactive"
+  status: string;
 }
-
 interface FormData {
   city: string;
   state: string;
-  status: string; // "active" or "inactive"
+  status: string;
 }
-
 interface FormErrors {
   city?: string;
   state?: string;
 }
-
 const CitiesManager: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { cities, citiesLoading, citiesError } = useSelector(
-    (state: RootState) => state.locations // Updated to use state.location
+    (state: RootState) => state.locations
   );
-
-  // Component state
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [activeMenu, setActiveMenu] = useState<number | null>(null); // Use index for dropdown
+  const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 10;
-
-  // Modal and form state
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
@@ -65,13 +63,9 @@ const CitiesManager: React.FC = () => {
     status: "inactive",
   });
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-
-  // Fetch cities on mount
   useEffect(() => {
     dispatch(getAllCities());
   }, [dispatch]);
-
-  // Handle click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -82,11 +76,8 @@ const CitiesManager: React.FC = () => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Filter cities
   const filteredCities = useMemo(
     () =>
       cities.filter((city) =>
@@ -94,8 +85,6 @@ const CitiesManager: React.FC = () => {
       ),
     [cities, filterValue]
   );
-
-  // Handle Excel file upload
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -109,16 +98,14 @@ const CitiesManager: React.FC = () => {
             const sheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json<City>(sheet, {
               header: ["city", "state", "status"],
-              range: 1, // Skip header row if it exists
+              range: 1,
             });
-            // Filter out invalid rows (empty city or invalid status)
             const validData = jsonData.filter(
               (row) =>
                 row.city?.trim() &&
                 row.state?.trim() &&
                 ["active", "inactive"].includes(row.status)
             );
-            // dispatch(setCityDetails([...cities, ...validData])); // Update Redux store
             toast.success("Cities uploaded successfully!");
           }
         } catch (error) {
@@ -133,39 +120,30 @@ const CitiesManager: React.FC = () => {
       reader.readAsBinaryString(file);
     }
   };
-
-  // Pagination
   const totalItems = filteredCities.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedCities = filteredCities.slice(startIndex, endIndex);
-
   const toggleMenu = (index: number) => {
     setActiveMenu(activeMenu === index ? null : index);
   };
-
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
-
   const goToPage = (page: number) => {
     setCurrentPage(page);
   };
-
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
-
     if (totalPages <= totalVisiblePages + 2) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -173,45 +151,35 @@ const CitiesManager: React.FC = () => {
     } else {
       let start = Math.max(2, currentPage - 2);
       let end = Math.min(totalPages - 1, currentPage + 2);
-
       if (currentPage <= 3) {
         start = 2;
         end = 5;
       }
-
       if (currentPage >= totalPages - 2) {
         start = totalPages - 4;
         end = totalPages - 1;
       }
-
       pages.push(1);
       if (start > 2) pages.push("...");
-
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-
       if (end < totalPages - 1) pages.push("...");
       if (totalPages > 1) pages.push(totalPages);
     }
-
     return pages;
   };
-
-  // Form handlers
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
-
   const handleStatusChange = (checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
       status: checked ? "active" : "inactive",
     }));
   };
-
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
     if (!formData.city.trim()) {
@@ -223,7 +191,6 @@ const CitiesManager: React.FC = () => {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
   const handleAddSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validateForm()) {
@@ -232,15 +199,12 @@ const CitiesManager: React.FC = () => {
         state: formData.state,
         status: formData.status,
       };
-      // dispatch(setCityDetails([...cities, newCity])); // Update Redux store
       toast.success("City added successfully!");
       setFormData({ city: "", state: "", status: "inactive" });
       setFormErrors({});
       setIsAddModalOpen(false);
-      console.log("Add City:", newCity); // Replace with addCity thunk
     }
   };
-
   const handleEditClick = (city: City) => {
     setCityToEdit(city);
     setFormData({
@@ -251,61 +215,54 @@ const CitiesManager: React.FC = () => {
     setIsEditModalOpen(true);
     setActiveMenu(null);
   };
-
   const handleEditSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validateForm() && cityToEdit) {
       const updatedCities = cities.map((c) =>
         c.city === cityToEdit.city && c.state === cityToEdit.state
-          ? { city: formData.city, state: formData.state, status: formData.status }
+          ? {
+              city: formData.city,
+              state: formData.state,
+              status: formData.status,
+            }
           : c
       );
-      // dispatch(setCityDetails(updatedCities)); // Update Redux store
       toast.success(`City ${formData.city} updated successfully!`);
-      console.log("Edit City:", { city: formData.city, state: formData.state, status: formData.status });
       setFormData({ city: "", state: "", status: "inactive" });
       setFormErrors({});
       setIsEditModalOpen(false);
       setCityToEdit(null);
     }
   };
-
   const handleDeleteClick = (city: City) => {
     setCityToDelete(city);
     setIsDeleteModalOpen(true);
     setActiveMenu(null);
   };
-
   const confirmDelete = () => {
     if (cityToDelete) {
       const updatedCities = cities.filter(
         (c) => !(c.city === cityToDelete.city && c.state === cityToDelete.state)
       );
-      // dispatch(setCityDetails(updatedCities)); // Update Redux store
       toast.success(`City ${cityToDelete.city} deleted successfully!`);
-      console.log("Delete City:", cityToDelete);
       setIsDeleteModalOpen(false);
       setCityToDelete(null);
     }
   };
-
   const handleToggleStatus = (city: City) => {
     if (city.status === "inactive") {
-      // Directly activate if setting to Active
       const updatedCities = cities.map((c) =>
-        c.city === city.city && c.state === city.state ? { ...c, status: "active" } : c
+        c.city === city.city && c.state === city.state
+          ? { ...c, status: "active" }
+          : c
       );
-      // dispatch(setCityDetails(updatedCities)); // Update Redux store
       toast.success(`City ${city.city} set to Active!`);
-      console.log("Toggle Status:", { ...city, status: "active" });
     } else {
-      // Show confirmation for setting to Inactive
       setCityToToggle(city);
       setIsToggleModalOpen(true);
     }
     setActiveMenu(null);
   };
-
   const confirmToggleStatus = () => {
     if (cityToToggle) {
       const updatedCities = cities.map((c) =>
@@ -313,15 +270,11 @@ const CitiesManager: React.FC = () => {
           ? { ...c, status: "inactive" }
           : c
       );
-      // dispatch(setCityDetails(updatedCities)); // Update Redux store
       toast.success(`City ${cityToToggle.city} set to Inactive!`);
-      console.log("Toggle Status:", { ...cityToToggle, status: "inactive" });
       setIsToggleModalOpen(false);
       setCityToToggle(null);
     }
   };
-
-  // Loading and Error UI
   if (citiesLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -333,7 +286,6 @@ const CitiesManager: React.FC = () => {
       </div>
     );
   }
-
   if (citiesError) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -345,11 +297,10 @@ const CitiesManager: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <ComponentCard title="Cities Manager">
-        {/* File Upload Section */}
+        {}
         {/* <div className="mt-6">
           <Label htmlFor="excelUpload">Upload Excel File</Label>
           <input
@@ -363,8 +314,7 @@ const CitiesManager: React.FC = () => {
             Excel file should contain columns: city, state, status (active/inactive)
           </p>
         </div> */}
-
-        {/* Search Input and Add City Button */}
+        {}
         <div className="flex justify-between mb-4 mt-6">
           <Input
             type="text"
@@ -380,8 +330,7 @@ const CitiesManager: React.FC = () => {
             Add City
           </Button>
         </div>
-
-        {/* Table Section */}
+        {}
         {paginatedCities.length > 0 ? (
           <div className="mt-6">
             <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -422,7 +371,9 @@ const CitiesManager: React.FC = () => {
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {paginatedCities.map((city, index) => (
-                    <TableRow key={`${city.city}-${city.state}-${startIndex + index}`}>
+                    <TableRow
+                      key={`${city.city}-${city.state}-${startIndex + index}`}
+                    >
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1}
                       </TableCell>
@@ -467,7 +418,9 @@ const CitiesManager: React.FC = () => {
                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 onClick={() => handleToggleStatus(city)}
                               >
-                                {city.status === "active" ? "Set Inactive" : "Set Active"}
+                                {city.status === "active"
+                                  ? "Set Inactive"
+                                  : "Set Active"}
                               </button>
                             </div>
                           </div>
@@ -484,8 +437,7 @@ const CitiesManager: React.FC = () => {
             No cities available
           </div>
         )}
-
-        {/* Pagination */}
+        {}
         {totalItems > itemsPerPage && (
           <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
             <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -535,8 +487,7 @@ const CitiesManager: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Add City Modal */}
+        {}
         {isAddModalOpen && (
           <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full">
@@ -553,7 +504,7 @@ const CitiesManager: React.FC = () => {
               </div>
               <form onSubmit={handleAddSubmit} className="space-y-6">
                 <div className="flex flex-col gap-4">
-                  {/* City */}
+                  {}
                   <div>
                     <Label htmlFor="city">City</Label>
                     <Input
@@ -571,8 +522,7 @@ const CitiesManager: React.FC = () => {
                       </p>
                     )}
                   </div>
-
-                  {/* State */}
+                  {}
                   <div>
                     <Label htmlFor="state">State</Label>
                     <Input
@@ -590,19 +540,19 @@ const CitiesManager: React.FC = () => {
                       </p>
                     )}
                   </div>
-
-                  {/* Status */}
+                  {}
                   <div className="min-h-[80px]">
                     <Label>Status</Label>
                     <Switch
-                      label={formData.status === "active" ? "Active" : "Inactive"}
+                      label={
+                        formData.status === "active" ? "Active" : "Inactive"
+                      }
                       defaultChecked={formData.status === "active"}
                       onChange={handleStatusChange}
                     />
                   </div>
                 </div>
-
-                {/* Submit Button */}
+                {}
                 <div className="flex justify-between">
                   <Button
                     onClick={() => setIsAddModalOpen(false)}
@@ -610,10 +560,7 @@ const CitiesManager: React.FC = () => {
                   >
                     Cancel
                   </Button>
-                  <Button
-                 
-                    className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
-                  >
+                  <Button className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200">
                     Submit
                   </Button>
                 </div>
@@ -621,8 +568,7 @@ const CitiesManager: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Edit City Modal */}
+        {}
         {isEditModalOpen && (
           <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full">
@@ -644,7 +590,7 @@ const CitiesManager: React.FC = () => {
               </div>
               <form onSubmit={handleEditSubmit} className="space-y-6">
                 <div className="flex flex-col gap-4">
-                  {/* City */}
+                  {}
                   <div>
                     <Label htmlFor="city">City</Label>
                     <Input
@@ -662,8 +608,7 @@ const CitiesManager: React.FC = () => {
                       </p>
                     )}
                   </div>
-
-                  {/* State */}
+                  {}
                   <div>
                     <Label htmlFor="state">State</Label>
                     <Input
@@ -681,19 +626,19 @@ const CitiesManager: React.FC = () => {
                       </p>
                     )}
                   </div>
-
-                  {/* Status */}
+                  {}
                   <div className="min-h-[80px]">
                     <Label>Status</Label>
                     <Switch
-                      label={formData.status === "active" ? "Active" : "Inactive"}
+                      label={
+                        formData.status === "active" ? "Active" : "Inactive"
+                      }
                       defaultChecked={formData.status === "active"}
                       onChange={handleStatusChange}
                     />
                   </div>
                 </div>
-
-                {/* Submit Button */}
+                {}
                 <div className="flex justify-between">
                   <Button
                     onClick={() => {
@@ -706,10 +651,7 @@ const CitiesManager: React.FC = () => {
                   >
                     Cancel
                   </Button>
-                  <Button
-                    
-                    className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
-                  >
+                  <Button className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200">
                     Submit
                   </Button>
                 </div>
@@ -717,8 +659,7 @@ const CitiesManager: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Delete Confirmation Modal */}
+        {}
         <ConfirmDeleteModal
           isOpen={isDeleteModalOpen}
           propertyName={cityToDelete?.city || ""}
@@ -728,8 +669,7 @@ const CitiesManager: React.FC = () => {
             setCityToDelete(null);
           }}
         />
-
-        {/* Toggle Status Confirmation Modal */}
+        {}
         <ActiveStatusModal
           isOpen={isToggleModalOpen}
           propertyName={cityToToggle?.city || ""}
@@ -744,5 +684,4 @@ const CitiesManager: React.FC = () => {
     </div>
   );
 };
-
 export default CitiesManager;

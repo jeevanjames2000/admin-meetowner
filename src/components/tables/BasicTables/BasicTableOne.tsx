@@ -145,7 +145,6 @@ export default function BasicTableOne() {
     navigate("/edit-user-details", { state: { user } });
   };
   const handleUserHisory = (user) => {
-    console.log("user: ", user.id);
     navigate(`/user-subscriptions?user_id=${user.id}`);
   };
   const handleDeleteClick = (user) => {

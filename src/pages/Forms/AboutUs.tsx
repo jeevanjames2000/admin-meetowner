@@ -4,8 +4,6 @@ import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import Select from "../../components/form/Select";
 import { TimeIcon } from "../../icons";
-
-// Define the type for the form data
 interface FormData {
   title: string;
   logo: File | null;
@@ -23,20 +21,14 @@ interface FormData {
   address: string;
   description: string;
 }
-
-// Define the type for the Select options
 interface SelectOption {
   value: string;
   label: string;
 }
-
-// Define the props for the RichTextEditor component
 interface RichTextEditorProps {
   value: string;
   onChange: (e: ChangeEvent<HTMLTextAreaElement>) => void;
 }
-
-// RichTextEditor component with TypeScript
 const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => (
   <textarea
     value={value}
@@ -45,7 +37,6 @@ const RichTextEditor: React.FC<RichTextEditorProps> = ({ value, onChange }) => (
     placeholder="Enter description here..."
   />
 );
-
 const AboutUsPage: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     title: "MeetOwner",
@@ -66,44 +57,37 @@ const AboutUsPage: React.FC = () => {
     description:
       "Welcome to Meet Owner, where we believe that finding the perfect property should be a seamless and empowering experience. Founded with a passion for simplifying the real estate journey, Meet Owner is your trusted partner for connecting property seekers directly with owners, eliminating unnecessary barriers and facilitating transparent transactions.\n\n**Our Vision:**\nEmpowering connection, Simplifying Transactions",
   });
-
   const stateOptions: SelectOption[] = [
     { value: "telangana", label: "Telangana" },
     { value: "andhra-pradesh", label: "Andhra Pradesh" },
     { value: "karnataka", label: "Karnataka" },
   ];
-
   const cityOptions: SelectOption[] = [
     { value: "hyderabad", label: "Hyderabad" },
     { value: "vijayawada", label: "Vijayawada" },
     { value: "bangalore", label: "Bangalore" },
   ];
-
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleFileChange = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0] || null;
     setFormData((prev) => ({ ...prev, logo: file }));
   };
-
   const handleSelectChange = (name: keyof FormData) => (value: string) => {
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form Data:", formData);
-    // Add your form submission logic here (e.g., API call)
   };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <ComponentCard title="Add/Update About Us">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Title */}
+          {}
           <div>
             <Label htmlFor="title">Title</Label>
             <Input
@@ -115,8 +99,7 @@ const AboutUsPage: React.FC = () => {
               className="dark:bg-dark-900"
             />
           </div>
-
-          {/* Logo */}
+          {}
           <div>
             <Label htmlFor="logo">Logo</Label>
             <div className="flex items-center space-x-4">
@@ -137,8 +120,7 @@ const AboutUsPage: React.FC = () => {
               )}
             </div>
           </div>
-
-          {/* Slider Title */}
+          {}
           <div>
             <Label htmlFor="sliderTitle">Slider Title</Label>
             <Input
@@ -150,8 +132,7 @@ const AboutUsPage: React.FC = () => {
               className="dark:bg-dark-900"
             />
           </div>
-
-          {/* Mobile */}
+          {}
           <div>
             <Label htmlFor="mobile">Mobile</Label>
             <Input
@@ -163,8 +144,7 @@ const AboutUsPage: React.FC = () => {
               className="dark:bg-dark-900"
             />
           </div>
-
-          {/* Landline */}
+          {}
           <div>
             <Label htmlFor="landline">Landline</Label>
             <Input
@@ -176,8 +156,7 @@ const AboutUsPage: React.FC = () => {
               className="dark:bg-dark-900"
             />
           </div>
-
-          {/* Email */}
+          {}
           <div>
             <Label htmlFor="email">Email</Label>
             <Input
@@ -189,8 +168,7 @@ const AboutUsPage: React.FC = () => {
               className="dark:bg-dark-900"
             />
           </div>
-
-          {/* Timings */}
+          {}
           <div>
             <Label htmlFor="timings">Timings</Label>
             <div className="relative">
@@ -207,8 +185,7 @@ const AboutUsPage: React.FC = () => {
               </span>
             </div>
           </div>
-
-          {/* Notification */}
+          {}
           <div>
             <Label htmlFor="notification">Notification</Label>
             <Input
@@ -220,8 +197,7 @@ const AboutUsPage: React.FC = () => {
               className="dark:bg-dark-900"
             />
           </div>
-
-          {/* Social Media Links */}
+          {}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
             <div>
               <Label htmlFor="facebook">Facebook</Label>
@@ -257,8 +233,7 @@ const AboutUsPage: React.FC = () => {
               />
             </div>
           </div>
-
-          {/* State and City */}
+          {}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
             <div>
               <Label htmlFor="state">State</Label>
@@ -266,7 +241,6 @@ const AboutUsPage: React.FC = () => {
                 options={stateOptions}
                 placeholder="Select a state"
                 onChange={handleSelectChange("state")}
-                // value={formData.state}
                 className="dark:bg-dark-900"
               />
             </div>
@@ -276,13 +250,11 @@ const AboutUsPage: React.FC = () => {
                 options={cityOptions}
                 placeholder="Select a city"
                 onChange={handleSelectChange("city")}
-                // value={formData.city}
                 className="dark:bg-dark-900"
               />
             </div>
           </div>
-
-          {/* Address */}
+          {}
           <div>
             <Label htmlFor="address">Address</Label>
             <textarea
@@ -294,19 +266,20 @@ const AboutUsPage: React.FC = () => {
               placeholder="Enter address here..."
             />
           </div>
-
-          {/* Description */}
+          {}
           <div>
             <Label htmlFor="description">Description</Label>
             <RichTextEditor
               value={formData.description}
               onChange={(e) =>
-                setFormData((prev) => ({ ...prev, description: e.target.value }))
+                setFormData((prev) => ({
+                  ...prev,
+                  description: e.target.value,
+                }))
               }
             />
           </div>
-
-          {/* Submit Button */}
+          {}
           <div className="flex justify-end">
             <button
               type="submit"
@@ -320,5 +293,4 @@ const AboutUsPage: React.FC = () => {
     </div>
   );
 };
-
 export default AboutUsPage;

@@ -20,7 +20,6 @@ const Notify :React.FC= () => {
 
   useEffect(() => {
     if (mode === 'single') {
-      console.log('Dispatching fetchAllTokens'); // Debug log
       dispatch(fetchAllTokens());
     } else {
       setSelectedUser(null);

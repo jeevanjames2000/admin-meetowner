@@ -69,7 +69,6 @@ const MediaUploadSection: React.FC<MediaUploadSectionProps> = ({ unique_property
     }
   }, [unique_property_id]);
 
-  console.log(featuredImageIndex, "featuredImageIndex");
 
   const deletePropertyImage = async (image_id: number) => {
     try {

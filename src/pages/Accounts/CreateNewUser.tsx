@@ -49,7 +49,11 @@ const CreateNewUser: React.FC = () => {
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [apiError, setApiError] = useState<string>("");
   const dispatch = useDispatch<AppDispatch>();
-  const { cities, states, error: placesError } = useSelector((state: RootState) => state.places);
+  const {
+    cities,
+    states,
+    error: placesError,
+  } = useSelector((state: RootState) => state.places);
   const navigate = useNavigate();
 
   const userTypeOptions: SelectOption[] = [
@@ -170,9 +174,13 @@ const CreateNewUser: React.FC = () => {
     try {
       const createdBy = localStorage.getItem("name");
       const createdUserIdRaw = localStorage.getItem("userId");
-      const selectedCity = cityOptions.find((option) => option.value === formData.city);
+      const selectedCity = cityOptions.find(
+        (option) => option.value === formData.city
+      );
       const cityLabel = selectedCity ? selectedCity.text : formData.city;
-      const selectedState = stateOptions.find((option) => option.value === formData.state);
+      const selectedState = stateOptions.find(
+        (option) => option.value === formData.state
+      );
       const stateLabel = selectedState ? selectedState.text : formData.state;
 
       const payload = {
@@ -189,8 +197,6 @@ const CreateNewUser: React.FC = () => {
         created_userID: createdUserIdRaw ? parseInt(createdUserIdRaw) : 1,
         created_by: createdBy || "Unknown",
       };
-
-      console.log("Form Data Submitted:", payload);
 
       await dispatch(createUser(payload)).unwrap();
       setFormData({

@@ -164,7 +164,6 @@ export const getPropertyDetailsByUserId = createAsyncThunk(
 export const getPropertyActivity = createAsyncThunk(
   "propertyDetails/getPropertyActivity",
   async (propertyId: string, { rejectWithValue }) => {
-    console.log("call");
     try {
       const response = await axiosInstance.get<PropertyActivityResponse>(
         `/listings/v1/getPropertyActivity?property_id=${propertyId}`

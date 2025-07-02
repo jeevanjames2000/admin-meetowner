@@ -154,7 +154,6 @@ export const fetchAllUsers = createAsyncThunk(
       // });
 
       const response = await promise;
-      console.log(response);
       return response;
     
     } catch (error) {

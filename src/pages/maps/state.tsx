@@ -1,4 +1,11 @@
-import { useState, useEffect, useRef, useMemo, ChangeEvent, FormEvent } from "react";
+import {
+  useState,
+  useEffect,
+  useRef,
+  useMemo,
+  ChangeEvent,
+  FormEvent,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { RootState, AppDispatch } from "../../store/store";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -16,40 +23,31 @@ import Button from "../../components/ui/button/Button";
 import { MoreVertical, X } from "lucide-react";
 import ConfirmDeleteModal from "../../components/common/ConfirmDeleteModal";
 import * as XLSX from "xlsx";
-
 import { toast } from "react-hot-toast";
 import ActiveStatusModal from "../../components/common/ActiveStatusModel";
 import { getAllStates } from "../../store/slices/locationsSlice";
 import { editPlace } from "../../store/slices/places";
-
 interface State {
   state: string;
-  status: string; 
+  status: string;
 }
-
 interface FormData {
   state: string;
-  status: string; 
+  status: string;
 }
-
 interface FormErrors {
   state?: string;
 }
-
 const StatesManager: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { states, statesLoading, statesError } = useSelector(
     (state: RootState) => state.locations
   );
-
-  // Component state
   const [filterValue, setFilterValue] = useState<string>("");
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [activeMenu, setActiveMenu] = useState<number | null>(null); // Use index instead of state name
+  const [activeMenu, setActiveMenu] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 10;
-
-  // Modal and form state
   const [isAddModalOpen, setIsAddModalOpen] = useState<boolean>(false);
   const [isEditModalOpen, setIsEditModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
@@ -61,15 +59,10 @@ const StatesManager: React.FC = () => {
     state: "",
     status: "inactive",
   });
-  console.log("formData: ", formData);
   const [formErrors, setFormErrors] = useState<FormErrors>({});
-
-  // Fetch states on mount
   useEffect(() => {
     dispatch(getAllStates());
   }, [dispatch]);
-
-  // Handle click outside dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -80,11 +73,8 @@ const StatesManager: React.FC = () => {
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
-    return () =>
-      document.removeEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Filter states
   const filteredStates = useMemo(
     () =>
       states.filter((state) =>
@@ -92,8 +82,6 @@ const StatesManager: React.FC = () => {
       ),
     [states, filterValue]
   );
-
-  // Handle Excel file upload
   const handleFileUpload = (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -107,14 +95,12 @@ const StatesManager: React.FC = () => {
             const sheet = workbook.Sheets[sheetName];
             const jsonData = XLSX.utils.sheet_to_json<State>(sheet, {
               header: ["state", "status"],
-              range: 1, // Skip header row if it exists
+              range: 1,
             });
-            // Filter out invalid rows (empty state)
             const validData = jsonData.filter(
-              (row) => row.state?.trim() && ["active", "inactive"].includes(row.status)
+              (row) =>
+                row.state?.trim() && ["active", "inactive"].includes(row.status)
             );
-            // Update Redux store (placeholder for API call)
-            // dispatch(setStates(validData));
             toast.success("States uploaded successfully!");
           }
         } catch (error) {
@@ -129,39 +115,30 @@ const StatesManager: React.FC = () => {
       reader.readAsBinaryString(file);
     }
   };
-
-  // Pagination
   const totalItems = filteredStates.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedStates = filteredStates.slice(startIndex, endIndex);
-
   const toggleMenu = (index: number) => {
     setActiveMenu(activeMenu === index ? null : index);
   };
-
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
-
   const goToPage = (page: number) => {
     setCurrentPage(page);
   };
-
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
-
     if (totalPages <= totalVisiblePages + 2) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -169,45 +146,35 @@ const StatesManager: React.FC = () => {
     } else {
       let start = Math.max(2, currentPage - 2);
       let end = Math.min(totalPages - 1, currentPage + 2);
-
       if (currentPage <= 3) {
         start = 2;
         end = 5;
       }
-
       if (currentPage >= totalPages - 2) {
         start = totalPages - 4;
         end = totalPages - 1;
       }
-
       pages.push(1);
       if (start > 2) pages.push("...");
-
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-
       if (end < totalPages - 1) pages.push("...");
       if (totalPages > 1) pages.push(totalPages);
     }
-
     return pages;
   };
-
-  // Form handlers
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
-
   const handleStatusChange = (checked: boolean) => {
     setFormData((prev) => ({
       ...prev,
       status: checked ? "active" : "inactive",
     }));
   };
-
   const validateForm = (): boolean => {
     const errors: FormErrors = {};
     if (!formData.state.trim()) {
@@ -216,7 +183,6 @@ const StatesManager: React.FC = () => {
     setFormErrors(errors);
     return Object.keys(errors).length === 0;
   };
-
   const handleAddSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validateForm()) {
@@ -224,16 +190,12 @@ const StatesManager: React.FC = () => {
         state: formData.state,
         status: formData.status,
       };
-      // Update Redux store (placeholder for API call)
-      // dispatch(setStates([...states, newState]));
       toast.success("State added successfully!");
       setFormData({ state: "", status: "inactive" });
       setFormErrors({});
       setIsAddModalOpen(false);
-      console.log("Add State:", newState); // Replace with addState thunk
     }
   };
-
   const handleEditClick = (state: State) => {
     setStateToEdit(state);
     setFormData({
@@ -243,7 +205,6 @@ const StatesManager: React.FC = () => {
     setIsEditModalOpen(true);
     setActiveMenu(null);
   };
-
   const handleEditSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (validateForm() && stateToEdit) {
@@ -252,66 +213,52 @@ const StatesManager: React.FC = () => {
           ? { state: formData.state, status: formData.status }
           : s
       );
-      // Update Redux store (placeholder for API call)
       dispatch(editPlace(updatedStates));
       toast.success(`State ${formData.state} updated successfully!`);
-      console.log("Edit State:", { state: formData.state, status: formData.status });
       setFormData({ state: "", status: "inactive" });
       setFormErrors({});
       setIsEditModalOpen(false);
       setStateToEdit(null);
     }
   };
-
   const handleDeleteClick = (state: State) => {
     setStateToDelete(state);
     setIsDeleteModalOpen(true);
     setActiveMenu(null);
   };
-
   const confirmDelete = () => {
     if (stateToDelete) {
-      const updatedStates = states.filter((s) => s.state !== stateToDelete.state);
-      // Update Redux store (placeholder for API call)
-      // dispatch(setStates(updatedStates));
+      const updatedStates = states.filter(
+        (s) => s.state !== stateToDelete.state
+      );
       toast.success(`State ${stateToDelete.state} deleted successfully!`);
-      console.log("Delete State:", stateToDelete);
       setIsDeleteModalOpen(false);
       setStateToDelete(null);
     }
   };
-
   const handleToggleStatus = (state: State) => {
     if (state.status === "inactive") {
-      // Directly activate if setting to Active
       const updatedStates = states.map((s) =>
         s.state === state.state ? { ...s, status: "active" } : s
       );
-      // dispatch(setStates(updatedStates));
       toast.success(`State ${state.state} set to Active!`);
-      console.log("Toggle Status:", { ...state, status: "active" });
     } else {
-      // Show confirmation for setting to Inactive
       setStateToToggle(state);
       setIsToggleModalOpen(true);
     }
     setActiveMenu(null);
   };
-
   const confirmToggleStatus = () => {
     if (stateToToggle) {
       const updatedStates = states.map((s) =>
         s.state === stateToToggle.state ? { ...s, status: "inactive" } : s
       );
-       dispatch(editPlace(updatedStates));
+      dispatch(editPlace(updatedStates));
       toast.success(`State ${stateToToggle.state} set to Inactive!`);
-      console.log("Toggle Status:", { ...stateToToggle, status: "inactive" });
       setIsToggleModalOpen(false);
       setStateToToggle(null);
     }
   };
-
-  // Loading and Error UI
   if (statesLoading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -323,7 +270,6 @@ const StatesManager: React.FC = () => {
       </div>
     );
   }
-
   if (statesError) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -335,7 +281,6 @@ const StatesManager: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <ComponentCard title="States Manager">
@@ -352,7 +297,7 @@ const StatesManager: React.FC = () => {
             Excel file should contain columns: state, status (active/inactive)
           </p>
         </div> */}
-        {/* Search Input and Add State Button */}
+        {}
         <div className="flex justify-between mb-4">
           <Input
             type="text"
@@ -368,8 +313,7 @@ const StatesManager: React.FC = () => {
             Add State
           </Button>
         </div>
-
-        {/* Table Section */}
+        {}
         {paginatedStates.length > 0 ? (
           <div className="mt-6">
             <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -404,7 +348,9 @@ const StatesManager: React.FC = () => {
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
                   {paginatedStates.map((state, index) => (
-                    <TableRow key={state.state || `state-${startIndex + index}`}>
+                    <TableRow
+                      key={state.state || `state-${startIndex + index}`}
+                    >
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {startIndex + index + 1}
                       </TableCell>
@@ -446,7 +392,9 @@ const StatesManager: React.FC = () => {
                                 className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 onClick={() => handleToggleStatus(state)}
                               >
-                                {state.status === "active" ? "Set Inactive" : "Set Active"}
+                                {state.status === "active"
+                                  ? "Set Inactive"
+                                  : "Set Active"}
                               </button>
                             </div>
                           </div>
@@ -463,8 +411,7 @@ const StatesManager: React.FC = () => {
             No states available
           </div>
         )}
-
-        {/* Pagination */}
+        {}
         {totalItems > itemsPerPage && (
           <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
             <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -514,8 +461,7 @@ const StatesManager: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Add State Modal */}
+        {}
         {isAddModalOpen && (
           <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full">
@@ -532,7 +478,7 @@ const StatesManager: React.FC = () => {
               </div>
               <form onSubmit={handleAddSubmit} className="space-y-6">
                 <div className="flex flex-col gap-4">
-                  {/* State */}
+                  {}
                   <div>
                     <Label htmlFor="state">State</Label>
                     <Input
@@ -550,19 +496,19 @@ const StatesManager: React.FC = () => {
                       </p>
                     )}
                   </div>
-
-                  {/* Status */}
+                  {}
                   <div className="min-h-[80px]">
                     <Label>Status</Label>
                     <Switch
-                      label={formData.status === "active" ? "Active" : "Inactive"}
+                      label={
+                        formData.status === "active" ? "Active" : "Inactive"
+                      }
                       defaultChecked={formData.status === "active"}
                       onChange={handleStatusChange}
                     />
                   </div>
                 </div>
-
-                {/* Submit Button */}
+                {}
                 <div className="flex justify-between">
                   <Button
                     onClick={() => setIsAddModalOpen(false)}
@@ -570,10 +516,7 @@ const StatesManager: React.FC = () => {
                   >
                     Cancel
                   </Button>
-                  <Button
-                  
-                    className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
-                  >
+                  <Button className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200">
                     Submit
                   </Button>
                 </div>
@@ -581,8 +524,7 @@ const StatesManager: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Edit State Modal */}
+        {}
         {isEditModalOpen && (
           <div className="fixed inset-0 bg-white/30 backdrop-blur-sm flex items-center justify-center z-50">
             <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full">
@@ -604,7 +546,7 @@ const StatesManager: React.FC = () => {
               </div>
               <form onSubmit={handleEditSubmit} className="space-y-6">
                 <div className="flex flex-col gap-4">
-                  {/* State */}
+                  {}
                   <div>
                     <Label htmlFor="state">State</Label>
                     <Input
@@ -622,19 +564,19 @@ const StatesManager: React.FC = () => {
                       </p>
                     )}
                   </div>
-
-                  {/* Status */}
+                  {}
                   <div className="min-h-[80px]">
                     <Label>Status</Label>
                     <Switch
-                      label={formData.status === "active" ? "Active" : "Inactive"}
+                      label={
+                        formData.status === "active" ? "Active" : "Inactive"
+                      }
                       defaultChecked={formData.status === "active"}
                       onChange={handleStatusChange}
                     />
                   </div>
                 </div>
-
-                {/* Submit Button */}
+                {}
                 <div className="flex justify-between">
                   <Button
                     onClick={() => {
@@ -647,10 +589,7 @@ const StatesManager: React.FC = () => {
                   >
                     Cancel
                   </Button>
-                  <Button
-                  
-                    className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200"
-                  >
+                  <Button className="px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-brand-600 transition-colors duration-200">
                     Submit
                   </Button>
                 </div>
@@ -658,8 +597,7 @@ const StatesManager: React.FC = () => {
             </div>
           </div>
         )}
-
-        {/* Delete Confirmation Modal */}
+        {}
         <ConfirmDeleteModal
           isOpen={isDeleteModalOpen}
           propertyName={stateToDelete?.state || ""}
@@ -669,8 +607,7 @@ const StatesManager: React.FC = () => {
             setStateToDelete(null);
           }}
         />
-
-        {/* Toggle Status Confirmation Modal */}
+        {}
         <ActiveStatusModal
           isOpen={isToggleModalOpen}
           propertyName={stateToToggle?.state || ""}
@@ -685,5 +622,4 @@ const StatesManager: React.FC = () => {
     </div>
   );
 };
-
 export default StatesManager;

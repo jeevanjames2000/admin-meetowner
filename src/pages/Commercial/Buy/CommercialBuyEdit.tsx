@@ -14,14 +14,18 @@ import { AppDispatch } from "../../../store/store";
 import MediaUploadSection from "../../Residential/components/MediaUploadSection";
 import AroundThisProperty from "../../Residential/components/AroundThisProperty";
 
-
-
 interface CommercialBuyFormData {
-  propertyType:  "Commercial";
+  propertyType: "Commercial";
   lookingTo: "Sell";
   transactionType: "New" | "Resale";
   location: string;
-  propertySubType: "Office" | "Retail Shop" | "Show Room" | "Warehouse" | "Plot" | "Others";
+  propertySubType:
+    | "Office"
+    | "Retail Shop"
+    | "Show Room"
+    | "Warehouse"
+    | "Plot"
+    | "Others";
   reraApproved: "Yes" | "No";
   constructionStatus: "Ready to move" | "Under Construction";
   ageOfProperty: "5" | "10" | "11" | ""; // Updated to match API values
@@ -42,18 +46,35 @@ interface CommercialBuyFormData {
   widthArea: string;
   unitCost: string;
   propertyCost: string;
-  ownership: "Freehold" | "Leasehold" | "Cooperative society" | "Power of attorney";
-  facilities: { [key: string]: boolean }; 
+  ownership:
+    | "Freehold"
+    | "Leasehold"
+    | "Cooperative society"
+    | "Power of attorney";
+  facilities: { [key: string]: boolean };
   flatNo: string;
   plotNumber: string;
-  zoneType: "Industrial" | "Commercial" | "Special Economic Zone" | "Open Spaces" | "Agricultural Zone" | "Other";
-  suitable: "Jewellery" | "Grocery" | "Clinic" | "Footwear" | "Electronics" | "Clothing" | "Others";
+  zoneType:
+    | "Industrial"
+    | "Commercial"
+    | "Special Economic Zone"
+    | "Open Spaces"
+    | "Agricultural Zone"
+    | "Other";
+  suitable:
+    | "Jewellery"
+    | "Grocery"
+    | "Clinic"
+    | "Footwear"
+    | "Electronics"
+    | "Clothing"
+    | "Others";
   loanFacility: "Yes" | "No";
   facing: "East" | "West" | "South" | "North" | "";
   carParking: "0" | "1" | "2" | "3" | "4+";
   bikeParking: "0" | "1" | "2" | "3" | "4+";
   openParking: "0" | "1" | "2" | "3" | "4+";
-  
+
   pantryRoom: "Yes" | "No";
   possessionStatus: "Immediate" | "Future";
   investorProperty: "Yes" | "No";
@@ -63,7 +84,6 @@ interface CommercialBuyFormData {
   locality: string;
   floorNo: string;
   totalFloors: string;
-  
 }
 
 interface SelectOption {
@@ -110,9 +130,13 @@ const CommercialBuyEdit: React.FC = () => {
   };
 
   const [originalData, setOriginalData] = useState<any>(property || {});
-  const transformParkingValue = (value: string | number | undefined): "0" | "1" | "2" | "3" | "4+" => {
+  const transformParkingValue = (
+    value: string | number | undefined
+  ): "0" | "1" | "2" | "3" | "4+" => {
     const stringValue = String(value); // Convert to string for consistent comparison
-    return stringValue === "5" ? "4+" : (stringValue as "0" | "1" | "2" | "3" | "4+");
+    return stringValue === "5"
+      ? "4+"
+      : (stringValue as "0" | "1" | "2" | "3" | "4+");
   };
   const [formData, setFormData] = useState<CommercialBuyFormData>(() => {
     if (property) {
@@ -144,16 +168,31 @@ const CommercialBuyEdit: React.FC = () => {
         location: property.google_address || "",
         propertySubType: property.sub_type || "Office",
         reraApproved: property.rera_approved === 1 ? "Yes" : "No",
-        constructionStatus: property.occupancy === "Under Construction" ? "Under Construction" : "Ready to move",
+        constructionStatus:
+          property.occupancy === "Under Construction"
+            ? "Under Construction"
+            : "Ready to move",
         ageOfProperty: ageOfPropertyValue,
         possessionEnds: possessionEndDate,
-        passengerLifts: property.passenger_lifts ? String(property.passenger_lifts) : "",
-        serviceLifts: property.service_lifts ? String(property.service_lifts) : "",
+        passengerLifts: property.passenger_lifts
+          ? String(property.passenger_lifts)
+          : "",
+        serviceLifts: property.service_lifts
+          ? String(property.service_lifts)
+          : "",
         stairCases: property.stair_cases ? String(property.stair_cases) : "",
-        privateParking: property.private_parking ? String(property.private_parking) : "",
-        publicParking: property.public_parking ? String(property.public_parking) : "",
-        privateWashrooms: property.private_washrooms ? String(property.private_washrooms) : "",
-        publicWashrooms: property.public_washrooms ? String(property.public_washrooms) : "",
+        privateParking: property.private_parking
+          ? String(property.private_parking)
+          : "",
+        publicParking: property.public_parking
+          ? String(property.public_parking)
+          : "",
+        privateWashrooms: property.private_washrooms
+          ? String(property.private_washrooms)
+          : "",
+        publicWashrooms: property.public_washrooms
+          ? String(property.public_washrooms)
+          : "",
         areaUnits: property.area_units || "Sq.ft",
         builtUpArea: property.builtup_area || "",
         carpetArea: property.carpet_area || "",
@@ -172,8 +211,8 @@ const CommercialBuyEdit: React.FC = () => {
         loanFacility: property.loan_facility || "Yes",
         facing: property.facing || "",
         carParking: transformParkingValue(property.car_parking),
-        bikeParking: transformParkingValue(property.bike_parking), 
-        openParking: transformParkingValue(property.open_parking), 
+        bikeParking: transformParkingValue(property.bike_parking),
+        openParking: transformParkingValue(property.open_parking),
         pantryRoom: property.pantry_room || "No",
         possessionStatus: property.possession_status || "Immediate",
         investorProperty: property.investor_property || "No",
@@ -183,7 +222,6 @@ const CommercialBuyEdit: React.FC = () => {
         locality: property.location_id || "",
         floorNo: property.floors || "",
         totalFloors: property.total_floors || "",
-       
       };
     }
     return {
@@ -232,7 +270,6 @@ const CommercialBuyEdit: React.FC = () => {
       locality: "",
       floorNo: "",
       totalFloors: "",
-     
     };
   });
 
@@ -275,13 +312,9 @@ const CommercialBuyEdit: React.FC = () => {
     locality: "",
     floorNo: "",
     totalFloors: "",
-    
   });
 
-
-
   const propertyTypeOptions: SelectOption[] = [
-   
     { value: "Commercial", label: "Commercial" },
   ];
 
@@ -372,12 +405,35 @@ const CommercialBuyEdit: React.FC = () => {
   ];
 
   const facilitiesOptions: string[] = [
-    "Lift", "CCTV", "Gym", "Garden", "Club House", "Sports", "Swimming Pool",
-    "Intercom", "Power Backup", "Gated Community", "Regular Water", "Community Hall",
-    "Pet Allowed", "Entry / Exit", "Outdoor Fitness Station", "Half Basket Ball Court",
-    "Gazebo", "Badminton Court", "Children Play Area", "Ample Greenery",
-    "Water Harvesting Pit", "Water Softner", "Solar Fencing", "Security Cabin",
-    "Lawn", "Transformer Yard", "Amphitheatre", "Lawn with Stepping Stones", "None",
+    "Lift",
+    "CCTV",
+    "Gym",
+    "Garden",
+    "Club House",
+    "Sports",
+    "Swimming Pool",
+    "Intercom",
+    "Power Backup",
+    "Gated Community",
+    "Regular Water",
+    "Community Hall",
+    "Pet Allowed",
+    "Entry / Exit",
+    "Outdoor Fitness Station",
+    "Half Basket Ball Court",
+    "Gazebo",
+    "Badminton Court",
+    "Children Play Area",
+    "Ample Greenery",
+    "Water Harvesting Pit",
+    "Water Softner",
+    "Solar Fencing",
+    "Security Cabin",
+    "Lawn",
+    "Transformer Yard",
+    "Amphitheatre",
+    "Lawn with Stepping Stones",
+    "None",
   ];
 
   const possessionStatusOptions: SelectOption[] = [
@@ -385,48 +441,95 @@ const CommercialBuyEdit: React.FC = () => {
     { value: "Future", label: "Future" },
   ];
 
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+  const handleInputChange = (
+    e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
 
     if (name === "city") {
-      setErrors((prev) => ({ ...prev, city: !value ? "City is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        city: !value ? "City is required" : "",
+      }));
     }
     if (name === "propertyName") {
-      setErrors((prev) => ({ ...prev, propertyName: !value ? "Property name is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        propertyName: !value ? "Property name is required" : "",
+      }));
     }
     if (name === "locality") {
-      setErrors((prev) => ({ ...prev, locality: !value ? "Locality is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        locality: !value ? "Locality is required" : "",
+      }));
     }
     if (name === "flatNo" && formData.propertySubType !== "Plot") {
-      setErrors((prev) => ({ ...prev, flatNo: !value ? "Flat number is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        flatNo: !value ? "Flat number is required" : "",
+      }));
     }
     if (name === "plotNumber" && formData.propertySubType === "Plot") {
-      setErrors((prev) => ({ ...prev, plotNumber: !value ? "Plot number is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        plotNumber: !value ? "Plot number is required" : "",
+      }));
     }
     if (name === "floorNo" && formData.propertySubType !== "Plot") {
-      setErrors((prev) => ({ ...prev, floorNo: !value ? "Floor number is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        floorNo: !value ? "Floor number is required" : "",
+      }));
     }
     if (name === "totalFloors" && formData.propertySubType !== "Plot") {
-      setErrors((prev) => ({ ...prev, totalFloors: !value ? "Total floors is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        totalFloors: !value ? "Total floors is required" : "",
+      }));
     }
-    if (name === "builtUpArea" && ["Office", "Retail Shop", "Show Room"].includes(formData.propertySubType)) {
-      setErrors((prev) => ({ ...prev, builtUpArea: !value ? "Built-up area is required" : "" }));
+    if (
+      name === "builtUpArea" &&
+      ["Office", "Retail Shop", "Show Room"].includes(formData.propertySubType)
+    ) {
+      setErrors((prev) => ({
+        ...prev,
+        builtUpArea: !value ? "Built-up area is required" : "",
+      }));
     }
-    if (name === "plotArea" && ["Warehouse", "Plot", "Others"].includes(formData.propertySubType)) {
-      setErrors((prev) => ({ ...prev, plotArea: !value ? "Plot area is required" : "" }));
+    if (
+      name === "plotArea" &&
+      ["Warehouse", "Plot", "Others"].includes(formData.propertySubType)
+    ) {
+      setErrors((prev) => ({
+        ...prev,
+        plotArea: !value ? "Plot area is required" : "",
+      }));
     }
     if (name === "lengthArea" && formData.propertySubType === "Plot") {
-      setErrors((prev) => ({ ...prev, lengthArea: !value ? "Length area is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        lengthArea: !value ? "Length area is required" : "",
+      }));
     }
     if (name === "widthArea" && formData.propertySubType === "Plot") {
-      setErrors((prev) => ({ ...prev, widthArea: !value ? "Width area is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        widthArea: !value ? "Width area is required" : "",
+      }));
     }
     if (name === "totalProjectArea") {
-      setErrors((prev) => ({ ...prev, totalProjectArea: !value ? "Total project area is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        totalProjectArea: !value ? "Total project area is required" : "",
+      }));
     }
     if (name === "unitCost") {
-      setErrors((prev) => ({ ...prev, unitCost: !value ? "Unit cost is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        unitCost: !value ? "Unit cost is required" : "",
+      }));
     }
     if (name === "propertyCost") {
       const propertyCostValue = parseFloat(value);
@@ -435,17 +538,23 @@ const CommercialBuyEdit: React.FC = () => {
         propertyCost:
           propertyCostValue < 100000 || propertyCostValue > 3000000000
             ? "Property cost should be between 1 lakh to 300 cr"
-            : !value ? "Property cost is required" : "",
+            : !value
+            ? "Property cost is required"
+            : "",
       }));
     }
     if (name === "propertyDescription") {
-      setErrors((prev) => ({ ...prev, propertyDescription: !value ? "Property description is required" : "" }));
+      setErrors((prev) => ({
+        ...prev,
+        propertyDescription: !value ? "Property description is required" : "",
+      }));
     }
   };
 
-  const handleSelectChange = (name: keyof CommercialBuyFormData) => (value: string) => {
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  const handleSelectChange =
+    (name: keyof CommercialBuyFormData) => (value: string) => {
+      setFormData((prev) => ({ ...prev, [name]: value }));
+    };
 
   const handleFacilityChange = (event: ChangeEvent<HTMLInputElement>) => {
     const { id, checked } = event.target;
@@ -470,21 +579,21 @@ const CommercialBuyEdit: React.FC = () => {
     }
   };
 
-  
-
   const handleDateChange = (selectedDates: Date[]) => {
     const dateObj = selectedDates[0];
     let date = "";
-    if (dateObj){
+    if (dateObj) {
       const year = dateObj.getFullYear();
-      const month =String(dateObj.getMonth()+1).padStart(2,"0");
-      const day = String(dateObj.getDate()).padStart(2,"0");
+      const month = String(dateObj.getMonth() + 1).padStart(2, "0");
+      const day = String(dateObj.getDate()).padStart(2, "0");
       date = `${year}-${month}-${day}`;
     }
     setFormData((prev) => ({ ...prev, possessionEnds: date }));
-    setErrors((prev) => ({ ...prev, possessionEnds: !date ? "Possession ends date is required" : "" }));
+    setErrors((prev) => ({
+      ...prev,
+      possessionEnds: !date ? "Possession ends date is required" : "",
+    }));
   };
-
 
   const getChangedFields = () => {
     const changedFields: Partial<any> = {};
@@ -496,74 +605,368 @@ const CommercialBuyEdit: React.FC = () => {
         applicableTo: string[];
       };
     } = {
-      propertyType: { apiField: "property_in", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      lookingTo: { apiField: "property_for", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      transactionType: { apiField: "transaction_type", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      location: { apiField: "google_address", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      propertySubType: { apiField: "sub_type", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      propertyType: {
+        apiField: "property_in",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      lookingTo: {
+        apiField: "property_for",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      transactionType: {
+        apiField: "transaction_type",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      location: {
+        apiField: "google_address",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      propertySubType: {
+        apiField: "sub_type",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
       reraApproved: {
         apiField: "rera_approved",
         transform: (value: string) => (value === "Yes" ? 1 : 0),
-        applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"],
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
       },
-      constructionStatus: { apiField: "occupancy", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
-      ageOfProperty: { apiField: "property_age", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
-      possessionEnds: { apiField: "under_construction", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
-      passengerLifts: { apiField: "passenger_lifts", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
-      serviceLifts: { apiField: "service_lifts", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
-      stairCases: { apiField: "stair_cases", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
-      privateParking: { apiField: "private_parking", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
-      publicParking: { apiField: "public_parking", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
-      privateWashrooms: { apiField: "private_washrooms", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
-      publicWashrooms: { apiField: "public_washrooms", transform: (value: string) => parseInt(value), applicableTo: ["Office", "Retail Shop", "Show Room"] },
-      areaUnits: { apiField: "area_units", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      builtUpArea: { apiField: "builtup_area", applicableTo: ["Office", "Retail Shop", "Show Room"] },
-      carpetArea: { apiField: "carpet_area", applicableTo: ["Office", "Retail Shop", "Show Room"] },
-      totalProjectArea: { apiField: "total_project_area", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      plotArea: { apiField: "plot_area", applicableTo: ["Warehouse", "Plot", "Others"] },
+      constructionStatus: {
+        apiField: "occupancy",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Others",
+        ],
+      },
+      ageOfProperty: {
+        apiField: "property_age",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Others",
+        ],
+      },
+      possessionEnds: {
+        apiField: "under_construction",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Others",
+        ],
+      },
+      passengerLifts: {
+        apiField: "passenger_lifts",
+        transform: (value: string) => parseInt(value),
+        applicableTo: ["Office", "Retail Shop", "Show Room"],
+      },
+      serviceLifts: {
+        apiField: "service_lifts",
+        transform: (value: string) => parseInt(value),
+        applicableTo: ["Office", "Retail Shop", "Show Room"],
+      },
+      stairCases: {
+        apiField: "stair_cases",
+        transform: (value: string) => parseInt(value),
+        applicableTo: ["Office", "Retail Shop", "Show Room"],
+      },
+      privateParking: {
+        apiField: "private_parking",
+        transform: (value: string) => parseInt(value),
+        applicableTo: ["Office", "Retail Shop", "Show Room"],
+      },
+      publicParking: {
+        apiField: "public_parking",
+        transform: (value: string) => parseInt(value),
+        applicableTo: ["Office", "Retail Shop", "Show Room"],
+      },
+      privateWashrooms: {
+        apiField: "private_washrooms",
+        transform: (value: string) => parseInt(value),
+        applicableTo: ["Office", "Retail Shop", "Show Room"],
+      },
+      publicWashrooms: {
+        apiField: "public_washrooms",
+        transform: (value: string) => parseInt(value),
+        applicableTo: ["Office", "Retail Shop", "Show Room"],
+      },
+      areaUnits: {
+        apiField: "area_units",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      builtUpArea: {
+        apiField: "builtup_area",
+        applicableTo: ["Office", "Retail Shop", "Show Room"],
+      },
+      carpetArea: {
+        apiField: "carpet_area",
+        applicableTo: ["Office", "Retail Shop", "Show Room"],
+      },
+      totalProjectArea: {
+        apiField: "total_project_area",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      plotArea: {
+        apiField: "plot_area",
+        applicableTo: ["Warehouse", "Plot", "Others"],
+      },
       lengthArea: { apiField: "length_area", applicableTo: ["Plot"] },
       widthArea: { apiField: "width_area", applicableTo: ["Plot"] },
-      unitCost: { apiField: "builtup_unit", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      propertyCost: { apiField: "property_cost", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      ownership: { apiField: "ownership_type", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
+      unitCost: {
+        apiField: "builtup_unit",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      propertyCost: {
+        apiField: "property_cost",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      ownership: {
+        apiField: "ownership_type",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
       facilities: {
         apiField: "facilities",
         transform: (value: { [key: string]: boolean }) =>
           Object.keys(value)
             .filter((key) => value[key])
             .join(", ") || null,
-            applicableTo: ["Office", "Retail Shop", "Show Room", "Others"],
+        applicableTo: ["Office", "Retail Shop", "Show Room", "Others"],
       },
-      flatNo: { apiField: "unit_flat_house_no", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
+      flatNo: {
+        apiField: "unit_flat_house_no",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Others",
+        ],
+      },
       plotNumber: { apiField: "plot_number", applicableTo: ["Plot"] },
-      zoneType: { apiField: "zone_types", applicableTo: ["Office", "Warehouse", "Others"] },
-      suitable: { apiField: "business_types", applicableTo: ["Retail Shop", "Show Room", "Plot", "Others"] },
-      loanFacility: { apiField: "loan_facility", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      facing: { apiField: "facing", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      carParking: { 
-        apiField: "car_parking", 
-       transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
-        applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] 
+      zoneType: {
+        apiField: "zone_types",
+        applicableTo: ["Office", "Warehouse", "Others"],
       },
-      bikeParking: { 
-        apiField: "bike_parking", 
-        transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
-        applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] 
+      suitable: {
+        apiField: "business_types",
+        applicableTo: ["Retail Shop", "Show Room", "Plot", "Others"],
       },
-      openParking: { 
-        apiField: "open_parking", 
-        transform: (value: string | null | undefined) => (value === "4+" ? 5 : value || "0"), 
-        applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] 
+      loanFacility: {
+        apiField: "loan_facility",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
       },
-      pantryRoom: { apiField: "pantry_room", applicableTo: ["Office", "Show Room", "Others"] },
-      possessionStatus: { apiField: "possession_status", applicableTo: ["Plot"] },
-      investorProperty: { apiField: "investor_property", applicableTo: ["Plot"] },
-      propertyDescription: { apiField: "description", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      city: { apiField: "city_id", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      propertyName: { apiField: "property_name", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      locality: { apiField: "location_id", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Plot", "Others"] },
-      floorNo: { apiField: "floors", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
-      totalFloors: { apiField: "total_floors", applicableTo: ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"] },
+      facing: {
+        apiField: "facing",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      carParking: {
+        apiField: "car_parking",
+        transform: (value: string | null | undefined) =>
+          value === "4+" ? 5 : value || "0",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Others",
+        ],
+      },
+      bikeParking: {
+        apiField: "bike_parking",
+        transform: (value: string | null | undefined) =>
+          value === "4+" ? 5 : value || "0",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Others",
+        ],
+      },
+      openParking: {
+        apiField: "open_parking",
+        transform: (value: string | null | undefined) =>
+          value === "4+" ? 5 : value || "0",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Others",
+        ],
+      },
+      pantryRoom: {
+        apiField: "pantry_room",
+        applicableTo: ["Office", "Show Room", "Others"],
+      },
+      possessionStatus: {
+        apiField: "possession_status",
+        applicableTo: ["Plot"],
+      },
+      investorProperty: {
+        apiField: "investor_property",
+        applicableTo: ["Plot"],
+      },
+      propertyDescription: {
+        apiField: "description",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      city: {
+        apiField: "city_id",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      propertyName: {
+        apiField: "property_name",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      locality: {
+        apiField: "location_id",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Plot",
+          "Others",
+        ],
+      },
+      floorNo: {
+        apiField: "floors",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Others",
+        ],
+      },
+      totalFloors: {
+        apiField: "total_floors",
+        applicableTo: [
+          "Office",
+          "Retail Shop",
+          "Show Room",
+          "Warehouse",
+          "Others",
+        ],
+      },
     };
 
     Object.keys(formData).forEach((key) => {
@@ -582,17 +985,28 @@ const CommercialBuyEdit: React.FC = () => {
       }
 
       if (key === "facilities") {
-        const originalFacilities = originalValue ? String(originalValue).split(", ").filter(Boolean) : [];
-        const newFacilities = newValue ? String(newValue).split(", ").filter(Boolean) : [];
-        if (JSON.stringify(originalFacilities.sort()) !== JSON.stringify(newFacilities.sort())) {
+        const originalFacilities = originalValue
+          ? String(originalValue).split(", ").filter(Boolean)
+          : [];
+        const newFacilities = newValue
+          ? String(newValue).split(", ").filter(Boolean)
+          : [];
+        if (
+          JSON.stringify(originalFacilities.sort()) !==
+          JSON.stringify(newFacilities.sort())
+        ) {
           changedFields[apiField] = newValue;
         }
       }
-        const original = originalValue === null || originalValue === undefined ? "" : String(originalValue);
-        const current = newValue === null || newValue === undefined ? "" : String(newValue);
-        if (original !== current) {
-          changedFields[apiField] = newValue;
-        }
+      const original =
+        originalValue === null || originalValue === undefined
+          ? ""
+          : String(originalValue);
+      const current =
+        newValue === null || newValue === undefined ? "" : String(newValue);
+      if (original !== current) {
+        changedFields[apiField] = newValue;
+      }
       // }
     });
 
@@ -603,65 +1017,112 @@ const CommercialBuyEdit: React.FC = () => {
     e.preventDefault();
     const newErrors: any = {};
 
-    if (!formData.propertyType) newErrors.propertyType = "Property type is required";
+    if (!formData.propertyType)
+      newErrors.propertyType = "Property type is required";
     if (!formData.lookingTo) newErrors.lookingTo = "Looking to is required";
-    if (!formData.propertySubType) newErrors.propertySubType = "Property sub type is required";
-    if (!formData.reraApproved) newErrors.reraApproved = "RERA approval status is required";
+    if (!formData.propertySubType)
+      newErrors.propertySubType = "Property sub type is required";
+    if (!formData.reraApproved)
+      newErrors.reraApproved = "RERA approval status is required";
 
-    if (["Office", "Retail Shop", "Show Room", "Warehouse", "Others"].includes(formData.propertySubType) && !formData.constructionStatus) {
+    if (
+      ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"].includes(
+        formData.propertySubType
+      ) &&
+      !formData.constructionStatus
+    ) {
       newErrors.constructionStatus = "Construction status is required";
     }
 
-    if (formData.constructionStatus === "Ready to move" && !formData.ageOfProperty) {
+    if (
+      formData.constructionStatus === "Ready to move" &&
+      !formData.ageOfProperty
+    ) {
       newErrors.ageOfProperty = "Age of property is required";
     }
 
-    if (formData.constructionStatus === "Under Construction" && !formData.possessionEnds) {
+    if (
+      formData.constructionStatus === "Under Construction" &&
+      !formData.possessionEnds
+    ) {
       newErrors.possessionEnds = "Possession ends date is required";
     }
 
-    if (["Office", "Retail Shop", "Show Room"].includes(formData.propertySubType)) {
-      if (!formData.passengerLifts) newErrors.passengerLifts = "Passenger lifts are required";
-      if (!formData.serviceLifts) newErrors.serviceLifts = "Service lifts are required";
-      if (!formData.stairCases) newErrors.stairCases = "Stair cases are required";
-      if (!formData.privateParking) newErrors.privateParking = "Private parking is required";
-      if (!formData.publicParking) newErrors.publicParking = "Public parking is required";
-      if (!formData.privateWashrooms) newErrors.privateWashrooms = "Private washrooms are required";
-      if (!formData.publicWashrooms) newErrors.publicWashrooms = "Public washrooms are required";
-      if (!formData.builtUpArea) newErrors.builtUpArea = "Built-up area is required";
+    if (
+      ["Office", "Retail Shop", "Show Room"].includes(formData.propertySubType)
+    ) {
+      if (!formData.passengerLifts)
+        newErrors.passengerLifts = "Passenger lifts are required";
+      if (!formData.serviceLifts)
+        newErrors.serviceLifts = "Service lifts are required";
+      if (!formData.stairCases)
+        newErrors.stairCases = "Stair cases are required";
+      if (!formData.privateParking)
+        newErrors.privateParking = "Private parking is required";
+      if (!formData.publicParking)
+        newErrors.publicParking = "Public parking is required";
+      if (!formData.privateWashrooms)
+        newErrors.privateWashrooms = "Private washrooms are required";
+      if (!formData.publicWashrooms)
+        newErrors.publicWashrooms = "Public washrooms are required";
+      if (!formData.builtUpArea)
+        newErrors.builtUpArea = "Built-up area is required";
     }
 
-    if (["Warehouse", "Plot", "Others"].includes(formData.propertySubType) && !formData.plotArea) {
+    if (
+      ["Warehouse", "Plot", "Others"].includes(formData.propertySubType) &&
+      !formData.plotArea
+    ) {
       newErrors.plotArea = "Plot area is required";
     }
 
     if (formData.propertySubType === "Plot") {
-      if (!formData.lengthArea) newErrors.lengthArea = "Length area is required";
+      if (!formData.lengthArea)
+        newErrors.lengthArea = "Length area is required";
       if (!formData.widthArea) newErrors.widthArea = "Width area is required";
-      if (!formData.plotNumber) newErrors.plotNumber = "Plot number is required";
+      if (!formData.plotNumber)
+        newErrors.plotNumber = "Plot number is required";
     }
 
-    if (!formData.totalProjectArea) newErrors.totalProjectArea = "Total project area is required";
+    if (!formData.totalProjectArea)
+      newErrors.totalProjectArea = "Total project area is required";
     if (!formData.unitCost) newErrors.unitCost = "Unit cost is required";
-    if (!formData.propertyCost) newErrors.propertyCost = "Property cost is required";
+    if (!formData.propertyCost)
+      newErrors.propertyCost = "Property cost is required";
     if (!formData.ownership) newErrors.ownership = "Ownership is required";
 
-    if (["Office", "Retail Shop", "Show Room", "Warehouse", "Others"].includes(formData.propertySubType) && !formData.flatNo) {
+    if (
+      ["Office", "Retail Shop", "Show Room", "Warehouse", "Others"].includes(
+        formData.propertySubType
+      ) &&
+      !formData.flatNo
+    ) {
       newErrors.flatNo = "Flat number is required";
     }
 
-    if (["Office", "Warehouse", "Others"].includes(formData.propertySubType) && !formData.zoneType) {
+    if (
+      ["Office", "Warehouse", "Others"].includes(formData.propertySubType) &&
+      !formData.zoneType
+    ) {
       newErrors.zoneType = "Zone type is required";
     }
 
-    if (["Retail Shop", "Show Room", "Plot", "Others"].includes(formData.propertySubType) && !formData.suitable) {
+    if (
+      ["Retail Shop", "Show Room", "Plot", "Others"].includes(
+        formData.propertySubType
+      ) &&
+      !formData.suitable
+    ) {
       newErrors.suitable = "Suitable for is required";
     }
 
-    if (!formData.loanFacility) newErrors.loanFacility = "Loan facility is required";
-   
+    if (!formData.loanFacility)
+      newErrors.loanFacility = "Loan facility is required";
 
-    if (["Office", "Show Room", "Others"].includes(formData.propertySubType) && !formData.pantryRoom) {
+    if (
+      ["Office", "Show Room", "Others"].includes(formData.propertySubType) &&
+      !formData.pantryRoom
+    ) {
       newErrors.pantryRoom = "Pantry room is required";
     }
 
@@ -673,14 +1134,16 @@ const CommercialBuyEdit: React.FC = () => {
       newErrors.investorProperty = "Investor property is required";
     }
 
-    if (!formData.propertyDescription) newErrors.propertyDescription = "Property description is required";
+    if (!formData.propertyDescription)
+      newErrors.propertyDescription = "Property description is required";
     if (!formData.city) newErrors.city = "City is required";
-    if (!formData.propertyName) newErrors.propertyName = "Property name is required";
+    if (!formData.propertyName)
+      newErrors.propertyName = "Property name is required";
     if (!formData.locality) newErrors.locality = "Locality is required";
-    if (formData.propertySubType !== "Plot" && !formData.floorNo) newErrors.floorNo = "Floor number is required";
-    if (formData.propertySubType !== "Plot" && !formData.totalFloors) newErrors.totalFloors = "Total floors is required";
-
-   
+    if (formData.propertySubType !== "Plot" && !formData.floorNo)
+      newErrors.floorNo = "Floor number is required";
+    if (formData.propertySubType !== "Plot" && !formData.totalFloors)
+      newErrors.totalFloors = "Total floors is required";
 
     setErrors((prev) => ({ ...prev, ...newErrors }));
 
@@ -693,20 +1156,15 @@ const CommercialBuyEdit: React.FC = () => {
           updates: changedFields,
         };
 
-        console.log("API Call: Post /listings/updateListing");
-        console.log("Payload:", JSON.stringify(payload, null, 2));
-
         dispatch(updateListing(payload))
           .unwrap()
           .then((response) => {
-            console.log("API Response:", JSON.stringify(response, null, 2));
             navigate(-1);
           })
           .catch((err) => {
             console.error("Update failed:", err);
           });
       } else {
-        console.log("No changes detected.");
         navigate(-1);
       }
     }
@@ -722,11 +1180,12 @@ const CommercialBuyEdit: React.FC = () => {
   const shouldRenderFields =
     formData.propertyType === "Commercial" &&
     formData.lookingTo === "Sell" &&
-    (formData.transactionType === "New" || formData.transactionType === "Resale");
+    (formData.transactionType === "New" ||
+      formData.transactionType === "Resale");
 
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-2 sm:px-6 lg:px-8">
-      <PageBreadcrumb pageTitle="Commercial Buy Edit"  />
+      <PageBreadcrumb pageTitle="Commercial Buy Edit" />
       <ComponentCard title="Edit Basic Details">
         <form onSubmit={handleSubmit} className="space-y-6">
           <div>
@@ -736,7 +1195,9 @@ const CommercialBuyEdit: React.FC = () => {
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => handleSelectChange("propertyType")(option.value)}
+                  onClick={() =>
+                    handleSelectChange("propertyType")(option.value)
+                  }
                   className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                     formData.propertyType === option.value
                       ? "bg-[#1D3A76] text-white border-blue-600"
@@ -747,7 +1208,9 @@ const CommercialBuyEdit: React.FC = () => {
                 </button>
               ))}
             </div>
-            {errors.propertyType && <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>}
+            {errors.propertyType && (
+              <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>
+            )}
           </div>
 
           <div>
@@ -768,7 +1231,9 @@ const CommercialBuyEdit: React.FC = () => {
                 </button>
               ))}
             </div>
-            {errors.lookingTo && <p className="text-red-500 text-sm mt-1">{errors.lookingTo}</p>}
+            {errors.lookingTo && (
+              <p className="text-red-500 text-sm mt-1">{errors.lookingTo}</p>
+            )}
           </div>
 
           <div>
@@ -802,7 +1267,9 @@ const CommercialBuyEdit: React.FC = () => {
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => handleSelectChange("propertySubType")(option.value)}
+                  onClick={() =>
+                    handleSelectChange("propertySubType")(option.value)
+                  }
                   className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                     formData.propertySubType === option.value
                       ? "bg-[#1D3A76] text-white border-blue-600"
@@ -813,7 +1280,11 @@ const CommercialBuyEdit: React.FC = () => {
                 </button>
               ))}
             </div>
-            {errors.propertySubType && <p className="text-red-500 text-sm mt-1">{errors.propertySubType}</p>}
+            {errors.propertySubType && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.propertySubType}
+              </p>
+            )}
           </div>
 
           {shouldRenderFields && (
@@ -836,7 +1307,11 @@ const CommercialBuyEdit: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                {errors.reraApproved && <p className="text-red-500 text-sm mt-1">{errors.reraApproved}</p>}
+                {errors.reraApproved && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.reraApproved}
+                  </p>
+                )}
               </div>
 
               {(formData.propertySubType === "Office" ||
@@ -845,13 +1320,17 @@ const CommercialBuyEdit: React.FC = () => {
                 formData.propertySubType === "Warehouse" ||
                 formData.propertySubType === "Others") && (
                 <div>
-                  <Label htmlFor="constructionStatus">Construction Status *</Label>
+                  <Label htmlFor="constructionStatus">
+                    Construction Status *
+                  </Label>
                   <div className="flex space-x-4">
                     {constructionStatusOptions.map((option) => (
                       <button
                         key={option.value}
                         type="button"
-                        onClick={() => handleSelectChange("constructionStatus")(option.value)}
+                        onClick={() =>
+                          handleSelectChange("constructionStatus")(option.value)
+                        }
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.constructionStatus === option.value
                             ? "bg-[#1D3A76] text-white border-blue-600"
@@ -862,7 +1341,11 @@ const CommercialBuyEdit: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  {errors.constructionStatus && <p className="text-red-500 text-sm mt-1">{errors.constructionStatus}</p>}
+                  {errors.constructionStatus && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.constructionStatus}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -872,18 +1355,22 @@ const CommercialBuyEdit: React.FC = () => {
                 formData.propertySubType === "Warehouse" ||
                 formData.propertySubType === "Others") &&
                 formData.constructionStatus === "Ready to move" && (
-                <div>
-                  <Label htmlFor="ageOfProperty">Age of Property *</Label>
-                  <Select
-                    options={ageOfPropertyOptions}
-                    placeholder="Select age of property"
-                    onChange={handleSelectChange("ageOfProperty")}
-                    value={formData.ageOfProperty}
-                    className="dark:bg-dark-900"
-                  />
-                  {errors.ageOfProperty && <p className="text-red-500 text-sm mt-1">{errors.ageOfProperty}</p>}
-                </div>
-              )}
+                  <div>
+                    <Label htmlFor="ageOfProperty">Age of Property *</Label>
+                    <Select
+                      options={ageOfPropertyOptions}
+                      placeholder="Select age of property"
+                      onChange={handleSelectChange("ageOfProperty")}
+                      value={formData.ageOfProperty}
+                      className="dark:bg-dark-900"
+                    />
+                    {errors.ageOfProperty && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.ageOfProperty}
+                      </p>
+                    )}
+                  </div>
+                )}
 
               {(formData.propertySubType === "Office" ||
                 formData.propertySubType === "Retail Shop" ||
@@ -891,31 +1378,39 @@ const CommercialBuyEdit: React.FC = () => {
                 formData.propertySubType === "Warehouse" ||
                 formData.propertySubType === "Others") &&
                 formData.constructionStatus === "Under Construction" && (
-                <div>
-                  <DatePicker
-                    id="possessionEnds"
-                    label="Possession Ends *"
-                    placeholder="Select possession end date"
-                    onChange={handleDateChange}
-                     defaultDate={
-                          formData.possessionEnds
-                            ? (() => {
-                                const defaultDate = new Date(formData.possessionEnds);
-                                console.log("Default date:", defaultDate, "From string:", formData.possessionEnds);
-                                return defaultDate;
-                              })()
-                            : undefined
-                        }
-                  />
-                  {errors.possessionEnds && <p className="text-red-500 text-sm mt-1">{errors.possessionEnds}</p>}
-                </div>
-              )}
+                  <div>
+                    <DatePicker
+                      id="possessionEnds"
+                      label="Possession Ends *"
+                      placeholder="Select possession end date"
+                      onChange={handleDateChange}
+                      defaultDate={
+                        formData.possessionEnds
+                          ? (() => {
+                              const defaultDate = new Date(
+                                formData.possessionEnds
+                              );
+
+                              return defaultDate;
+                            })()
+                          : undefined
+                      }
+                    />
+                    {errors.possessionEnds && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.possessionEnds}
+                      </p>
+                    )}
+                  </div>
+                )}
 
               {(formData.propertySubType === "Office" ||
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Lift & Stair Cases</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                    Lift & Stair Cases
+                  </h3>
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="passengerLifts">Passenger Lifts *</Label>
@@ -928,7 +1423,11 @@ const CommercialBuyEdit: React.FC = () => {
                         placeholder="Enter passenger lifts"
                         className="dark:bg-dark-900"
                       />
-                      {errors.passengerLifts && <p className="text-red-500 text-sm mt-1">{errors.passengerLifts}</p>}
+                      {errors.passengerLifts && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.passengerLifts}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="serviceLifts">Service Lifts *</Label>
@@ -941,7 +1440,11 @@ const CommercialBuyEdit: React.FC = () => {
                         placeholder="Enter service lifts"
                         className="dark:bg-dark-900"
                       />
-                      {errors.serviceLifts && <p className="text-red-500 text-sm mt-1">{errors.serviceLifts}</p>}
+                      {errors.serviceLifts && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.serviceLifts}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="stairCases">Stair Cases *</Label>
@@ -954,7 +1457,11 @@ const CommercialBuyEdit: React.FC = () => {
                         placeholder="Enter stair cases"
                         className="dark:bg-dark-900"
                       />
-                      {errors.stairCases && <p className="text-red-500 text-sm mt-1">{errors.stairCases}</p>}
+                      {errors.stairCases && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.stairCases}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -964,7 +1471,9 @@ const CommercialBuyEdit: React.FC = () => {
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Parking</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                    Parking
+                  </h3>
                   <div className="space-y-4">
                     <div>
                       <Label htmlFor="privateParking">Private Parking *</Label>
@@ -977,7 +1486,11 @@ const CommercialBuyEdit: React.FC = () => {
                         placeholder="Enter private parking"
                         className="dark:bg-dark-900"
                       />
-                      {errors.privateParking && <p className="text-red-500 text-sm mt-1">{errors.privateParking}</p>}
+                      {errors.privateParking && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.privateParking}
+                        </p>
+                      )}
                     </div>
                     <div>
                       <Label htmlFor="publicParking">Public Parking *</Label>
@@ -990,7 +1503,11 @@ const CommercialBuyEdit: React.FC = () => {
                         placeholder="Enter public parking"
                         className="dark:bg-dark-900"
                       />
-                      {errors.publicParking && <p className="text-red-500 text-sm mt-1">{errors.publicParking}</p>}
+                      {errors.publicParking && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.publicParking}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1000,10 +1517,14 @@ const CommercialBuyEdit: React.FC = () => {
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
                 <div>
-                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Washrooms</h3>
+                  <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                    Washrooms
+                  </h3>
                   <div className="space-y-4">
                     <div>
-                      <Label htmlFor="privateWashrooms">Private Washrooms *</Label>
+                      <Label htmlFor="privateWashrooms">
+                        Private Washrooms *
+                      </Label>
                       <Input
                         type="number"
                         id="privateWashrooms"
@@ -1013,10 +1534,16 @@ const CommercialBuyEdit: React.FC = () => {
                         placeholder="Enter private washrooms"
                         className="dark:bg-dark-900"
                       />
-                      {errors.privateWashrooms && <p className="text-red-500 text-sm mt-1">{errors.privateWashrooms}</p>}
+                      {errors.privateWashrooms && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.privateWashrooms}
+                        </p>
+                      )}
                     </div>
                     <div>
-                      <Label htmlFor="publicWashrooms">Public Washrooms *</Label>
+                      <Label htmlFor="publicWashrooms">
+                        Public Washrooms *
+                      </Label>
                       <Input
                         type="number"
                         id="publicWashrooms"
@@ -1026,7 +1553,11 @@ const CommercialBuyEdit: React.FC = () => {
                         placeholder="Enter public washrooms"
                         className="dark:bg-dark-900"
                       />
-                      {errors.publicWashrooms && <p className="text-red-500 text-sm mt-1">{errors.publicWashrooms}</p>}
+                      {errors.publicWashrooms && (
+                        <p className="text-red-500 text-sm mt-1">
+                          {errors.publicWashrooms}
+                        </p>
+                      )}
                     </div>
                   </div>
                 </div>
@@ -1055,7 +1586,11 @@ const CommercialBuyEdit: React.FC = () => {
                     placeholder="Enter length area"
                     className="dark:bg-dark-900"
                   />
-                  {errors.lengthArea && <p className="text-red-500 text-sm mt-1">{errors.lengthArea}</p>}
+                  {errors.lengthArea && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.lengthArea}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1071,7 +1606,11 @@ const CommercialBuyEdit: React.FC = () => {
                     placeholder="Enter width area"
                     className="dark:bg-dark-900"
                   />
-                  {errors.widthArea && <p className="text-red-500 text-sm mt-1">{errors.widthArea}</p>}
+                  {errors.widthArea && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.widthArea}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1079,7 +1618,9 @@ const CommercialBuyEdit: React.FC = () => {
                 formData.propertySubType === "Plot" ||
                 formData.propertySubType === "Others") && (
                 <div>
-                  <Label htmlFor="plotArea">Plot Area ({areaUnitLabel}) *</Label>
+                  <Label htmlFor="plotArea">
+                    Plot Area ({areaUnitLabel}) *
+                  </Label>
                   <Input
                     type="number"
                     id="plotArea"
@@ -1089,7 +1630,11 @@ const CommercialBuyEdit: React.FC = () => {
                     placeholder="Enter plot area"
                     className="dark:bg-dark-900"
                   />
-                  {errors.plotArea && <p className="text-red-500 text-sm mt-1">{errors.plotArea}</p>}
+                  {errors.plotArea && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.plotArea}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1097,7 +1642,9 @@ const CommercialBuyEdit: React.FC = () => {
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
                 <div>
-                  <Label htmlFor="builtUpArea">Built-up Area ({areaUnitLabel}) *</Label>
+                  <Label htmlFor="builtUpArea">
+                    Built-up Area ({areaUnitLabel}) *
+                  </Label>
                   <Input
                     type="number"
                     id="builtUpArea"
@@ -1106,7 +1653,11 @@ const CommercialBuyEdit: React.FC = () => {
                     onChange={handleInputChange}
                     className="dark:bg-dark-900"
                   />
-                  {errors.builtUpArea && <p className="text-red-500 text-sm mt-1">{errors.builtUpArea}</p>}
+                  {errors.builtUpArea && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.builtUpArea}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1114,7 +1665,9 @@ const CommercialBuyEdit: React.FC = () => {
                 formData.propertySubType === "Retail Shop" ||
                 formData.propertySubType === "Show Room") && (
                 <div>
-                  <Label htmlFor="carpetArea">Carpet Area ({areaUnitLabel})</Label>
+                  <Label htmlFor="carpetArea">
+                    Carpet Area ({areaUnitLabel})
+                  </Label>
                   <Input
                     type="number"
                     id="carpetArea"
@@ -1127,7 +1680,9 @@ const CommercialBuyEdit: React.FC = () => {
               )}
 
               <div>
-                <Label htmlFor="totalProjectArea">Total Project Area (Acres) *</Label>
+                <Label htmlFor="totalProjectArea">
+                  Total Project Area (Acres) *
+                </Label>
                 <Input
                   type="number"
                   id="totalProjectArea"
@@ -1137,7 +1692,11 @@ const CommercialBuyEdit: React.FC = () => {
                   placeholder="Enter total project area"
                   className="dark:bg-dark-900"
                 />
-                {errors.totalProjectArea && <p className="text-red-500 text-sm mt-1">{errors.totalProjectArea}</p>}
+                {errors.totalProjectArea && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.totalProjectArea}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -1153,7 +1712,9 @@ const CommercialBuyEdit: React.FC = () => {
                     className="dark:bg-dark-900"
                   />
                 </div>
-                {errors.unitCost && <p className="text-red-500 text-sm mt-1">{errors.unitCost}</p>}
+                {errors.unitCost && (
+                  <p className="text-red-500 text-sm mt-1">{errors.unitCost}</p>
+                )}
               </div>
 
               <div>
@@ -1166,7 +1727,11 @@ const CommercialBuyEdit: React.FC = () => {
                   onChange={handleInputChange}
                   className="dark:bg-dark-900"
                 />
-                {errors.propertyCost && <p className="text-red-500 text-sm mt-1">{errors.propertyCost}</p>}
+                {errors.propertyCost && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.propertyCost}
+                  </p>
+                )}
               </div>
 
               <div>
@@ -1176,7 +1741,9 @@ const CommercialBuyEdit: React.FC = () => {
                     <button
                       key={option.value}
                       type="button"
-                      onClick={() => handleSelectChange("ownership")(option.value)}
+                      onClick={() =>
+                        handleSelectChange("ownership")(option.value)
+                      }
                       className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                         formData.ownership === option.value
                           ? "bg-[#1D3A76] text-white border-blue-600"
@@ -1187,7 +1754,11 @@ const CommercialBuyEdit: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                {errors.ownership && <p className="text-red-500 text-sm mt-1">{errors.ownership}</p>}
+                {errors.ownership && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.ownership}
+                  </p>
+                )}
               </div>
 
               {(formData.propertySubType === "Office" ||
@@ -1197,40 +1768,75 @@ const CommercialBuyEdit: React.FC = () => {
                 <div>
                   <Label htmlFor="facilities">Facilities</Label>
                   <div className="grid grid-cols-3 gap-4">
-                      {facilitiesOptions.map((facility) => (
-                        <label key={facility} className="flex items-center space-x-2">
-                          <input
-                            type="checkbox"
-                            id={facility} // Add id for better accessibility
-                            checked={formData.facilities[facility]} // Check the boolean value
-                            onChange={handleFacilityChange} // Use the event-based handler
-                            className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
-                          />
-                          <span className="text-gray-700 dark:text-gray-300">{facility}</span>
-                        </label>
-                      ))}
-                    </div>
+                    {facilitiesOptions.map((facility) => (
+                      <label
+                        key={facility}
+                        className="flex items-center space-x-2"
+                      >
+                        <input
+                          type="checkbox"
+                          id={facility} // Add id for better accessibility
+                          checked={formData.facilities[facility]} // Check the boolean value
+                          onChange={handleFacilityChange} // Use the event-based handler
+                          className="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"
+                        />
+                        <span className="text-gray-700 dark:text-gray-300">
+                          {facility}
+                        </span>
+                      </label>
+                    ))}
+                  </div>
                 </div>
               )}
 
               <div>
-                <Label htmlFor={formData.propertySubType === "Plot" ? "plotNumber" : "flatNo"}>
-                  {formData.propertySubType === "Plot" ? "Plot No. *" : "Flat No. *"}
+                <Label
+                  htmlFor={
+                    formData.propertySubType === "Plot"
+                      ? "plotNumber"
+                      : "flatNo"
+                  }
+                >
+                  {formData.propertySubType === "Plot"
+                    ? "Plot No. *"
+                    : "Flat No. *"}
                 </Label>
                 <Input
                   type="text"
-                  id={formData.propertySubType === "Plot" ? "plotNumber" : "flatNo"}
-                  name={formData.propertySubType === "Plot" ? "plotNumber" : "flatNo"}
-                  value={formData.propertySubType === "Plot" ? formData.plotNumber : formData.flatNo}
+                  id={
+                    formData.propertySubType === "Plot"
+                      ? "plotNumber"
+                      : "flatNo"
+                  }
+                  name={
+                    formData.propertySubType === "Plot"
+                      ? "plotNumber"
+                      : "flatNo"
+                  }
+                  value={
+                    formData.propertySubType === "Plot"
+                      ? formData.plotNumber
+                      : formData.flatNo
+                  }
                   onChange={handleInputChange}
-                  placeholder={formData.propertySubType === "Plot" ? "Plot Number" : "Flat Number"}
+                  placeholder={
+                    formData.propertySubType === "Plot"
+                      ? "Plot Number"
+                      : "Flat Number"
+                  }
                   className="dark:bg-dark-900"
                 />
-                {formData.propertySubType === "Plot" ? (
-                  errors.plotNumber && <p className="text-red-500 text-sm mt-1">{errors.plotNumber}</p>
-                ) : (
-                  errors.flatNo && <p className="text-red-500 text-sm mt-1">{errors.flatNo}</p>
-                )}
+                {formData.propertySubType === "Plot"
+                  ? errors.plotNumber && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.plotNumber}
+                      </p>
+                    )
+                  : errors.flatNo && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.flatNo}
+                      </p>
+                    )}
               </div>
 
               {(formData.propertySubType === "Office" ||
@@ -1245,7 +1851,11 @@ const CommercialBuyEdit: React.FC = () => {
                     value={formData.zoneType}
                     className="dark:bg-dark-900"
                   />
-                  {errors.zoneType && <p className="text-red-500 text-sm mt-1">{errors.zoneType}</p>}
+                  {errors.zoneType && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.zoneType}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1262,7 +1872,11 @@ const CommercialBuyEdit: React.FC = () => {
                     value={formData.suitable}
                     className="dark:bg-dark-900"
                   />
-                  {errors.suitable && <p className="text-red-500 text-sm mt-1">{errors.suitable}</p>}
+                  {errors.suitable && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.suitable}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1284,7 +1898,11 @@ const CommercialBuyEdit: React.FC = () => {
                     </button>
                   ))}
                 </div>
-                {errors.loanFacility && <p className="text-red-500 text-sm mt-1">{errors.loanFacility}</p>}
+                {errors.loanFacility && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.loanFacility}
+                  </p>
+                )}
               </div>
 
               {formData.propertySubType === "Plot" && (
@@ -1295,7 +1913,9 @@ const CommercialBuyEdit: React.FC = () => {
                       <button
                         key={option.value}
                         type="button"
-                        onClick={() => handleSelectChange("possessionStatus")(option.value)}
+                        onClick={() =>
+                          handleSelectChange("possessionStatus")(option.value)
+                        }
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.possessionStatus === option.value
                             ? "bg-[#1D3A76] text-white border-blue-600"
@@ -1306,7 +1926,11 @@ const CommercialBuyEdit: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  {errors.possessionStatus && <p className="text-red-500 text-sm mt-1">{errors.possessionStatus}</p>}
+                  {errors.possessionStatus && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.possessionStatus}
+                    </p>
+                  )}
                 </div>
               )}
 
@@ -1318,7 +1942,9 @@ const CommercialBuyEdit: React.FC = () => {
                       <button
                         key={option}
                         type="button"
-                        onClick={() => handleSelectChange("investorProperty")(option)}
+                        onClick={() =>
+                          handleSelectChange("investorProperty")(option)
+                        }
                         className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                           formData.investorProperty === option
                             ? "bg-[#1D3A76] text-white border-blue-600"
@@ -1329,12 +1955,18 @@ const CommercialBuyEdit: React.FC = () => {
                       </button>
                     ))}
                   </div>
-                  {errors.investorProperty && <p className="text-red-500 text-sm mt-1">{errors.investorProperty}</p>}
+                  {errors.investorProperty && (
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.investorProperty}
+                    </p>
+                  )}
                 </div>
               )}
 
               <div>
-                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Additional Details</h3>
+                <h3 className="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
+                  Additional Details
+                </h3>
                 <div>
                   <Label htmlFor="facing">Facing</Label>
                   <div className="flex space-x-4">
@@ -1357,7 +1989,9 @@ const CommercialBuyEdit: React.FC = () => {
 
                 {formData.propertySubType !== "Plot" && (
                   <div>
-                    <Label htmlFor="carParking" className="mt-2">Car Parking</Label>
+                    <Label htmlFor="carParking" className="mt-2">
+                      Car Parking
+                    </Label>
                     <Select
                       options={carParkingOptions}
                       placeholder="Select car parking"
@@ -1370,7 +2004,9 @@ const CommercialBuyEdit: React.FC = () => {
 
                 {formData.propertySubType !== "Plot" && (
                   <div>
-                    <Label htmlFor="bikeParking" className="mt-2">Bike Parking</Label>
+                    <Label htmlFor="bikeParking" className="mt-2">
+                      Bike Parking
+                    </Label>
                     <Select
                       options={bikeParkingOptions}
                       placeholder="Select bike parking"
@@ -1383,7 +2019,9 @@ const CommercialBuyEdit: React.FC = () => {
 
                 {formData.propertySubType !== "Plot" && (
                   <div>
-                    <Label htmlFor="openParking" className="mt-2">Open Parking</Label>
+                    <Label htmlFor="openParking" className="mt-2">
+                      Open Parking
+                    </Label>
                     <Select
                       options={openParkingOptions}
                       placeholder="Select open parking"
@@ -1394,10 +2032,10 @@ const CommercialBuyEdit: React.FC = () => {
                   </div>
                 )}
 
-               <div className="py-5">
-
-                 
-                  <AroundThisProperty  unique_property_id={property.unique_property_id} />
+                <div className="py-5">
+                  <AroundThisProperty
+                    unique_property_id={property.unique_property_id}
+                  />
                 </div>
 
                 {(formData.propertySubType === "Office" ||
@@ -1410,7 +2048,9 @@ const CommercialBuyEdit: React.FC = () => {
                         <button
                           key={option}
                           type="button"
-                          onClick={() => handleSelectChange("pantryRoom")(option)}
+                          onClick={() =>
+                            handleSelectChange("pantryRoom")(option)
+                          }
                           className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                             formData.pantryRoom === option
                               ? "bg-[#1D3A76] text-white border-blue-600"
@@ -1421,12 +2061,18 @@ const CommercialBuyEdit: React.FC = () => {
                         </button>
                       ))}
                     </div>
-                    {errors.pantryRoom && <p className="text-red-500 text-sm mt-1">{errors.pantryRoom}</p>}
+                    {errors.pantryRoom && (
+                      <p className="text-red-500 text-sm mt-1">
+                        {errors.pantryRoom}
+                      </p>
+                    )}
                   </div>
                 )}
 
                 <div>
-                  <Label htmlFor="propertyDescription" className="mt-5">Property Description *</Label>
+                  <Label htmlFor="propertyDescription" className="mt-5">
+                    Property Description *
+                  </Label>
                   <textarea
                     id="propertyDescription"
                     name="propertyDescription"
@@ -1437,7 +2083,9 @@ const CommercialBuyEdit: React.FC = () => {
                     placeholder="Property Description"
                   />
                   {errors.propertyDescription && (
-                    <p className="text-red-500 text-sm mt-1">{errors.propertyDescription}</p>
+                    <p className="text-red-500 text-sm mt-1">
+                      {errors.propertyDescription}
+                    </p>
                   )}
                 </div>
               </div>
@@ -1449,7 +2097,10 @@ const CommercialBuyEdit: React.FC = () => {
               city: formData.city,
               propertyName: formData.propertyName,
               locality: formData.locality,
-              flatNo: formData.propertySubType !== "Plot" ? formData.flatNo : formData.plotNumber,
+              flatNo:
+                formData.propertySubType !== "Plot"
+                  ? formData.flatNo
+                  : formData.plotNumber,
               floorNo: formData.floorNo,
               totalFloors: formData.totalFloors,
             }}
@@ -1457,7 +2108,10 @@ const CommercialBuyEdit: React.FC = () => {
               city: errors.city,
               propertyName: errors.propertyName,
               locality: errors.locality,
-              flatNo: formData.propertySubType !== "Plot" ? errors.flatNo : errors.plotNumber,
+              flatNo:
+                formData.propertySubType !== "Plot"
+                  ? errors.flatNo
+                  : errors.plotNumber,
               floorNo: errors.floorNo,
               totalFloors: errors.totalFloors,
             }}
@@ -1465,10 +2119,11 @@ const CommercialBuyEdit: React.FC = () => {
             isPlot={formData.propertySubType === "Plot"}
           />
 
-             <div>
-              <MediaUploadSection
-                          unique_property_id={property.unique_property_id} />
-            </div>
+          <div>
+            <MediaUploadSection
+              unique_property_id={property.unique_property_id}
+            />
+          </div>
 
           <div className="flex justify-end">
             <button

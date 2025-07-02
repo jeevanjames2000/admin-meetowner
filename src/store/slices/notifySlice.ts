@@ -76,8 +76,6 @@ export const fetchAllTokens = createAsyncThunk(
   async (_, { rejectWithValue }) => {
     try {
       const promise = axiosInstance.get<User[]>("/user/v1/getAllTokens");
-      console.log('all tokens');
-      console.log(promise);
       toast.promise(promise, {
         loading: "Fetching users...",
         success: "Users fetched successfully!",

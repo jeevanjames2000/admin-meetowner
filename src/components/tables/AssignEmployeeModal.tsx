@@ -139,7 +139,7 @@ export default function AssignEmployeeModal({
       } catch (error) {
        console.log(error)
       }
-      console.log(assignData);
+     
   }
 
   };

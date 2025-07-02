@@ -13,20 +13,16 @@ const serverStatusManager = {
 
   startChecking(isOnline: boolean) {
     if (this.isChecking || !isOnline) {
-      console.log("ServerStatusCheck: Skipped start, already checking or offline");
       return;
     }
     this.isChecking = true;
-    console.log("ServerStatusCheck: Starting global interval");
 
     const checkServerStatus = async () => {
       if (!navigator.onLine) {
-        console.log("ServerStatusCheck: Skipped API call, offline");
         return;
       }
       const now = Date.now();
       if (now - this.lastCallTime < 30000) {
-        console.log("ServerStatusCheck: Skipped due to throttling");
         return;
       }
 
@@ -34,12 +30,12 @@ const serverStatusManager = {
         await axiosInstance.get("/user/v1/getAllUsersCount");
         this.lastCallTime = now;
         this.callCount += 1;
-        console.log(`ServerStatusCheck: API call #${this.callCount} successful, server up`);
+
         this.notifySubscribers(false);
       } catch (error) {
         this.lastCallTime = now;
         this.callCount += 1;
-        console.error(`ServerStatusCheck: API call #${this.callCount} failed, server down`, error);
+
         this.notifySubscribers(true);
       }
     };
@@ -67,25 +63,22 @@ const serverStatusManager = {
   },
 };
 
-const ServerStatusCheck: React.FC<{ children: React.ReactNode; isOnline: boolean }> = ({
-  children,
-  isOnline,
-}) => {
+const ServerStatusCheck: React.FC<{
+  children: React.ReactNode;
+  isOnline: boolean;
+}> = ({ children, isOnline }) => {
   const [serverDown, setServerDown] = useState(false);
   const { isAuthenticated } = useSelector((state: RootState) => state.auth);
   const isMounted = useRef(false);
 
   useEffect(() => {
     if (!isAuthenticated || !isOnline) {
-      console.log(
-        "ServerStatusCheck: Skipping checks, user not authenticated or offline"
-      );
       return;
     }
 
     if (!isMounted.current) {
       isMounted.current = true;
-      console.log("ServerStatusCheck: Component mounted, subscribing to status");
+
       serverStatusManager.startChecking(isOnline);
     }
 

@@ -160,7 +160,6 @@ const handleEdit = (user: {
       return;
     }
     if (selectedUser) {
-      console.log("Selected user:", selectedUser);
       const employeeToUpdate = {
         id: selectedUser.id,
         name: data.name,
@@ -176,7 +175,6 @@ const handleEdit = (user: {
         created_by: selectedUser.created_by || "", // Include created_by
         created_userID: selectedUser.created_userID || 0, // Include created_userID
       };
-      console.log("Employee to update:", employeeToUpdate);
       dispatch(updateEmployee(employeeToUpdate));
     }
     setIsEditModalOpen(false);
@@ -237,7 +235,6 @@ useEffect(() => {
 
   const confirmDelete = () => {
     if (selectedUser) {
-        console.log(selectedUser.id);
       dispatch(deleteEmployee(selectedUser.id));
     }
     setIsDeleteModalOpen(false);

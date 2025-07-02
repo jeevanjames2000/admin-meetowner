@@ -12,14 +12,11 @@ import {
   editPackage,
   clearMessages,
 } from "../../store/slices/packagesSlice";
-
-// Define interfaces
 interface Rule {
   id?: number;
-  rule_name: string; // Changed from 'name' to 'rule_name' to match API
+  rule_name: string;
   included: boolean;
 }
-
 interface CustomPackage {
   package_id: number;
   user_id: number;
@@ -41,7 +38,6 @@ interface CustomPackage {
   city: string;
   rules: Rule[];
 }
-
 interface RootState {
   package: {
     userCustomPackages: CustomPackage[];
@@ -61,14 +57,11 @@ interface RootState {
     editPackageSuccess: string | null;
   };
 }
-
 interface EditPackageProps {
   pkg: CustomPackage;
   onSave: (updatedPackage: CustomPackage) => void;
   onCancel: () => void;
 }
-
-// EditPackage Component
 const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
   const dispatch = useDispatch<AppDispatch>();
   const {
@@ -81,19 +74,16 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
     editPackageSuccess,
     editPackageError,
   } = useSelector((state: RootState) => state.package);
-
   const [formData, setFormData] = useState<CustomPackage>({
     ...pkg,
     rules: pkg.rules.map((rule) => ({
       id: rule.id,
-      rule_name: rule.rule_name, // Use rule_name
+      rule_name: rule.rule_name,
       included: rule.included,
     })),
   });
   const [originalRules] = useState<Rule[]>(pkg.rules);
   const [originalPackage] = useState<CustomPackage>(pkg);
-
-  // Handle API response toasts
   useEffect(() => {
     if (insertSuccess) {
       toast.success(insertSuccess);
@@ -142,16 +132,17 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
     onCancel,
     formData.user_id,
   ]);
-
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
-    const cleanValue = name === "price" || name === "actual_amount" ? value.replace("/-", "").trim() : value;
+    const cleanValue =
+      name === "price" || name === "actual_amount"
+        ? value.replace("/-", "").trim()
+        : value;
     setFormData((prev) => ({ ...prev, [name]: cleanValue }));
   };
-
   const handleRuleChange = (
     index: number,
-    field: "rule_name" | "included", // Update to rule_name
+    field: "rule_name" | "included",
     value: string | boolean
   ) => {
     setFormData((prev) => ({
@@ -161,68 +152,56 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
       ),
     }));
   };
-
   const handleAddRule = () => {
     setFormData((prev) => ({
       ...prev,
       rules: [...prev.rules, { rule_name: "", included: false }],
     }));
   };
-
   const handleRemoveRule = (index: number) => {
     const rule = formData.rules[index];
     if (rule.id) {
-      console.log("Delete rule id:", rule.id);
-      dispatch(deleteRule(rule.id)); // Uncomment when ready
+      dispatch(deleteRule(rule.id));
     }
     setFormData((prev) => ({
       ...prev,
       rules: prev.rules.filter((_, i) => i !== index),
     }));
   };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const newRules = formData.rules.filter((rule) => !rule.id);
     const existingRules = formData.rules.filter((rule) => rule.id);
-
-    // Insert new rules
     if (newRules.length > 0) {
       const insertPayload = {
         package_name: "Custom",
         package_id: formData.package_id,
         package_for: formData.package_for,
         rules: newRules.map((rule) => ({
-          name: rule.rule_name, // Use rule_name
+          name: rule.rule_name,
           included: rule.included,
         })),
       };
-      console.log("Insert rules payload:", insertPayload);
-      await dispatch(insertRules(insertPayload)); // Uncomment when ready
+      await dispatch(insertRules(insertPayload));
     }
-
-    // Edit existing rules
     const editedRules = existingRules
       .filter((rule) => {
         const originalRule = originalRules.find((orig) => orig.id === rule.id);
         return (
           originalRule &&
-          (rule.rule_name !== originalRule.rule_name || rule.included !== originalRule.included)
+          (rule.rule_name !== originalRule.rule_name ||
+            rule.included !== originalRule.included)
         );
       })
       .map((rule) => ({
         id: rule.id!.toString(),
-        rule_name: rule.rule_name, // Use rule_name
+        rule_name: rule.rule_name,
         included: rule.included,
       }));
-
     if (editedRules.length > 0) {
       const editRulePayload = { rules: editedRules };
-      console.log("Edit rules payload:", editRulePayload);
-      await dispatch(editRule(editRulePayload)); // Uncomment when ready
+      await dispatch(editRule(editRulePayload));
     }
-
-    // Edit package if changed
     if (
       formData.name !== originalPackage.name ||
       formData.price !== originalPackage.price ||
@@ -248,14 +227,11 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
         gst_number: formData.gst_number,
         rera_number: formData.rera_number,
       };
-      console.log("Edit package payload:", editPackagePayload);
-      await dispatch(editPackage(editPackagePayload)); // Uncomment when ready
+      await dispatch(editPackage(editPackagePayload));
     }
-
     dispatch(fetchCustomPackagesByUser(formData.user_id));
     onSave(formData);
   };
-
   return (
     <div className="fixed inset-0 bg-white/30 backdrop-blur-none flex items-center justify-center z-50">
       <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg w-full max-w-lg max-h-[80vh] overflow-y-auto">
@@ -431,7 +407,7 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
                 />
                 <input
                   type="text"
-                  value={rule.rule_name} // Use rule_name
+                  value={rule.rule_name}
                   onChange={(e) =>
                     handleRuleChange(index, "rule_name", e.target.value)
                   }
@@ -469,23 +445,22 @@ const EditPackage: React.FC<EditPackageProps> = ({ pkg, onSave, onCancel }) => {
     </div>
   );
 };
-
-// Main UserCustomPackage Component
 const UserCustomPackage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { userId } = useParams<{ userId: string }>();
-  const { userCustomPackages, userCustomPackagesLoading, userCustomPackagesError } = useSelector(
-    (state: RootState) => state.package
+  const {
+    userCustomPackages,
+    userCustomPackagesLoading,
+    userCustomPackagesError,
+  } = useSelector((state: RootState) => state.package);
+  const [editingPackage, setEditingPackage] = useState<CustomPackage | null>(
+    null
   );
-  console.log("userCustomPackages:", userCustomPackages);
-  const [editingPackage, setEditingPackage] = useState<CustomPackage | null>(null);
-
   useEffect(() => {
     if (userId) {
       dispatch(fetchCustomPackagesByUser(parseInt(userId)));
     }
   }, [dispatch, userId]);
-
   const formatPrice = (price: string): string => {
     const priceNumber = parseFloat(price);
     if (priceNumber === 0) {
@@ -493,28 +468,32 @@ const UserCustomPackage: React.FC = () => {
     }
     return `${Math.floor(priceNumber)} /-`;
   };
-
   const handleEditPackage = (pkg: CustomPackage) => {
     setEditingPackage(pkg);
   };
-
   const handleSavePackage = (updatedPackage: CustomPackage) => {
     setEditingPackage(null);
   };
-
   const handleCancelEdit = () => {
     setEditingPackage(null);
   };
-
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-      <div className={`transition-all duration-300 ${editingPackage ? "blur-sm" : ""}`}>
+      <div
+        className={`transition-all duration-300 ${
+          editingPackage ? "blur-sm" : ""
+        }`}
+      >
         <ComponentCard title={`Custom Packages for User ${userId}`}>
           {userCustomPackagesLoading && <p>Loading custom packages...</p>}
-          {userCustomPackagesError && <p className="text-red-500">Error: {userCustomPackagesError}</p>}
-          {!userCustomPackagesLoading && !userCustomPackagesError && userCustomPackages.length === 0 && (
-            <p>No custom packages available for this user.</p>
+          {userCustomPackagesError && (
+            <p className="text-red-500">Error: {userCustomPackagesError}</p>
           )}
+          {!userCustomPackagesLoading &&
+            !userCustomPackagesError &&
+            userCustomPackages.length === 0 && (
+              <p>No custom packages available for this user.</p>
+            )}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
             {userCustomPackages.map((pkg) => (
               <div
@@ -571,7 +550,7 @@ const UserCustomPackage: React.FC = () => {
                         </svg>
                       )}
                       <span className="text-sm text-white dark:text-white">
-                        {rule.rule_name || "Unnamed Rule"} 
+                        {rule.rule_name || "Unnamed Rule"}
                       </span>
                     </li>
                   ))}
@@ -597,5 +576,4 @@ const UserCustomPackage: React.FC = () => {
     </div>
   );
 };
-
 export default UserCustomPackage;

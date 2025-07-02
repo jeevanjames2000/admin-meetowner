@@ -247,7 +247,6 @@ const CommercialTypes: React.FC = () => {
   const handleLeadPullSubmit = useCallback(
     (data: LeadPullFormData) => {
       if (validateLeadPullForm()) {
-        console.log("Lead Pull Form Data:", data);
         alert("Lead pull submitted successfully!");
         setIsLeadModalOpen(false);
         setLeadPullFormData({
@@ -262,7 +261,6 @@ const CommercialTypes: React.FC = () => {
     [validateLeadPullForm]
   );
   const handlepropertyClick = (propertyId: string) => {
-    console.log(propertyId);
     if (propertyId) {
       navigate(`/user-activities?property_id=${propertyId}`);
     }

@@ -677,20 +677,16 @@ const CommercialRentEdit: React.FC = () => {
           updates: changedFields,
         };
 
-        console.log("API Call: Post /listings/updateListing");
-        console.log("Payload:", JSON.stringify(payload, null, 2));
 
         dispatch(updateListing(payload))
           .unwrap()
           .then((response) => {
-            console.log("API Response:", JSON.stringify(response, null, 2));
             navigate(-1);
           })
           .catch((err) => {
             console.error("Update failed:", err);
           });
       } else {
-        console.log("No changes detected.");
         navigate(-1);
       }
     }

@@ -19,10 +19,11 @@ import FilterBar from "../../components/common/FilterBar";
 const MostViewedDetailsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { property_id } = useParams<{ property_id: string }>();
-  const { propertyViewDetails, propertyViewDetailsCount, loading, error } = useSelector(
-    (state: RootState) => state.leads as LeadsState
+  const { propertyViewDetails, propertyViewDetailsCount, loading, error } =
+    useSelector((state: RootState) => state.leads as LeadsState);
+  const userType = useSelector(
+    (state: RootState) => state.auth.user?.user_type
   );
-  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
   const [currentPage, setCurrentPage] = useState<number>(1);
   const [filterValue, setFilterValue] = useState<string>("");
   const [startDate, setStartDate] = useState<string | null>(null);
@@ -34,7 +35,6 @@ const MostViewedDetailsPage: React.FC = () => {
   // Fetch property view details on mount or when property_id changes
   useEffect(() => {
     if (property_id) {
-      console.log("Fetching property view details for property_id:", property_id);
       dispatch(fetchPropertyViewDetails({ property_id }))
         .unwrap()
         .then(() => console.log("Fetch successful"))
@@ -45,7 +45,10 @@ const MostViewedDetailsPage: React.FC = () => {
   // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setDropdownOpen(null);
       }
     };
@@ -180,7 +183,9 @@ const MostViewedDetailsPage: React.FC = () => {
       return;
     }
     try {
-      const url = `https://meetowner.in/property?Id_${encodeURIComponent(property_id)}`;
+      const url = `https://meetowner.in/property?Id_${encodeURIComponent(
+        property_id
+      )}`;
       window.open(url, "_blank");
     } catch (error) {
       console.error("Error navigating to property:", error);
@@ -191,7 +196,9 @@ const MostViewedDetailsPage: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Loading...</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+          Loading...
+        </h2>
       </div>
     );
   }
@@ -209,7 +216,7 @@ const MostViewedDetailsPage: React.FC = () => {
           pagePlacHolder="Filter by user ID, property ID, name, mobile, email, address, or city"
           onFilter={handleFilter}
         />
-       
+
         <ComponentCard title={`Most Viewed Details - ${property_id}`}>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
             {error ? `Error: ${error}` : "No Data Available"}
@@ -256,7 +263,8 @@ const MostViewedDetailsPage: React.FC = () => {
         {/* Display active filters */}
         {(filterValue || startDate || endDate) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: Search: {filterValue || "None"} | Date: {startDate || "Any"} to {endDate || "Any"}
+            Filters: Search: {filterValue || "None"} | Date:{" "}
+            {startDate || "Any"} to {endDate || "Any"}
           </div>
         )}
 
@@ -379,7 +387,11 @@ const MostViewedDetailsPage: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => setDropdownOpen(dropdownOpen === detail.id ? null : detail.id)}
+                          onClick={() =>
+                            setDropdownOpen(
+                              dropdownOpen === detail.id ? null : detail.id
+                            )
+                          }
                         >
                           <svg
                             className="w-5 h-5 text-gray-500 dark:text-gray-400"

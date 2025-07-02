@@ -14,7 +14,10 @@ import {
 } from "../../components/ui/table";
 import Button from "../../components/ui/button/Button";
 import { AppDispatch, RootState } from "../../store/store";
-import { fetchUserSearchDataByCity, LeadsState } from "../../store/slices/leads";
+import {
+  fetchUserSearchDataByCity,
+  LeadsState,
+} from "../../store/slices/leads";
 
 const MostSearchedDetail: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
@@ -23,7 +26,9 @@ const MostSearchedDetail: React.FC = () => {
     (state: RootState) => state.leads as LeadsState
   );
   const [currentPage, setCurrentPage] = useState<number>(1);
-   const userType = useSelector((state: RootState) => state.auth.user?.user_type);
+  const userType = useSelector(
+    (state: RootState) => state.auth.user?.user_type
+  );
   const [filterValue, setFilterValue] = useState<string>("");
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
@@ -32,10 +37,9 @@ const MostSearchedDetail: React.FC = () => {
   // Fetch user search data by city
   useEffect(() => {
     if (city) {
-      console.log("Fetching user search data for city:", city);
       dispatch(fetchUserSearchDataByCity({ city }))
         .unwrap()
-        .then((response) => console.log("Fetch successful:", response))
+        .then((response) => console.log("Fetch successful:"))
         .catch((err) => console.error("Fetch failed:", err));
     } else {
       console.warn("No city parameter provided in URL");
@@ -171,7 +175,9 @@ const MostSearchedDetail: React.FC = () => {
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">Loading...</h2>
+        <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
+          Loading...
+        </h2>
       </div>
     );
   }
@@ -232,8 +238,8 @@ const MostSearchedDetail: React.FC = () => {
 
         {(filterValue || startDate || endDate) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: Search: {filterValue || "None"} | Date: {startDate || "Any"} to{" "}
-            {endDate || "Any"}
+            Filters: Search: {filterValue || "None"} | Date:{" "}
+            {startDate || "Any"} to {endDate || "Any"}
           </div>
         )}
 
@@ -255,14 +261,14 @@ const MostSearchedDetail: React.FC = () => {
                     >
                       User ID
                     </TableCell>
-                      {userType === 1 && (
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Mobile
-                    </TableCell>
-                      )}
+                    {userType === 1 && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Mobile
+                      </TableCell>
+                    )}
 
                     <TableCell
                       isHeader
@@ -294,14 +300,14 @@ const MostSearchedDetail: React.FC = () => {
                     >
                       Created Date
                     </TableCell>
-                  {userType === 1 && (
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Email
-                    </TableCell>
-                      )}
+                    {userType === 1 && (
+                      <TableCell
+                        isHeader
+                        className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
+                      >
+                        Email
+                      </TableCell>
+                    )}
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -331,11 +337,11 @@ const MostSearchedDetail: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {item.user_id || "N/A"}
                       </TableCell>
-                    {userType === 1 && (
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {item.mobile || "N/A"}
-                      </TableCell>
-                    )}
+                      {userType === 1 && (
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {item.mobile || "N/A"}
+                        </TableCell>
+                      )}
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {item.name || "N/A"}
                       </TableCell>
@@ -351,11 +357,11 @@ const MostSearchedDetail: React.FC = () => {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(item.created_date)}
                       </TableCell>
-                    {userType === 1 && (
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {item.email || "N/A"}
-                      </TableCell>
-                    )}
+                      {userType === 1 && (
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {item.email || "N/A"}
+                        </TableCell>
+                      )}
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {item.sub_type || "N/A"}
                       </TableCell>
@@ -386,7 +392,7 @@ const MostSearchedDetail: React.FC = () => {
                 >
                   Previous
                 </Button>
-                {getPaginationItems().map((page, index) => (
+                {getPaginationItems().map((page, index) =>
                   page === "..." ? (
                     <span
                       key={`ellipsis-${index}`}
@@ -409,7 +415,7 @@ const MostSearchedDetail: React.FC = () => {
                       {page}
                     </Button>
                   )
-                ))}
+                )}
                 <Button
                   variant={currentPage === totalPages ? "outline" : "primary"}
                   size="sm"

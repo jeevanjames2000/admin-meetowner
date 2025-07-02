@@ -193,7 +193,6 @@ export default function CreateUser() {
         created_userID: createdUserIdRaw ? parseInt(createdUserIdRaw) : 1,
       };
 
-      console.log(employeeData);
     }
   };
 

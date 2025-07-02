@@ -426,7 +426,6 @@ const CustomPackages: React.FC = () => {
         };
 
         await dispatch(insertCustomPackageWithRules(payload)).unwrap();
-        console.log("Payload:", payload);
       } catch (error) {
         console.error("Failed to create package:", error);
       }

@@ -47,12 +47,7 @@ export default function UserActivities() {
       activity.unique_property_id || "",
       formatDate(activity.created_date),
     ];
-    console.log(
-      "Searchable Fields:",
-      searchableFields,
-      "Filter Value:",
-      filterValue
-    );
+
     const matchesSearch = searchableFields
       .map((field) => field.toLowerCase())
       .some((field) => field.includes(filterValue.toLowerCase()));
@@ -79,7 +74,6 @@ export default function UserActivities() {
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedActivities = filteredActivities.slice(startIndex, endIndex);
   const handleFilter = (value: string) => {
-    console.log("Filter Value Updated:", value);
     setFilterValue(value);
     setCurrentPage(1);
   };

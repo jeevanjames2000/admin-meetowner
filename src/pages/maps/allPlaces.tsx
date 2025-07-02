@@ -1,17 +1,32 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useRef,
+  useCallback,
+  useMemo,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import ComponentCard from "../../components/common/ComponentCard";
 import PageMeta from "../../components/common/PageMeta";
-import { Table, TableBody, TableCell, TableHeader, TableRow } from "../../components/ui/table";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHeader,
+  TableRow,
+} from "../../components/ui/table";
 import { MoreVertical, X } from "lucide-react";
 import Button from "../../components/ui/button/Button";
-import { fetchAllPlaces, deletePlace, editPlace, fetchAllStates, fetchAllCities } from "../../store/slices/places";
+import {
+  fetchAllPlaces,
+  deletePlace,
+  editPlace,
+  fetchAllStates,
+  fetchAllCities,
+} from "../../store/slices/places";
 import { toast } from "react-hot-toast";
-
 import { AppDispatch, RootState } from "../../store/store";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
-
-
 interface Place {
   id: number;
   state: string;
@@ -20,7 +35,6 @@ interface Place {
   areas: string | null;
   status: string;
 }
-
 const AllPlaces: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const {
@@ -40,12 +54,12 @@ const AllPlaces: React.FC = () => {
     citiesLoading,
     citiesError,
   } = useSelector((state: RootState) => state.places);
-
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [debouncedSearchQuery, setDebouncedSearchQuery] = useState<string>("");
   const [stateFilter, setStateFilter] = useState<string>("");
   const [cityFilter, setCityFilter] = useState<string>("");
-  const [isStateDropdownOpen, setIsStateDropdownOpen] = useState<boolean>(false);
+  const [isStateDropdownOpen, setIsStateDropdownOpen] =
+    useState<boolean>(false);
   const [isCityDropdownOpen, setIsCityDropdownOpen] = useState<boolean>(false);
   const [stateSearchTerm, setStateSearchTerm] = useState<string>("");
   const [citySearchTerm, setCitySearchTerm] = useState<string>("");
@@ -57,9 +71,10 @@ const AllPlaces: React.FC = () => {
   const [newLocality, setNewLocality] = useState<string>("");
   const [newStatus, setNewStatus] = useState<string>("inactive");
   const dropdownRef = useRef<HTMLDivElement>(null);
-
-  // Debounce function
-  const debounce = <F extends (...args: any[]) => void>(func: F, wait: number) => {
+  const debounce = <F extends (...args: any[]) => void>(
+    func: F,
+    wait: number
+  ) => {
     let timeout: NodeJS.Timeout | null = null;
     return (...args: Parameters<F>) => {
       if (timeout) {
@@ -70,34 +85,28 @@ const AllPlaces: React.FC = () => {
       }, wait);
     };
   };
-
-  // Debounced handlers for search, state, and city
   const handleDebouncedSearch = useCallback(
     debounce((query: string) => {
       setDebouncedSearchQuery(query);
     }, 1000),
     []
   );
-
   const handleDebouncedStateFilter = useCallback(
     debounce((value: string) => {
       setStateFilter(value);
     }, 500),
     []
   );
-
   const handleDebouncedCityFilter = useCallback(
     debounce((value: string) => {
       setCityFilter(value);
     }, 500),
     []
   );
-
   const handleSearch = (query: string) => {
     setSearchQuery(query);
     handleDebouncedSearch(query);
   };
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     if (name === "state") {
@@ -108,13 +117,10 @@ const AllPlaces: React.FC = () => {
       handleDebouncedCityFilter(value);
     }
   };
-
-  // Fetch states and cities on mount
   useEffect(() => {
     dispatch(fetchAllStates());
     dispatch(fetchAllCities());
   }, [dispatch]);
-
   useEffect(() => {
     if (stateFilter) {
       dispatch(fetchAllCities({ state: stateFilter }));
@@ -122,9 +128,6 @@ const AllPlaces: React.FC = () => {
       dispatch(fetchAllCities());
     }
   }, [dispatch, stateFilter]);
-
-
-  // Memoized filter parameters
   const filterParams = useMemo(
     () => ({
       page: currentPage || 1,
@@ -134,17 +137,15 @@ const AllPlaces: React.FC = () => {
     }),
     [currentPage, debouncedSearchQuery, stateFilter, cityFilter]
   );
-
-  // Fetch places with filters
   useEffect(() => {
-    console.log("Fetching places with params:", filterParams); // Debug log
     dispatch(fetchAllPlaces(filterParams));
   }, [dispatch, filterParams]);
-
-  // Handle click outside for action menu
   useEffect(() => {
     const handleClickOutsideMenu = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setActiveMenu(null);
       }
     };
@@ -153,8 +154,6 @@ const AllPlaces: React.FC = () => {
       document.removeEventListener("mousedown", handleClickOutsideMenu);
     };
   }, []);
-
-  // Handle click outside for state and city dropdowns
   useEffect(() => {
     const handleClickOutsideDropdowns = (event: MouseEvent) => {
       const target = event.target as HTMLElement;
@@ -170,33 +169,32 @@ const AllPlaces: React.FC = () => {
       document.removeEventListener("mousedown", handleClickOutsideDropdowns);
     };
   }, []);
-
-  // Filter states and cities for dropdowns
   const filteredStates = useMemo(
     () =>
       states
         .map((state) => state.name)
-        .filter((name) => name.toLowerCase().includes(stateSearchTerm.toLowerCase())),
+        .filter((name) =>
+          name.toLowerCase().includes(stateSearchTerm.toLowerCase())
+        ),
     [stateSearchTerm, states]
   );
-
   const filteredCities = useMemo(
     () =>
       cities
-        .filter((city) => 
-          (!stateFilter || city.state === stateFilter) &&
-          city.name.toLowerCase().includes(citySearchTerm.toLowerCase())
+        .filter(
+          (city) =>
+            (!stateFilter || city.state === stateFilter) &&
+            city.name.toLowerCase().includes(citySearchTerm.toLowerCase())
         )
         .map((city) => city.name),
     [citySearchTerm, cities, stateFilter]
   );
-
   const handleSelectSuggestion = (field: "state" | "city", value: string) => {
     if (field === "state") {
       setStateFilter(value);
       setStateSearchTerm(value);
       setIsStateDropdownOpen(false);
-      setCityFilter(""); // Reset city when state changes
+      setCityFilter("");
       setCitySearchTerm("");
     } else if (field === "city") {
       setCityFilter(value);
@@ -204,15 +202,12 @@ const AllPlaces: React.FC = () => {
       setIsCityDropdownOpen(false);
     }
   };
-
   const toggleStateDropdown = () => {
     setIsStateDropdownOpen((prev) => !prev);
   };
-
   const toggleCityDropdown = () => {
     setIsCityDropdownOpen((prev) => !prev);
   };
-
   const clearFilters = () => {
     setSearchQuery("");
     setDebouncedSearchQuery("");
@@ -225,7 +220,6 @@ const AllPlaces: React.FC = () => {
     dispatch(fetchAllPlaces({ page: 1, search: "", state: "", city: "" }));
     dispatch(fetchAllCities());
   };
-
   const handlePageChange = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       dispatch(
@@ -237,11 +231,9 @@ const AllPlaces: React.FC = () => {
       setActiveMenu(null);
     }
   };
-
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
-
     if (totalPages <= totalVisiblePages + 2) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -249,36 +241,27 @@ const AllPlaces: React.FC = () => {
     } else {
       let start = Math.max(2, currentPage - 2);
       let end = Math.min(totalPages - 1, currentPage + 2);
-
       if (currentPage <= 3) {
         start = 2;
         end = 5;
       }
-
       if (currentPage >= totalPages - 2) {
         start = totalPages - 4;
         end = totalPages - 1;
       }
-
       pages.push(1);
       if (start > 2) pages.push("...");
-
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-
       if (end < totalPages - 1) pages.push("...");
       if (totalPages > 1) pages.push(totalPages);
     }
-
     return pages;
   };
-
-
   const toggleMenu = (id: number) => {
     setActiveMenu(activeMenu === id ? null : id);
   };
-
   const handleEdit = (id: number) => {
     const place = places.find((p) => p.id === id);
     if (place) {
@@ -291,7 +274,6 @@ const AllPlaces: React.FC = () => {
     }
     setActiveMenu(null);
   };
-
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!selectedPlace) return;
@@ -313,7 +295,6 @@ const AllPlaces: React.FC = () => {
       toast.error((err as any)?.message || "Failed to update place");
     }
   };
-
   const handleDelete = async (id: number) => {
     const place = places.find((p) => p.id === id);
     if (!place) return;
@@ -344,15 +325,15 @@ const AllPlaces: React.FC = () => {
     }
     setActiveMenu(null);
   };
-
   if (error) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-        <h2 className="text-2xl font-bold text-red-600 dark:text-red-400">No places found</h2>
+        <h2 className="text-2xl font-bold text-red-600 dark:text-red-400">
+          No places found
+        </h2>
       </div>
     );
   }
-
   return (
     <div className="relative min-h-screen">
       <PageMeta title="Meet owner All Places" />
@@ -360,13 +341,11 @@ const AllPlaces: React.FC = () => {
         pageTitle="All Places"
         pagePlacHolder="Search by State, City, Locality"
         onFilter={handleSearch}
-        
       />
       <div className="space-y-6">
-        {/* Filters */}
+        {}
         <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center">
           <div className="max-w-xs state-dropdown">
-          
             <div className="relative">
               <input
                 id="state-search"
@@ -387,13 +366,20 @@ const AllPlaces: React.FC = () => {
                 disabled={statesLoading}
               >
                 <svg
-                  className={`w-4 h-4 transform ${isStateDropdownOpen ? "rotate-180" : ""}`}
+                  className={`w-4 h-4 transform ${
+                    isStateDropdownOpen ? "rotate-180" : ""
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
               {isStateDropdownOpen && filteredStates.length > 0 && (
@@ -410,13 +396,13 @@ const AllPlaces: React.FC = () => {
                 </ul>
               )}
               {statesError && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{statesError}</p>
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {statesError}
+                </p>
               )}
             </div>
           </div>
-
           <div className="max-w-xs city-dropdown">
-          
             <div className="relative">
               <input
                 id="city-search"
@@ -437,13 +423,20 @@ const AllPlaces: React.FC = () => {
                 disabled={citiesLoading}
               >
                 <svg
-                  className={`w-4 h-4 transform ${isCityDropdownOpen ? "rotate-180" : ""}`}
+                  className={`w-4 h-4 transform ${
+                    isCityDropdownOpen ? "rotate-180" : ""
+                  }`}
                   fill="none"
                   stroke="currentColor"
                   viewBox="0 0 24 24"
                   xmlns="http://www.w3.org/2000/svg"
                 >
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M19 9l-7 7-7-7"
+                  />
                 </svg>
               </button>
               {isCityDropdownOpen && filteredCities.length > 0 && (
@@ -460,11 +453,12 @@ const AllPlaces: React.FC = () => {
                 </ul>
               )}
               {citiesError && (
-                <p className="mt-1 text-sm text-red-600 dark:text-red-400">{citiesError}</p>
+                <p className="mt-1 text-sm text-red-600 dark:text-red-400">
+                  {citiesError}
+                </p>
               )}
             </div>
           </div>
-
           <Button
             variant="outline"
             size="sm"
@@ -474,14 +468,21 @@ const AllPlaces: React.FC = () => {
             Clear Filters
           </Button>
         </div>
-
         <ComponentCard title="All Places">
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-auto">
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
-                    {["Sl.No", "ID", "State", "City", "Locality", "Status", "Actions"].map((header) => (
+                    {[
+                      "Sl.No",
+                      "ID",
+                      "State",
+                      "City",
+                      "Locality",
+                      "Status",
+                      "Actions",
+                    ].map((header) => (
                       <TableCell
                         key={header}
                         isHeader
@@ -549,10 +550,7 @@ const AllPlaces: React.FC = () => {
                     ))
                   ) : (
                     <TableRow>
-                      <TableCell
-                       
-                        className="px-5 py-8 text-center text-gray-500 text-theme-sm dark:text-gray-400"
-                      >
+                      <TableCell className="px-5 py-8 text-center text-gray-500 text-theme-sm dark:text-gray-400">
                         No Places Found!
                       </TableCell>
                     </TableRow>
@@ -565,7 +563,8 @@ const AllPlaces: React.FC = () => {
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
                 Showing {(currentPage - 1) * perPage + 1} to{" "}
-                {Math.min(currentPage * perPage, totalPlaces)} of {totalPlaces} places
+                {Math.min(currentPage * perPage, totalPlaces)} of {totalPlaces}{" "}
+                places
               </div>
               <div className="flex gap-2 flex-wrap justify-center">
                 <Button
@@ -591,7 +590,9 @@ const AllPlaces: React.FC = () => {
                       size="sm"
                       onClick={() => handlePageChange(page as number)}
                       className={
-                        page === currentPage ? "bg-[#1D3A76] text-white" : "text-gray-500"
+                        page === currentPage
+                          ? "bg-[#1D3A76] text-white"
+                          : "text-gray-500"
                       }
                     >
                       {page}
@@ -615,7 +616,9 @@ const AllPlaces: React.FC = () => {
         <div className="fixed inset-0 bg-white/90 backdrop-blur-60 flex items-center justify-center z-50">
           <div className="bg-white dark:bg-gray-800 p-6 rounded-lg shadow-lg max-w-sm w-full">
             <div className="flex justify-between items-center mb-4">
-              <h2 className="text-xl font-bold text-gray-800 dark:text-white">Edit Place</h2>
+              <h2 className="text-xl font-bold text-gray-800 dark:text-white">
+                Edit Place
+              </h2>
               <button
                 onClick={() => setEditModalOpen(false)}
                 className="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
@@ -693,7 +696,9 @@ const AllPlaces: React.FC = () => {
                 </Button>
               </div>
               {editError && (
-                <p className="mt-2 text-sm text-red-600 dark:text-red-400">{editError}</p>
+                <p className="mt-2 text-sm text-red-600 dark:text-red-400">
+                  {editError}
+                </p>
               )}
             </form>
           </div>
@@ -702,5 +707,4 @@ const AllPlaces: React.FC = () => {
     </div>
   );
 };
-
 export default AllPlaces;

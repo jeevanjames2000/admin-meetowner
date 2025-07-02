@@ -34,7 +34,6 @@ const EditEmployee: React.FC = () => {
   const pageUserType = useSelector((state: RootState) => state.auth.user?.user_type); // Get logged-in user's type
 
   const [selectedEmployee, setSelectedEmployee] = useState<any>(employee || null);
-  console.log("Incoming employee:", employee);
 
   // Filter designation options based on pageUserType
   const designationOptions: Option[] = pageUserType === 7
@@ -69,7 +68,6 @@ const EditEmployee: React.FC = () => {
 
   const getDesignationValue = (text: string) => {
     const option = designationOptions.find(opt => opt.text === text); // Use filtered options
-    console.log(`Designation text: ${text}, mapped value: ${option ? option.value : 'none'}`);
     return option ? [option.value] : [];
   };
 
@@ -116,7 +114,6 @@ const EditEmployee: React.FC = () => {
         created_by: "admin",
         created_userID:  8,
       };
-      console.log("Saving:", employeeToUpdate);
       dispatch(updateEmployee(employeeToUpdate));
     }
   };
@@ -129,7 +126,6 @@ const EditEmployee: React.FC = () => {
           ? Array.isArray(value) ? value[0] : value
           : Array.isArray(value) ? value : [value];
       setSelectedEmployee({ ...selectedEmployee, [field]: newValue });
-      console.log(`Field ${field} updated to:`, newValue);
     }
   };
 

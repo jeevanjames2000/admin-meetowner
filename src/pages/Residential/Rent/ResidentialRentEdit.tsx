@@ -769,20 +769,16 @@ const ResidentialRentEdit: React.FC = () => {
           updates: changedFields,
         };
 
-        console.log("API Call: Post /listings/updateListing");
-        console.log("Payload:", JSON.stringify(payload, null, 2));
 
         dispatch(updateListing(payload))
           .unwrap()
           .then((response) => {
-            console.log("API Response:", JSON.stringify(response, null, 2));
             navigate(-1);
           })
           .catch((err) => {
             console.error("Update failed:", err);
           });
       } else {
-        console.log("No changes detected.");
         navigate(-1);
       }
     }
@@ -1029,7 +1025,6 @@ const ResidentialRentEdit: React.FC = () => {
                   formData.availableFrom
                     ? (() => {
                         const defaultDate = new Date(formData.availableFrom);
-                        console.log("Default date:", defaultDate, "From string:", formData.availableFrom);
                         return defaultDate;
                       })()
                     : undefined

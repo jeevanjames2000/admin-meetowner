@@ -21,7 +21,7 @@ import locationsSlice from './slices/locationsSlice';
 import employeeUsersSlice from './slices/employeeUsers';
 import userEditSlice from './slices/userEditSlicet';
 import userActivitySlice from './slices/user_activity';
-
+import leadsReducer from "./slices/leadSlice"
 const preloadedState = {
     auth : initializeAuthState()
 }
@@ -47,7 +47,8 @@ const store =  configureStore({
         shorts:shortsSlice,
         locations:locationsSlice,
         userEdit:userEditSlice,
-        userActivity:userActivitySlice
+        userActivity:userActivitySlice,
+        liveLeads: leadsReducer,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),

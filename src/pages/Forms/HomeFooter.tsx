@@ -2,47 +2,40 @@ import React, { useEffect, useState, FormEvent, useRef } from "react";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import ReactQuill from "react-quill";
-import "react-quill/dist/quill.snow.css"; // Import Quill styles
-import "./quillStyles.css"; // Import custom Quill styles
-import { RootState, AppDispatch } from "../../store/store"; // Import AppDispatch
+import "react-quill/dist/quill.snow.css";
+import "./quillStyles.css";
+import { RootState, AppDispatch } from "../../store/store";
 import { useDispatch, useSelector } from "react-redux";
 import { getCities } from "../../store/slices/propertyDetails";
 import MultiSelect from "../../components/form/MultiSelect";
-
 interface Option {
   value: string;
   text: string;
 }
-
-// Define the type for the form data
 interface FormData {
   title: string;
   description: string;
-  city: string[]; // Add city to formData
+  city: string[];
 }
-
-// Define the toolbar modules for ReactQuill
 const modules = {
   toolbar: {
     container: [
-      [{ header: [1, 2, 3, 4, 5, 6, false] }], // Headers
-      ["bold", "italic", "underline", "strike"], // Text formatting
-      [{ color: [] }, { background: [] }], // Text color and background color
-      [{ list: "ordered" }, { list: "bullet" }], // Lists
-      [{ indent: "-1" }, { indent: "+1" }], // Indentation
-      [{ align: [] }], // Text alignment
-      ["link", "image", "video"], // Links, images, and videos
-      ["blockquote", "code-block"], // Blockquote and code block
-      [{ script: "sub" }, { script: "super" }], // Subscript and superscript
-      ["clean"], // Clear formatting
+      [{ header: [1, 2, 3, 4, 5, 6, false] }],
+      ["bold", "italic", "underline", "strike"],
+      [{ color: [] }, { background: [] }],
+      [{ list: "ordered" }, { list: "bullet" }],
+      [{ indent: "-1" }, { indent: "+1" }],
+      [{ align: [] }],
+      ["link", "image", "video"],
+      ["blockquote", "code-block"],
+      [{ script: "sub" }, { script: "super" }],
+      ["clean"],
     ],
     handlers: {
-      image: () => {}, // This will be set in the component
+      image: () => {},
     },
   },
 };
-
-// Define the formats supported by ReactQuill
 const formats = [
   "header",
   "bold",
@@ -62,8 +55,6 @@ const formats = [
   "code-block",
   "script",
 ];
-
-// Error Boundary Component
 class ErrorBoundary extends React.Component<
   { children: React.ReactNode },
   { hasError: boolean }
@@ -72,15 +63,12 @@ class ErrorBoundary extends React.Component<
     super(props);
     this.state = { hasError: false };
   }
-
   static getDerivedStateFromError(_: Error): { hasError: boolean } {
     return { hasError: true };
   }
-
   componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
     console.error("Error in RichTextEditor:", error, errorInfo);
   }
-
   render() {
     if (this.state.hasError) {
       return <div>Something went wrong with the editor. Please try again.</div>;
@@ -88,25 +76,20 @@ class ErrorBoundary extends React.Component<
     return this.props.children;
   }
 }
-
-// RichTextEditor component using ReactQuill with draggable resizing
 const RichTextEditor: React.FC<{
   value: string;
   onChange: (value: string) => void;
 }> = ({ value, onChange }) => {
   const quillRef = useRef<ReactQuill>(null);
-  const [height, setHeight] = useState<number>(200); // Initial height in pixels
+  const [height, setHeight] = useState<number>(200);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const startY = useRef<number>(0);
   const startHeight = useRef<number>(0);
-
-  // Custom handler for image uploads
   const handleImageUpload = () => {
     const input = document.createElement("input");
     input.setAttribute("type", "file");
     input.setAttribute("accept", "image/*");
     input.click();
-
     input.onchange = () => {
       const file = input.files?.[0];
       if (file) {
@@ -123,55 +106,39 @@ const RichTextEditor: React.FC<{
       }
     };
   };
-
-  // Set the image handler when the component mounts
   useEffect(() => {
     if (quillRef.current) {
       const quill = quillRef.current.getEditor();
       const toolbar = quill.getModule("toolbar");
       toolbar.handlers.image = handleImageUpload;
     }
-  }, []); // Empty dependency array to run only once on mount
-
-  // Handle mouse down to start dragging
+  }, []);
   const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
     setIsDragging(true);
     startY.current = e.clientY;
     startHeight.current = height;
   };
-
-  // Handle mouse move to resize the editor
   const handleMouseMove = (e: MouseEvent) => {
     if (!isDragging) return;
-
     const deltaY = e.clientY - startY.current;
     const newHeight = startHeight.current + deltaY;
-
-    // Set a minimum and maximum height to prevent the editor from becoming too small or too large
     if (newHeight >= 150 && newHeight <= 600) {
       setHeight(newHeight);
     }
   };
-
-  // Handle mouse up to stop dragging
   const handleMouseUp = () => {
     setIsDragging(false);
   };
-
-  // Add event listeners for mouse move and mouse up when dragging starts
   useEffect(() => {
     if (isDragging) {
       window.addEventListener("mousemove", handleMouseMove);
       window.addEventListener("mouseup", handleMouseUp);
     }
-
-    // Cleanup event listeners when dragging stops or component unmounts
     return () => {
       window.removeEventListener("mousemove", handleMouseMove);
       window.removeEventListener("mouseup", handleMouseUp);
     };
   }, [isDragging]);
-
   return (
     <div className="border border-gray-200 rounded-lg dark:border-gray-800 dark:bg-dark-900">
       <div style={{ height: `${height}px`, overflow: "auto" }}>
@@ -184,7 +151,7 @@ const RichTextEditor: React.FC<{
           theme="snow"
           className="dark:bg-dark-900 dark:text-white"
           placeholder="Enter description here..."
-          style={{ height: "calc(100% - 40px)" }} // Adjust for toolbar height
+          style={{ height: "calc(100% - 40px)" }}
         />
       </div>
       <div
@@ -194,48 +161,35 @@ const RichTextEditor: React.FC<{
     </div>
   );
 };
-
 const HomeFooter: React.FC = () => {
   const [formData, setFormData] = useState<FormData>({
     title: "Our Services",
     description: `1. Rentals: Find the perfect place to call home with our extensive rental listings.\n2. Sales: Explore properties for sale, whether you're looking for a new home or an investment opportunity.\n3. Plots: Discover vacant plots to build your dream home or invest in future development.\n4. Commercial: Searching for the ideal location for your business? We've got you covered with commercial property listings.`,
-    city: [], // Initialize city in formData
+    city: [],
   });
-
-  const dispatch = useDispatch<AppDispatch>(); // Type dispatch with AppDispatch
+  const dispatch = useDispatch<AppDispatch>();
   const { cities } = useSelector((state: RootState) => state.property);
-
   useEffect(() => {
     dispatch(getCities());
   }, [dispatch]);
-
   const cityOptions: Option[] =
     cities?.map((city: any) => ({
       value: city.value,
       text: city.label,
     })) || [];
-
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
   };
-
   const handleDescriptionChange = (value: string) => {
     setFormData((prev) => ({ ...prev, description: value }));
   };
-
-  const handleMultiSelectChange =
-    (field: "city") =>
-    (values: string[]) => {
-      setFormData((prev) => ({ ...prev, [field]: values })); // Update formData.city
-    };
-
+  const handleMultiSelectChange = (field: "city") => (values: string[]) => {
+    setFormData((prev) => ({ ...prev, [field]: values }));
+  };
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    console.log("Form Data:", formData);
-    // Add your form submission logic here (e.g., API call)
   };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <ComponentCard title="Add/Update Home Footer">
@@ -244,7 +198,6 @@ const HomeFooter: React.FC = () => {
             <MultiSelect
               label="City"
               options={cityOptions}
-             
               onChange={handleMultiSelectChange("city")}
             />
           </div>
@@ -257,8 +210,7 @@ const HomeFooter: React.FC = () => {
               />
             </ErrorBoundary>
           </div>
-
-          {/* Submit Button */}
+          {}
           <div className="flex justify-end">
             <button
               type="submit"
@@ -272,5 +224,4 @@ const HomeFooter: React.FC = () => {
     </div>
   );
 };
-
 export default HomeFooter;

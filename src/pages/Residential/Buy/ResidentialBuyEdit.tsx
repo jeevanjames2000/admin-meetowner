@@ -69,7 +69,6 @@ const ResidentialBuyEdit: React.FC = () => {
   const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const property = location.state?.property;
-  console.log(property)
 
   const defaultFacilities = {
     Lift: false,
@@ -700,20 +699,16 @@ const ResidentialBuyEdit: React.FC = () => {
         updates: changedFields,
       };
 
-      console.log("API Call: Post /listings/updateListing");
-      console.log("Payload:", JSON.stringify(payload, null, 2));
 
       dispatch(updateListing(payload))
         .unwrap()
         .then((response) => {
-          console.log("API Response:", JSON.stringify(response, null, 2));
           navigate(-1);
         })
         .catch((err) => {
           console.error("Update failed:", err);
         });
     } else {
-      console.log("No changes detected.");
       navigate(-1);
     }
   }
@@ -878,7 +873,6 @@ const ResidentialBuyEdit: React.FC = () => {
                           formData.possessionEnd
                             ? (() => {
                                 const defaultDate = new Date(formData.possessionEnd);
-                                console.log("Default date:", defaultDate, "From string:", formData.possessionEnd);
                                 return defaultDate;
                               })()
                             : undefined

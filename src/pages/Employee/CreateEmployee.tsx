@@ -45,7 +45,9 @@ export default function CreateEmployee() {
   const { createLoading, createError, createSuccess } = useSelector(
     (state: RootState) => state.employee
   );
-  const pageUserType = useSelector((state: RootState) => state.auth.user?.user_type);
+  const pageUserType = useSelector(
+    (state: RootState) => state.auth.user?.user_type
+  );
 
   // Fetch states on component mount
   useEffect(() => {
@@ -53,7 +55,6 @@ export default function CreateEmployee() {
   }, [dispatch]);
 
   // Fetch cities whenever the selected state changes
-  
 
   useEffect(() => {
     if (createSuccess) {
@@ -94,7 +95,7 @@ export default function CreateEmployee() {
     { value: "9", text: "Marketing Executive" },
     { value: "10", text: "Customer Support" },
     { value: "11", text: "Client Support" },
-    {value : "12", text:'Accountant'}
+    { value: "12", text: "Accountant" },
   ];
 
   // Filter out "Manager" if pageUserType === 7
@@ -127,8 +128,7 @@ export default function CreateEmployee() {
     };
 
   const handleMultiSelectChange =
-    (field: "designation" | "city" | "state") =>
-    (values: string[]) => {
+    (field: "designation" | "city" | "state") => (values: string[]) => {
       setFormData((prev) => {
         const newFormData = { ...prev, [field]: values };
         // Reset city when state changes
@@ -141,7 +141,7 @@ export default function CreateEmployee() {
         setErrors({ ...errors, [field]: undefined });
       }
     };
-    useEffect(() => {
+  useEffect(() => {
     if (formData.state.length > 0) {
       const selectedStateId = formData.state[0];
       const selectedStateName = stateOptions.find(
@@ -186,19 +186,24 @@ export default function CreateEmployee() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-    
-
       // Map city ID to city name
       const selectedCityId = formData.city[0];
-      const cityName = cityOptions.find((option) => option.value === selectedCityId)?.text || selectedCityId;
+      const cityName =
+        cityOptions.find((option) => option.value === selectedCityId)?.text ||
+        selectedCityId;
 
       // Map state ID to state name
       const selectedStateId = formData.state[0];
-      const stateName = stateOptions.find((option) => option.value === selectedStateId)?.text || selectedStateId;
+      const stateName =
+        stateOptions.find((option) => option.value === selectedStateId)?.text ||
+        selectedStateId;
 
       // Map designation value to text
       const selectedDesignationId = formData.designation[0];
-      const designationName = designationOptions.find((option) => option.value === selectedDesignationId)?.text || selectedDesignationId;
+      const designationName =
+        designationOptions.find(
+          (option) => option.value === selectedDesignationId
+        )?.text || selectedDesignationId;
 
       const employeeData = {
         name: formData.name,
@@ -211,11 +216,10 @@ export default function CreateEmployee() {
         pincode: formData.pincode,
         user_type: parseInt(selectedDesignationId),
         created_by: "admin",
-        created_userID:  8,
+        created_userID: 8,
       };
 
       dispatch(createEmployee(employeeData));
-      console.log(employeeData);
     }
   };
 

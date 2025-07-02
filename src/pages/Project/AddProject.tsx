@@ -50,7 +50,13 @@ interface Errors {
   propertySubType?: string;
   projectName?: string;
   builderName?: string;
-  sizes?: { [key: string]: { buildupArea?: string; carpetArea?: string; floorPlan?: string } };
+  sizes?: {
+    [key: string]: {
+      buildupArea?: string;
+      carpetArea?: string;
+      floorPlan?: string;
+    };
+  };
   aroundProperty?: string;
 }
 
@@ -66,7 +72,14 @@ export default function CreateProperty() {
     propertySubType: "",
     projectName: "",
     builderName: "",
-    sizes: [{ id: `${Date.now()}-1`, buildupArea: "", carpetArea: "", floorPlan: null }],
+    sizes: [
+      {
+        id: `${Date.now()}-1`,
+        buildupArea: "",
+        carpetArea: "",
+        floorPlan: null,
+      },
+    ],
     aroundProperty: [],
   });
 
@@ -141,8 +154,7 @@ export default function CreateProperty() {
     };
 
   const handleSelectChange =
-    (field: "propertyType" | "propertySubType") =>
-    (value: string) => {
+    (field: "propertyType" | "propertySubType") => (value: string) => {
       const newFormData = {
         ...formData,
         [field]: value,
@@ -230,7 +242,12 @@ export default function CreateProperty() {
       ...formData,
       sizes: [
         ...formData.sizes,
-        { id: `${Date.now()}-${formData.sizes.length + 1}`, buildupArea: "", carpetArea: "", floorPlan: null },
+        {
+          id: `${Date.now()}-${formData.sizes.length + 1}`,
+          buildupArea: "",
+          carpetArea: "",
+          floorPlan: null,
+        },
       ],
     });
   };
@@ -241,7 +258,10 @@ export default function CreateProperty() {
         ...formData,
         aroundProperty: [
           ...formData.aroundProperty,
-          { place: placeAroundProperty.trim(), distance: distanceFromProperty.trim() },
+          {
+            place: placeAroundProperty.trim(),
+            distance: distanceFromProperty.trim(),
+          },
         ],
       });
       setPlaceAroundProperty("");
@@ -263,17 +283,35 @@ export default function CreateProperty() {
     if (!formData.state) newErrors.state = "State is required";
     if (!formData.city) newErrors.city = "City is required";
     if (!formData.locality) newErrors.locality = "Locality is required";
-    if (!formData.propertyType) newErrors.propertyType = "Property Type is required";
-    if (!formData.propertySubType) newErrors.propertySubType = "Property Sub Type is required";
-    if (!formData.projectName.trim()) newErrors.projectName = "Project Name is required";
-    if (!formData.builderName.trim()) newErrors.builderName = "Builder Name is required";
-    if (formData.aroundProperty.length === 0) newErrors.aroundProperty = "At least one place around property is required";
+    if (!formData.propertyType)
+      newErrors.propertyType = "Property Type is required";
+    if (!formData.propertySubType)
+      newErrors.propertySubType = "Property Sub Type is required";
+    if (!formData.projectName.trim())
+      newErrors.projectName = "Project Name is required";
+    if (!formData.builderName.trim())
+      newErrors.builderName = "Builder Name is required";
+    if (formData.aroundProperty.length === 0)
+      newErrors.aroundProperty =
+        "At least one place around property is required";
 
-    const sizeErrors: { [key: string]: { buildupArea?: string; carpetArea?: string; floorPlan?: string } } = {};
+    const sizeErrors: {
+      [key: string]: {
+        buildupArea?: string;
+        carpetArea?: string;
+        floorPlan?: string;
+      };
+    } = {};
     formData.sizes.forEach((size) => {
-      const errorsForSize: { buildupArea?: string; carpetArea?: string; floorPlan?: string } = {};
-      if (!size.buildupArea.trim()) errorsForSize.buildupArea = "Buildup Area is required";
-      if (!size.carpetArea.trim()) errorsForSize.carpetArea = "Carpet Area is required";
+      const errorsForSize: {
+        buildupArea?: string;
+        carpetArea?: string;
+        floorPlan?: string;
+      } = {};
+      if (!size.buildupArea.trim())
+        errorsForSize.buildupArea = "Buildup Area is required";
+      if (!size.carpetArea.trim())
+        errorsForSize.carpetArea = "Carpet Area is required";
       if (!size.floorPlan) errorsForSize.floorPlan = "Floor Plan is required";
       if (Object.keys(errorsForSize).length > 0) {
         sizeErrors[size.id] = errorsForSize;
@@ -291,10 +329,15 @@ export default function CreateProperty() {
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (validateForm()) {
-      const stateName = stateOptions.find((option) => option.value === formData.state)?.text || formData.state;
-      const cityName = cityOptions.find((option) => option.value === formData.city)?.text || formData.city;
+      const stateName =
+        stateOptions.find((option) => option.value === formData.state)?.text ||
+        formData.state;
+      const cityName =
+        cityOptions.find((option) => option.value === formData.city)?.text ||
+        formData.city;
       const localityName =
-        localityOptions.find((option) => option.value === formData.locality)?.text || formData.locality;
+        localityOptions.find((option) => option.value === formData.locality)
+          ?.text || formData.locality;
 
       const propertyData = {
         state: stateName,
@@ -311,8 +354,6 @@ export default function CreateProperty() {
         })),
         aroundProperty: formData.aroundProperty,
       };
-
-      console.log(propertyData);
     }
   };
 
@@ -345,7 +386,9 @@ export default function CreateProperty() {
           label="Select Locality"
           options={localityOptions}
           value={formData.locality}
-          onChange={(value, text) => handleDropdownChange("locality")(value, text)}
+          onChange={(value, text) =>
+            handleDropdownChange("locality")(value, text)
+          }
           placeholder="Search for a locality..."
           disabled={!formData.city}
           error={errors.locality}
@@ -369,7 +412,9 @@ export default function CreateProperty() {
               </button>
             ))}
           </div>
-          {errors.propertyType && <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>}
+          {errors.propertyType && (
+            <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>
+          )}
         </div>
 
         {formData.propertyType && (
@@ -380,7 +425,9 @@ export default function CreateProperty() {
                 <button
                   key={option.value}
                   type="button"
-                  onClick={() => handleSelectChange("propertySubType")(option.value)}
+                  onClick={() =>
+                    handleSelectChange("propertySubType")(option.value)
+                  }
                   className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                     formData.propertySubType === option.value
                       ? "bg-[#1D3A76] text-white border-blue-600"
@@ -391,7 +438,11 @@ export default function CreateProperty() {
                 </button>
               ))}
             </div>
-            {errors.propertySubType && <p className="text-red-500 text-sm mt-1">{errors.propertySubType}</p>}
+            {errors.propertySubType && (
+              <p className="text-red-500 text-sm mt-1">
+                {errors.propertySubType}
+              </p>
+            )}
           </div>
         )}
 
@@ -404,7 +455,9 @@ export default function CreateProperty() {
             onChange={handleInputChange("projectName")}
             placeholder="Enter project name"
           />
-          {errors.projectName && <p className="text-red-500 text-sm mt-1">{errors.projectName}</p>}
+          {errors.projectName && (
+            <p className="text-red-500 text-sm mt-1">{errors.projectName}</p>
+          )}
         </div>
 
         <div className="min-h-[80px]">
@@ -416,13 +469,18 @@ export default function CreateProperty() {
             onChange={handleInputChange("builderName")}
             placeholder="Enter builder name"
           />
-          {errors.builderName && <p className="text-red-500 text-sm mt-1">{errors.builderName}</p>}
+          {errors.builderName && (
+            <p className="text-red-500 text-sm mt-1">{errors.builderName}</p>
+          )}
         </div>
 
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Sizes</h3>
           {formData.sizes.map((size, index) => (
-            <div key={size.id} className="relative grid grid-cols-1 md:grid-cols-4 gap-4 border p-4 rounded-md">
+            <div
+              key={size.id}
+              className="relative grid grid-cols-1 md:grid-cols-4 gap-4 border p-4 rounded-md"
+            >
               {index > 0 && (
                 <button
                   type="button"
@@ -447,7 +505,9 @@ export default function CreateProperty() {
                 </button>
               )}
               <div className="min-h-[80px]">
-                <Label htmlFor={`buildupArea-${size.id}`}>Buildup Area (sq.ft)</Label>
+                <Label htmlFor={`buildupArea-${size.id}`}>
+                  Buildup Area (sq.ft)
+                </Label>
                 <Input
                   type="text"
                   id={`buildupArea-${size.id}`}
@@ -456,12 +516,16 @@ export default function CreateProperty() {
                   placeholder="Enter buildup area"
                 />
                 {errors.sizes?.[size.id]?.buildupArea && (
-                  <p className="text-red-500 text-sm mt-1">{errors.sizes[size.id].buildupArea}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.sizes[size.id].buildupArea}
+                  </p>
                 )}
               </div>
 
               <div className="min-h-[80px]">
-                <Label htmlFor={`carpetArea-${size.id}`}>Carpet Area (sq.ft)</Label>
+                <Label htmlFor={`carpetArea-${size.id}`}>
+                  Carpet Area (sq.ft)
+                </Label>
                 <Input
                   type="text"
                   id={`carpetArea-${size.id}`}
@@ -470,7 +534,9 @@ export default function CreateProperty() {
                   placeholder="Enter carpet area"
                 />
                 {errors.sizes?.[size.id]?.carpetArea && (
-                  <p className="text-red-500 text-sm mt-1">{errors.sizes[size.id].carpetArea}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.sizes[size.id].carpetArea}
+                  </p>
                 )}
               </div>
 
@@ -495,7 +561,9 @@ export default function CreateProperty() {
                   )}
                 </div>
                 {errors.sizes?.[size.id]?.floorPlan && (
-                  <p className="text-red-500 text-sm mt-1">{errors.sizes[size.id].floorPlan}</p>
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.sizes[size.id].floorPlan}
+                  </p>
                 )}
               </div>
 
@@ -508,7 +576,9 @@ export default function CreateProperty() {
                       className="max-w-[100px] max-h-[100px] object-contain"
                     />
                   ) : (
-                    <p className="text-sm text-gray-500 truncate">{size.floorPlan.name}</p>
+                    <p className="text-sm text-gray-500 truncate">
+                      {size.floorPlan.name}
+                    </p>
                   )
                 ) : (
                   <p className="text-sm text-gray-400">No file selected</p>
@@ -526,7 +596,9 @@ export default function CreateProperty() {
         </div>
 
         <div>
-          <Label htmlFor="aroundProperty" className="mt-4">Around This Property *</Label>
+          <Label htmlFor="aroundProperty" className="mt-4">
+            Around This Property *
+          </Label>
           <div className="flex space-x-6 my-4 w-full">
             <Input
               type="text"
@@ -552,7 +624,9 @@ export default function CreateProperty() {
               Add
             </button>
           </div>
-          {errors.aroundProperty && <p className="text-red-500 text-sm mt-1">{errors.aroundProperty}</p>}
+          {errors.aroundProperty && (
+            <p className="text-red-500 text-sm mt-1">{errors.aroundProperty}</p>
+          )}
           {formData.aroundProperty.length > 0 && (
             <div className="mt-4">
               <ul className="space-y-2">
@@ -561,13 +635,17 @@ export default function CreateProperty() {
                     key={index}
                     className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
                   >
-                    <span>{entry.place} - {entry.distance}</span>
+                    <span>
+                      {entry.place} - {entry.distance}
+                    </span>
                     <button
                       type="button"
                       onClick={() =>
                         setFormData({
                           ...formData,
-                          aroundProperty: formData.aroundProperty.filter((_, i) => i !== index),
+                          aroundProperty: formData.aroundProperty.filter(
+                            (_, i) => i !== index
+                          ),
                         })
                       }
                       className="text-red-500 hover:text-red-700"

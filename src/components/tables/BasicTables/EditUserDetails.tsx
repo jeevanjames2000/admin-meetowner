@@ -43,12 +43,13 @@ export default function EditUserDetails() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
   const location = useLocation();
-  const pageUserType = useSelector((state: RootState) => state.auth.user?.user_type);
-  const { updateLoading, updateSuccess, updateError } = useSelector((state: RootState) => state.userEdit);
+  const pageUserType = useSelector(
+    (state: RootState) => state.auth.user?.user_type
+  );
+  const { updateLoading, updateSuccess, updateError } = useSelector(
+    (state: RootState) => state.userEdit
+  );
   const user = location.state?.user; // Get user data from navigation state
-
-  console.log(user);
-
 
   const [formData, setFormData] = useState<FormData>({
     name: "",
@@ -81,7 +82,7 @@ export default function EditUserDetails() {
     }
   }, [user]);
 
-//   Handle update success/error and redirect
+  //   Handle update success/error and redirect
   useEffect(() => {
     if (updateSuccess) {
       toast.success(updateSuccess);
@@ -96,7 +97,7 @@ export default function EditUserDetails() {
 
   // Designation options
   const allDesignationOptions: Option[] = [
-    {value :"2",text:"User"},
+    { value: "2", text: "User" },
     { value: "3", text: "Builder" },
     { value: "4", text: "Agent" },
     { value: "5", text: "Owner" },
@@ -104,11 +105,12 @@ export default function EditUserDetails() {
   ];
 
   const designationOptions: Option[] = (() => {
-    
     return allDesignationOptions;
   })();
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+  const handleInputChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+  ) => {
     const { name, value } = e.target;
     setFormData({ ...formData, [name]: value });
     if (errors[name as keyof Errors]) {
@@ -125,7 +127,8 @@ export default function EditUserDetails() {
     } else if (!/\S+@\S+\.\S+/.test(formData.email)) {
       newErrors.email = "Email is invalid";
     }
-    if (!formData.designation) newErrors.designation = "Designation is required";
+    if (!formData.designation)
+      newErrors.designation = "Designation is required";
     // if (!formData.address.trim()) newErrors.address = "Address is required";
     if (!formData.city.trim()) newErrors.city = "City is required";
     if (!formData.state.trim()) newErrors.state = "State is required";
@@ -136,8 +139,8 @@ export default function EditUserDetails() {
     }
     // if (!formData.gstNumber.trim()) {
     //   newErrors.gstNumber = "GST Number is required";
-    // } 
-    
+    // }
+
     // if (!formData.reraNumber.trim()) newErrors.reraNumber = "Rera Number is required";
 
     setErrors(newErrors);
@@ -151,7 +154,10 @@ export default function EditUserDetails() {
       const createdUserIdRaw = localStorage.getItem("userId");
 
       const selectedDesignationId = formData.designation;
-      const designationName = designationOptions.find((option) => option.value === selectedDesignationId)?.text || selectedDesignationId;
+      const designationName =
+        designationOptions.find(
+          (option) => option.value === selectedDesignationId
+        )?.text || selectedDesignationId;
 
       const profileData = {
         id: user?.id,
@@ -170,14 +176,13 @@ export default function EditUserDetails() {
         mobile: user?.mobile || "",
         status: user?.status || 0,
       };
-      console.log(profileData);
 
       dispatch(updateUser(profileData));
     }
   };
 
   const handleCancel = () => {
-     navigate(-1);
+    navigate(-1);
   };
 
   if (!user) {

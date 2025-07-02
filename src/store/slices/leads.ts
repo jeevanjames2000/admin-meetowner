@@ -277,7 +277,6 @@ export const fetchUserSearchDataByCity = createAsyncThunk(
 
      
       const response = await promise;
-      console.log("API Response for city", city, ":", response.data); // Log response
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;

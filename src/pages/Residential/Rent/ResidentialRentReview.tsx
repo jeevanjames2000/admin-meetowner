@@ -14,18 +14,23 @@ interface ResidentialBuyData {
   id: string;
   slNo: number;
   projectName: string;
-  propertyType: "Apartment" | "Independent Villa" | "Independent House" | "Plot" | "Land";
+  propertyType:
+    | "Apartment"
+    | "Independent Villa"
+    | "Independent House"
+    | "Plot"
+    | "Land";
   userType: "Owner" | "Builder" | "Agent" | "Channel Partner";
   listingTimeAndDate: string;
 }
 const generateRandomData = (): ResidentialBuyData[] => {
-  const propertyTypes: ("Apartment" | "Independent Villa" | "Independent House" | "Plot" | "Land")[] = [
-    "Apartment",
-    "Independent Villa",
-    "Independent House",
-    "Plot",
-    "Land",
-  ];
+  const propertyTypes: (
+    | "Apartment"
+    | "Independent Villa"
+    | "Independent House"
+    | "Plot"
+    | "Land"
+  )[] = ["Apartment", "Independent Villa", "Independent House", "Plot", "Land"];
   const userTypes: ("Owner" | "Builder" | "Agent" | "Channel Partner")[] = [
     "Owner",
     "Builder",
@@ -53,7 +58,8 @@ const generateRandomData = (): ResidentialBuyData[] => {
       id: `ID-${i.toString().padStart(3, "0")}`,
       slNo: i,
       projectName: projectNames[i - 1],
-      propertyType: propertyTypes[Math.floor(Math.random() * propertyTypes.length)],
+      propertyType:
+        propertyTypes[Math.floor(Math.random() * propertyTypes.length)],
       userType: userTypes[Math.floor(Math.random() * userTypes.length)],
       listingTimeAndDate: randomDate,
     });
@@ -61,13 +67,18 @@ const generateRandomData = (): ResidentialBuyData[] => {
   return data;
 };
 const ResidentialRentReview: React.FC = () => {
-  const [reviewList, setReviewList] = useState<ResidentialBuyData[]>(generateRandomData());
+  const [reviewList, setReviewList] = useState<ResidentialBuyData[]>(
+    generateRandomData()
+  );
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const navigate = useNavigate();
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
-      if (dropdownRef.current && !dropdownRef.current.contains(event.target as Node)) {
+      if (
+        dropdownRef.current &&
+        !dropdownRef.current.contains(event.target as Node)
+      ) {
         setDropdownOpen(null);
       }
     };
@@ -75,16 +86,14 @@ const ResidentialRentReview: React.FC = () => {
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
   const handleEdit = (item: ResidentialBuyData) => {
-    console.log("Edit:", item);
     setDropdownOpen(null);
-    navigate('/residential-rent-edit');
+    navigate("/residential-rent-edit");
   };
   const handleDelete = (id: string) => {
     setReviewList(reviewList.filter((item) => item.id !== id));
     setDropdownOpen(null);
   };
   const handleApprove = (item: ResidentialBuyData) => {
-    console.log("Approve:", item);
     setDropdownOpen(null);
   };
   if (!reviewList || reviewList.length === 0) {
@@ -102,7 +111,10 @@ const ResidentialRentReview: React.FC = () => {
         title="Meet Owner Residential Rent Review"
         description="This is the Residential Rent Review Table page"
       />
-      <PageBreadcrumb pageTitle="Residential Rent Review" pagePlacHolder="Filter listings" />
+      <PageBreadcrumb
+        pageTitle="Residential Rent Review"
+        pagePlacHolder="Filter listings"
+      />
       <div className="space-y-6">
         <ComponentCard title="Residential Rent Review">
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
@@ -179,7 +191,11 @@ const ResidentialRentReview: React.FC = () => {
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                         <button
-                          onClick={() => setDropdownOpen(dropdownOpen === item.id ? null : item.id)}
+                          onClick={() =>
+                            setDropdownOpen(
+                              dropdownOpen === item.id ? null : item.id
+                            )
+                          }
                           className="focus:outline-none"
                         >
                           <svg

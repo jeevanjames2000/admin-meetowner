@@ -6,40 +6,32 @@ import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import { AppDispatch, RootState } from "../../store/store";
 import { clearMessages, createCareer, updateCareer } from "../../store/slices/careerSlice";
-
 interface FormData {
   description: string;
   job_title: string;
-  upload_date?: string; // Optional, required for update
+  upload_date?: string;
   preferred_location: string;
   salary: string;
   experience: string;
 }
-
 const AddCareer: React.FC = () => {
-  const { id } = useParams<{ id: string }>(); // Get career ID from URL for edit mode
-  const isEditMode = !!id; // True if editing, false if creating
+  const { id } = useParams<{ id: string }>();
+  const isEditMode = !!id;
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-
   const { careers, createLoading, createError, updateLoading, updateError, createSuccess, updateSuccess } =
     useSelector((state: RootState) => state.career);
-
-  // Find the career to edit
   const career = careers.find((c) => c.id === Number(id));
-
   const [formData, setFormData] = useState<FormData>({
     description: "",
     job_title: "",
     preferred_location: "",
     salary: "",
     experience: "",
-    upload_date: new Date().toISOString(), // Default for update mode
+    upload_date: new Date().toISOString(),
   });
   const [errors, setErrors] = useState<Partial<FormData>>({});
   const [apiError, setApiError] = useState<string>("");
-
-  // Prefill form for edit mode
   useEffect(() => {
     if (isEditMode && career) {
       setFormData({
@@ -52,17 +44,14 @@ const AddCareer: React.FC = () => {
       });
     }
   }, [isEditMode, career]);
-
-  // Clear success messages after 3 seconds
   useEffect(() => {
     if (createSuccess || updateSuccess) {
       const timer = setTimeout(() => {
         dispatch(clearMessages());
-      }, 3000); // Clear after 3 seconds
+      }, 3000);
       return () => clearTimeout(timer);
     }
   }, [createSuccess, updateSuccess, dispatch]);
-
   const handleInputChange = (
     e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
@@ -71,50 +60,39 @@ const AddCareer: React.FC = () => {
     setErrors((prev) => ({ ...prev, [name]: "" }));
     setApiError("");
   };
-
   const validateForm = (): boolean => {
     const newErrors: Partial<FormData> = {};
-
     if (!formData.job_title.trim()) {
       newErrors.job_title = "Job title is required";
     }
-
     if (!formData.description.trim()) {
       newErrors.description = "Description is required";
     }
-
     if (!formData.preferred_location.trim()) {
       newErrors.preferred_location = "Location is required";
     }
-
     if (!formData.salary) {
       newErrors.salary = "Salary is required";
     } else if (!/^\d+(\.\d{1,2})?$/.test(formData.salary)) {
       newErrors.salary = "Please enter a valid salary (e.g., 50000 or 50000.00)";
     }
-
     if (!formData.experience.trim()) {
       newErrors.experience = "Experience is required";
     }
-
     if (isEditMode && !formData.upload_date) {
       newErrors.upload_date = "Upload date is required";
     } else if (isEditMode && isNaN(Date.parse(formData.upload_date!))) {
       newErrors.upload_date = "Invalid date format";
     }
-
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
-
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setApiError("");
-
     if (!validateForm()) {
       return;
     }
-
     try {
       const payload: FormData = {
         job_title: formData.job_title,
@@ -122,11 +100,8 @@ const AddCareer: React.FC = () => {
         preferred_location: formData.preferred_location,
         salary: formData.salary,
         experience: formData.experience,
-        upload_date: formData.upload_date, // Include for update
+        upload_date: formData.upload_date,
       };
-
-      console.log("Form Data Submitted:", payload);
-
       if (isEditMode) {
         if (!id) {
           setApiError("Invalid career ID");
@@ -136,7 +111,6 @@ const AddCareer: React.FC = () => {
           updateCareer({ id: Number(id), careerData: payload })
         ).unwrap();
       } else {
-        // Exclude upload_date for create
         const { upload_date, ...createPayload } = payload;
         await dispatch(createCareer(createPayload)).unwrap();
         setFormData({
@@ -148,12 +122,11 @@ const AddCareer: React.FC = () => {
           upload_date: new Date().toISOString(),
         });
       }
-      navigate(-1); // Navigate back to CareersPage
+      navigate(-1);
     } catch (error) {
       setApiError((error as string) || `Failed to ${isEditMode ? "update" : "create"} career`);
     }
   };
-
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <ComponentCard title={isEditMode ? "Edit Career" : "Add New Career"}>
@@ -259,7 +232,7 @@ const AddCareer: React.FC = () => {
                 type="datetime-local"
                 id="upload_date"
                 name="upload_date"
-                value={formData.upload_date?.slice(0, 16)} // Format for datetime-local
+                value={formData.upload_date?.slice(0, 16)}
                 onChange={handleInputChange}
                 className="dark:bg-dark-900"
                 placeholder="Select upload date"
@@ -296,5 +269,4 @@ const AddCareer: React.FC = () => {
     </div>
   );
 };
-
 export default AddCareer;

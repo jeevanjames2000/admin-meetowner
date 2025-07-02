@@ -1,17 +1,17 @@
 import React, { useState, useEffect } from "react";
 
 // InternetStatusCheck component to monitor online/offline status
-const InternetStatusCheck: React.FC<{ children: React.ReactNode }> = ({ children }) => {
+const InternetStatusCheck: React.FC<{ children: React.ReactNode }> = ({
+  children,
+}) => {
   const [isOnline, setIsOnline] = useState<boolean>(navigator.onLine);
 
   useEffect(() => {
     // Update state when online/offline events fire
     const handleOnline = () => {
-      console.log("InternetStatusCheck: User is online");
       setIsOnline(true);
     };
     const handleOffline = () => {
-      console.log("InternetStatusCheck: User is offline");
       setIsOnline(false);
     };
 

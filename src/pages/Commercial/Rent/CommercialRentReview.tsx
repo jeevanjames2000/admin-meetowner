@@ -85,7 +85,6 @@ const CommercialRentReview: React.FC = () => {
   }, []);
 
   const handleEdit = (item: CommercialRentData) => {
-    console.log("Edit:", item);
     navigate('/commercial-rent-edit');
     setDropdownOpen(null);
   };
@@ -96,7 +95,6 @@ const CommercialRentReview: React.FC = () => {
   };
 
   const handleApprove = (item: CommercialRentData) => {
-    console.log("Approve:", item);
     setDropdownOpen(null);
   };
 

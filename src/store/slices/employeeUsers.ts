@@ -261,7 +261,6 @@ export const fetchCurrentActiveUsers = createAsyncThunk(
       // });
 
       const response = await promise;
-      console.log("Active users API response:", response.data); // Log for debugging
       return response.data.activeUsers; // Return only the activeUsers array
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;

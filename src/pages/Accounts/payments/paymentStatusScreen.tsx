@@ -1,4 +1,10 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import PageMeta from "../../../components/common/PageMeta";
 import {
@@ -8,18 +14,21 @@ import {
   TableHeader,
   TableRow,
 } from "../../../components/ui/table";
-import { clearSubscriptions, fetchAllSubscriptions, updateSubscriptionStatus } from "../../../store/slices/paymentSlice";
+import {
+  clearSubscriptions,
+  fetchAllSubscriptions,
+  updateSubscriptionStatus,
+} from "../../../store/slices/paymentSlice";
 import { AppDispatch, RootState } from "../../../store/store";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageBreadcrumbList from "../../../components/common/PageBreadCrumbLists";
 import { useParams } from "react-router";
 import Button from "../../../components/ui/button/Button";
 import ConfirmStatusModal from "../../../components/common/ConfirmStatusModal";
-import FilterBar from "../../../components/common/FilterBar"; // Import FilterBar
+import FilterBar from "../../../components/common/FilterBar";
 import { pdf } from "@react-pdf/renderer";
 import { InvoicePDF } from "../Invoice";
 import axios from "axios";
-
 const userTypeMap: { [key: number]: string } = {
   2: "User",
   3: "Builder",
@@ -27,20 +36,17 @@ const userTypeMap: { [key: number]: string } = {
   5: "Owner",
   6: "Channel Partner",
 };
-
 interface SelectOption {
   value: string;
   label: string;
 }
-
 interface SubscriptionFilters {
-  payment_status?: string; // Optional payment_status
+  payment_status?: string;
 }
-
 interface Subscription {
   id: number;
   user_id: number;
-  user_type?: number; // Added user_type to the Subscription interface
+  user_type?: number;
   name: string;
   mobile: string;
   email: string;
@@ -68,7 +74,6 @@ interface Subscription {
   invoice_number: string | null;
   city: string;
 }
-
 interface InvoiceResponse {
   id: number;
   invoice_number: string;
@@ -78,9 +83,6 @@ interface InvoiceResponse {
   created_at: string;
   invoice_url: string;
 }
-
-
-
 const PaymentStatusScreen: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { subscriptions, loading, error } = useSelector(
@@ -98,16 +100,16 @@ const PaymentStatusScreen: React.FC = () => {
     id: number;
     name: string;
   } | null>(null);
-  const [statusAction, setStatusAction] = useState<"approve" | "reject" | null>(null);
+  const [statusAction, setStatusAction] = useState<"approve" | "reject" | null>(
+    null
+  );
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
   const [currentPage, setCurrentPage] = useState<number>(1);
-  const [stateFilter, setStateFilter] = useState<string>(""); // State filter for fetching cities
-  const [cityFilter, setCityFilter] = useState<string>(""); // City filter for filtering subscriptions
-
+  const [stateFilter, setStateFilter] = useState<string>("");
+  const [cityFilter, setCityFilter] = useState<string>("");
   const itemsPerPage = 10;
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -117,13 +119,11 @@ const PaymentStatusScreen: React.FC = () => {
         setDropdownOpen(null);
       }
     };
-
     document.addEventListener("mousedown", handleClickOutside);
     return () => {
       document.removeEventListener("mousedown", handleClickOutside);
     };
   }, []);
-
   useEffect(() => {
     if (status) {
       dispatch(fetchAllSubscriptions(subscriptionFilters));
@@ -132,18 +132,14 @@ const PaymentStatusScreen: React.FC = () => {
       dispatch(clearSubscriptions());
     };
   }, [dispatch, status]);
-
   useEffect(() => {
-    setCurrentPage(1); // Reset to page 1 when filters change
-  }, [selectedUserType, startDate, endDate, filterValue, cityFilter]); // Removed stateFilter from dependencies
-
+    setCurrentPage(1);
+  }, [selectedUserType, startDate, endDate, filterValue, cityFilter]);
   const handleInvoice = useCallback(async (sub: Subscription) => {
     if (!sub.invoice_number) {
-      console.log("No invoice number available for this subscription");
       setDropdownOpen(null);
       return;
     }
-
     try {
       const response = await axios.get<InvoiceResponse[]>(
         `https://api.meetowner.in/payments/getInvoiceByID?invoice_number=${sub.invoice_number}`
@@ -152,14 +148,12 @@ const PaymentStatusScreen: React.FC = () => {
       if (invoices.length > 0 && invoices[0].invoice_url) {
         window.open(invoices[0].invoice_url, "_blank");
       } else {
-        console.log("No invoice URL found");
       }
     } catch (error) {
       console.error("Error fetching invoice:", error);
     }
     setDropdownOpen(null);
   }, []);
-
   const handleApprove = useCallback(
     (
       userId: number,
@@ -173,16 +167,11 @@ const PaymentStatusScreen: React.FC = () => {
     },
     []
   );
-
   const confirmStatusChange = useCallback(() => {
     if (selectedSubscription && statusAction) {
-      const subscriptionStatus = statusAction === "approve" ? "active" : "inactive";
+      const subscriptionStatus =
+        statusAction === "approve" ? "active" : "inactive";
       const paymentStatus = statusAction === "approve" ? "success" : "rejected";
-
-      console.log(
-        `Action: ${paymentStatus} for subscription ${selectedSubscription.name} (User ID: ${selectedSubscription.id})`
-      );
-
       dispatch(
         updateSubscriptionStatus({
           user_id: selectedSubscription.id,
@@ -192,40 +181,41 @@ const PaymentStatusScreen: React.FC = () => {
       ).then(async (result) => {
         if (result.meta.requestStatus === "fulfilled") {
           dispatch(fetchAllSubscriptions({ payment_status: status }));
-          if (statusAction === 'approve') {
+          if (statusAction === "approve") {
             try {
-              const subscription = subscriptions.find((sub) => sub.user_id === selectedSubscription.id);
+              const subscription = subscriptions.find(
+                (sub) => sub.user_id === selectedSubscription.id
+              );
               if (!subscription) {
                 throw new Error("Subscription not found");
               }
               const pdfDoc = pdf(<InvoicePDF subscription={subscription} />);
               const pdfBlob = await pdfDoc.toBlob();
-
               const formData = new FormData();
-              formData.append('pdf', pdfBlob, `invoice-${subscription.id}.pdf`);
-              formData.append('user_id', selectedSubscription.id.toString());
-              formData.append('subscription_name', selectedSubscription.name);
-              await axios.post('YOUR_BACKEND_ENDPOINT', formData, {
+              formData.append("pdf", pdfBlob, `invoice-${subscription.id}.pdf`);
+              formData.append("user_id", selectedSubscription.id.toString());
+              formData.append("subscription_name", selectedSubscription.name);
+              await axios.post("YOUR_BACKEND_ENDPOINT", formData, {
                 headers: {
-                  'Content-Type': 'multipart/form-data',
+                  "Content-Type": "multipart/form-data",
                 },
               });
-              console.log('PDF sent to backend successfully');
             } catch (error) {
-              console.error('Failed to generate or send PDF:', error);
+              console.error("Failed to generate or send PDF:", error);
             }
           }
         } else if (result.meta.requestStatus === "rejected") {
-          console.error("Failed to update subscription status:", result.payload);
+          console.error(
+            "Failed to update subscription status:",
+            result.payload
+          );
         }
       });
-
       setIsStatusModalOpen(false);
       setSelectedSubscription(null);
       setStatusAction(null);
     }
   }, [dispatch, selectedSubscription, statusAction, status, subscriptions]);
-
   const formatDate = (dateString: string | null): string => {
     if (!dateString) return "N/A";
     try {
@@ -240,17 +230,15 @@ const PaymentStatusScreen: React.FC = () => {
       return "Invalid Date";
     }
   };
-
   const formatPackageName = (packageName: string): string => {
-    return packageName.charAt(0).toUpperCase() + packageName.slice(1).toLowerCase();
+    return (
+      packageName.charAt(0).toUpperCase() + packageName.slice(1).toLowerCase()
+    );
   };
-
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
-
-  // Clear all filters
   const clearFilters = () => {
     setSelectedUserType(null);
     setStartDate(null);
@@ -260,23 +248,19 @@ const PaymentStatusScreen: React.FC = () => {
     setFilterValue("");
     setCurrentPage(1);
   };
-
   const pageTitleStatus = status
     ? `${status.charAt(0).toUpperCase() + status.slice(1)} Payments`
     : "Payments";
-
   const filteredSubscriptions = useMemo(() => {
     return subscriptions.filter((sub) => {
       const searchableFields = [sub.name || "", sub.mobile || ""];
       const matchesSearch = searchableFields.some((field) =>
         field.toLowerCase().includes(filterValue.toLowerCase())
       );
-
       const matchesUserType =
         selectedUserType === null ||
         selectedUserType === "" ||
         userTypeMap[sub.user_type || 0] === selectedUserType;
-
       let matchesDate = true;
       if (startDate || endDate) {
         if (!sub.subscription_start_date) {
@@ -292,14 +276,19 @@ const PaymentStatusScreen: React.FC = () => {
           }
         }
       }
-
-      // City filter (not state filter)
-      const matchesCity = !cityFilter || (sub.city && sub.city.toLowerCase() === cityFilter.toLowerCase());
-
+      const matchesCity =
+        !cityFilter ||
+        (sub.city && sub.city.toLowerCase() === cityFilter.toLowerCase());
       return matchesSearch && matchesUserType && matchesDate && matchesCity;
     });
-  }, [subscriptions, filterValue, selectedUserType, startDate, endDate, cityFilter]);
-
+  }, [
+    subscriptions,
+    filterValue,
+    selectedUserType,
+    startDate,
+    endDate,
+    cityFilter,
+  ]);
   const userFilterOptions: SelectOption[] = [
     { value: "", label: "All Users" },
     ...Object.entries(userTypeMap).map(([key, value]) => ({
@@ -307,29 +296,26 @@ const PaymentStatusScreen: React.FC = () => {
       label: value,
     })),
   ];
-
   const totalItems = filteredSubscriptions.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
-  const paginatedSubscriptions = filteredSubscriptions.slice(startIndex, endIndex);
-
+  const paginatedSubscriptions = filteredSubscriptions.slice(
+    startIndex,
+    endIndex
+  );
   const goToPage = (page: number) => {
     setCurrentPage(page);
   };
-
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
-
     if (totalPages <= totalVisiblePages + 2) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -337,31 +323,24 @@ const PaymentStatusScreen: React.FC = () => {
     } else {
       let start = Math.max(2, currentPage - 2);
       let end = Math.min(totalPages - 1, currentPage + 2);
-
       if (currentPage <= 3) {
         start = 2;
         end = 5;
       }
-
       if (currentPage >= totalPages - 2) {
         start = totalPages - 4;
         end = totalPages - 1;
       }
-
       pages.push(1);
       if (start > 2) pages.push("...");
-
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-
       if (end < totalPages - 1) pages.push("...");
       if (totalPages > 1) pages.push(totalPages);
     }
-
     return pages;
   };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -371,7 +350,6 @@ const PaymentStatusScreen: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="relative min-h-screen">
       <PageMeta title="Meet Owner Payments" />
@@ -381,12 +359,11 @@ const PaymentStatusScreen: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-     
         <div className="flex flex-col sm:flex-row justify-between gap-3 py-2">
           <FilterBar
             showUserTypeFilter={true}
             showDateFilters={true}
-            showStateFilter={true} // State filter is enabled to fetch cities
+            showStateFilter={true}
             showCityFilter={true}
             userFilterOptions={userFilterOptions}
             onUserTypeChange={setSelectedUserType}
@@ -402,32 +379,34 @@ const PaymentStatusScreen: React.FC = () => {
             cityValue={cityFilter}
           />
         </div>
-
-        {/* Display active filters (exclude state since it's not used for filtering) */}
-        {(selectedUserType || startDate || endDate || cityFilter || filterValue) && (
+        {}
+        {(selectedUserType ||
+          startDate ||
+          endDate ||
+          cityFilter ||
+          filterValue) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-            Filters: User Type: {selectedUserType || "All"} | Date: {startDate || "Any"} to{" "}
-            {endDate || "Any"} | City: {cityFilter || "Any"} | Search: {filterValue || "None"}
+            Filters: User Type: {selectedUserType || "All"} | Date:{" "}
+            {startDate || "Any"} to {endDate || "Any"} | City:{" "}
+            {cityFilter || "Any"} | Search: {filterValue || "None"}
           </div>
         )}
-
         <ComponentCard title={pageTitleStatus}>
           <div className="overflow-visible relative rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-auto">
               {error && (
                 <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
-                  <h2 className="text-lg font-bold text-red-500">Error: {error}</h2>
+                  <h2 className="text-lg font-bold text-red-500">
+                    Error: {error}
+                  </h2>
                 </div>
               )}
               <Table>
                 <TableHeader className="border-b border-gray-100 dark:border-white/[0.05]">
                   <TableRow>
-                    <TableCell
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
+                    <TableCell className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
                       Sl.No
                     </TableCell>
-                   
                     <TableCell
                       isHeader
                       className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -508,7 +487,8 @@ const PaymentStatusScreen: React.FC = () => {
                         Invoice Number
                       </TableCell>
                     )}
-                    {(status?.toLowerCase() === "processing" || status?.toLowerCase() === "success") && (
+                    {(status?.toLowerCase() === "processing" ||
+                      status?.toLowerCase() === "success") && (
                       <TableCell
                         isHeader
                         className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
@@ -519,13 +499,15 @@ const PaymentStatusScreen: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {(!paginatedSubscriptions || paginatedSubscriptions.length === 0) && (
+                  {(!paginatedSubscriptions ||
+                    paginatedSubscriptions.length === 0) && (
                     <TableRow>
-                      <TableCell
-                       
-                        className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400"
-                      >
-                        {filterValue || selectedUserType || startDate || endDate || cityFilter
+                      <TableCell className="px-5 py-4 text-center text-gray-500 text-theme-sm dark:text-gray-400">
+                        {filterValue ||
+                        selectedUserType ||
+                        startDate ||
+                        endDate ||
+                        cityFilter
                           ? "No Matching Subscriptions Found"
                           : "No Subscriptions Available"}
                       </TableCell>
@@ -534,21 +516,20 @@ const PaymentStatusScreen: React.FC = () => {
                   {paginatedSubscriptions.map((sub: Subscription, index) => (
                     <TableRow key={sub.id}>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {startIndex + index + 1} {/* Adjusted to show correct Sl.No */}
+                        {startIndex + index + 1} {}
                       </TableCell>
-                     
                       <TableCell className="px-5 py-4 sm:px-6 text-start">
-                          <div className="flex items-center gap-3">
-                                  <div>
-                                                   <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
-                                                     {sub.name}
-                                                   </span>
-                                                   <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
-                                                     {userTypeMap[sub.user_type!] || "Unknown"}
-                                                   </span>
-                                                 </div>
-                                    </div>
-                             </TableCell>
+                        <div className="flex items-center gap-3">
+                          <div>
+                            <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline">
+                              {sub.name}
+                            </span>
+                            <span className="block text-gray-500 text-theme-xs dark:text-gray-400">
+                              {userTypeMap[sub.user_type!] || "Unknown"}
+                            </span>
+                          </div>
+                        </div>
+                      </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {sub.mobile}
                       </TableCell>
@@ -563,12 +544,17 @@ const PaymentStatusScreen: React.FC = () => {
                           className={`inline-block px-2 py-1 rounded-md text-xs w-auto font-medium ${
                             sub.subscription_package.toLowerCase() === "basic"
                               ? "bg-blue-100 text-blue-800 dark:bg-blue-900 dark:text-blue-200"
-                              : sub.subscription_package.toLowerCase() === "prime"
+                              : sub.subscription_package.toLowerCase() ===
+                                "prime"
                               ? "bg-[#EC9A0C] text-black dark:bg-[#EC9A0C] dark:text-white"
                               : "bg-[#1D3A76] text-white dark:bg-purple-900 dark:text-purple-200"
                           }`}
                         >
-                          {formatPackageName(sub.subscription_package === 'prime_plus' ? 'Prime Plus' : sub.subscription_package)}
+                          {formatPackageName(
+                            sub.subscription_package === "prime_plus"
+                              ? "Prime Plus"
+                              : sub.subscription_package
+                          )}
                         </span>
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
@@ -597,7 +583,7 @@ const PaymentStatusScreen: React.FC = () => {
                           {sub.invoice_number}
                         </TableCell>
                       )}
-                      {(status?.toLowerCase() === "processing") && (
+                      {status?.toLowerCase() === "processing" && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                           <>
                             <Button
@@ -627,7 +613,11 @@ const PaymentStatusScreen: React.FC = () => {
                               >
                                 <button
                                   onClick={() =>
-                                    handleApprove(sub.user_id, sub.name, "approve")
+                                    handleApprove(
+                                      sub.user_id,
+                                      sub.name,
+                                      "approve"
+                                    )
                                   }
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 >
@@ -635,7 +625,11 @@ const PaymentStatusScreen: React.FC = () => {
                                 </button>
                                 <button
                                   onClick={() =>
-                                    handleApprove(sub.user_id, sub.name, "reject")
+                                    handleApprove(
+                                      sub.user_id,
+                                      sub.name,
+                                      "reject"
+                                    )
                                   }
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 >
@@ -646,7 +640,7 @@ const PaymentStatusScreen: React.FC = () => {
                           </>
                         </TableCell>
                       )}
-                      {(status?.toLowerCase() === "success") && (
+                      {status?.toLowerCase() === "success" && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                           <>
                             <Button
@@ -675,9 +669,7 @@ const PaymentStatusScreen: React.FC = () => {
                                 className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-20"
                               >
                                 <button
-                                  onClick={() =>
-                                    handleInvoice(sub)
-                                  }
+                                  onClick={() => handleInvoice(sub)}
                                   className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                 >
                                   View Invoice
@@ -758,5 +750,4 @@ const PaymentStatusScreen: React.FC = () => {
     </div>
   );
 };
-
 export default PaymentStatusScreen;

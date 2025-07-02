@@ -26,7 +26,7 @@ const designationOptions: Option[] = [
 
 export default function UserMetaCard() {
   const { user } = useSelector((state: RootState) => state.auth);
- 
+
   const { uploadLoading, uploadError, uploadSuccess } = useSelector(
     (state: RootState) => state.upload
   );
@@ -34,19 +34,23 @@ export default function UserMetaCard() {
   const [fileInputKey, setFileInputKey] = useState(Date.now()); // To reset file input
 
   const getDesignationText = (userType: number | undefined): string => {
-    const designation = designationOptions.find((option) => option.value === userType);
+    const designation = designationOptions.find(
+      (option) => option.value === userType
+    );
     return designation ? designation.text : "Unknown Designation";
   };
 
   const getPlaceholderImage = (): string => {
     const name = user?.name || "User";
-    return `https://placehold.co/100x100?text=${encodeURIComponent(name[0]?.toUpperCase() || "U")}`;
+    return `https://placehold.co/100x100?text=${encodeURIComponent(
+      name[0]?.toUpperCase() || "U"
+    )}`;
   };
 
   const handleImageUpload = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-  
+
     // Basic validation
     const validTypes = ["image/jpeg", "image/jpg", "image/png"];
     if (!validTypes.includes(file.type)) {
@@ -57,19 +61,17 @@ export default function UserMetaCard() {
       toast.error("File size must be less than 10MB.");
       return;
     }
-  
+
     if (!user?.user_id) {
       toast.error("User ID is not available.");
       return;
     }
-  
+
     try {
       const result = await dispatch(
         uploadUserImage({ user_id: user.user_id, image: file })
       ).unwrap();
-  
-      console.log("uploadUserImage result:", result);
-  
+
       if (result.photo) {
         toast.success("Image uploaded successfully!");
         await dispatch(getProfile(user.user_id)); // Dispatch getProfile
@@ -80,11 +82,10 @@ export default function UserMetaCard() {
       console.error("Image upload failed:", error);
       toast.error("Failed to upload image.");
     }
-  
+
     // Reset file input
     setFileInputKey(Date.now());
   };
-
 
   // Helper to determine if photo is valid
   const hasValidPhoto = (): boolean => {
@@ -96,8 +97,12 @@ export default function UserMetaCard() {
       <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
         <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
           <div className="relative w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800 flex items-center justify-center bg-gray-200 dark:bg-gray-700 group">
-          <img
-              src={hasValidPhoto() ? `https://api.meetowner.in/${user?.photo}` : getPlaceholderImage()}
+            <img
+              src={
+                hasValidPhoto()
+                  ? `https://api.meetowner.in/${user?.photo}`
+                  : getPlaceholderImage()
+              }
               alt="User profile"
               className="w-full h-full object-cover"
               crossOrigin="anonymous"
