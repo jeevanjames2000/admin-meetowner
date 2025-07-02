@@ -77,19 +77,18 @@ export const initSocket = (dispatch: Dispatch, isAuthenticated: boolean) => {
     });
   });
   socket.on("connect_error", (error) => {
-    console.error("Socket connection error:", error.message);
-    toast.error("Failed to connect to real-time updates", {
-      position: "top-right",
-      duration: 3000,
-    });
+    // toast.error("Failed to connect to real-time updates", {
+    //   position: "top-right",
+    //   duration: 3000,
+    // });
   });
   socket.on("disconnect", (reason) => {
-    if (reason !== "io client disconnect") {
-      toast.warn("Disconnected from real-time updates", {
-        position: "top-right",
-        duration: 3000,
-      });
-    }
+    // if (reason !== "io client disconnect") {
+    //   toast.warn("Disconnected from real-time updates", {
+    //     position: "top-right",
+    //     duration: 3000,
+    //   });
+    // }
   });
   socket.on("freshSearchedLeads", (data: SearchedLead[]) => {
     if (!Array.isArray(data)) {

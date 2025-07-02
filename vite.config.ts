@@ -1,6 +1,8 @@
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import svgr from "vite-plugin-svgr";
+
+// https://vite.dev/config/
 export default defineConfig({
   plugins: [
     react(),
@@ -11,7 +13,6 @@ export default defineConfig({
         namedExport: "ReactComponent",
       },
     }),
-    
   ],
   server: {
     port: 3002,
@@ -20,12 +21,6 @@ export default defineConfig({
     cors: true,
     hmr: {
       host: 'admin.meetowner.in',
-      port: 3002,
-      protocol: "ws",
-      clientPort: 3002,
     },
-  },
-  define: {
-    "process.env.REACT_APP_API_URL": JSON.stringify("https://api.meetowner.in"),
   },
 });
