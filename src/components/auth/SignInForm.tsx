@@ -13,11 +13,10 @@ import {
 } from "../../store/slices/authSlice";
 import { RootState, AppDispatch } from "../../store/store";
 import { toast } from "react-hot-toast";
-
 export default function SignInForm() {
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const formRef = useRef<HTMLFormElement>(null); // Ref for form
+  const formRef = useRef<HTMLFormElement>(null);
   const [showPassword, setShowPassword] = useState(false);
   const [formData, setFormData] = useState({
     mobile: "",
@@ -33,7 +32,6 @@ export default function SignInForm() {
   const { isAuthenticated, loading, error, otpSent, otpVerified } = useSelector(
     (state: RootState) => state.auth
   );
-
   const handleInputChange = (e: {
     target: { name: string; value: string };
   }) => {
@@ -48,25 +46,20 @@ export default function SignInForm() {
       general: "",
     }));
   };
-
   const handleKeyPress = (e: KeyboardEvent<HTMLInputElement>) => {
     if (e.key === "Enter" && otpSent) {
-      e.preventDefault(); // Prevent default form submission
-      console.log("Enter pressed in OTP field, triggering verify OTP");
+      e.preventDefault();
       if (formRef.current) {
         formRef.current.dispatchEvent(
           new Event("submit", { cancelable: true, bubbles: true })
-        ); // Programmatically submit form
+        );
       }
     }
   };
-
   const handleSubmitLogin = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    console.log("Submitting login form");
     let newErrors = { mobile: "", password: "", otp: "", general: "" };
     let hasError = false;
-
     if (!formData.mobile.trim()) {
       newErrors.mobile = "Mobile number is required";
       hasError = true;
@@ -75,12 +68,10 @@ export default function SignInForm() {
       newErrors.password = "Password is required";
       hasError = true;
     }
-
     if (hasError) {
       setErrors(newErrors);
       return;
     }
-
     try {
       await dispatch(
         loginUser({
@@ -95,23 +86,18 @@ export default function SignInForm() {
       }));
     }
   };
-
   const handleSubmitOtp = async (e: { preventDefault: () => void }) => {
     e.preventDefault();
-    console.log("Submitting OTP verification");
     let newErrors = { mobile: "", password: "", otp: "", general: "" };
     let hasError = false;
-
     if (!formData.otp.trim()) {
       newErrors.otp = "OTP is required";
       hasError = true;
     }
-
     if (hasError) {
       setErrors(newErrors);
       return;
     }
-
     try {
       await dispatch(
         verifyOtpAdmin({
@@ -127,9 +113,7 @@ export default function SignInForm() {
       }));
     }
   };
-
   const handleResendOtp = async () => {
-    console.log("Resending OTP");
     try {
       await dispatch(sendOtpAdmin({ mobile: formData.mobile })).unwrap();
       toast.success("OTP resent successfully", {
@@ -143,14 +127,11 @@ export default function SignInForm() {
       }));
     }
   };
-
   const handleBackToLogin = () => {
-    console.log("Going back to login");
     dispatch(resetOtpState());
     setFormData((prev) => ({ ...prev, otp: "" }));
     setErrors({ mobile: "", password: "", otp: "", general: "" });
   };
-
   useEffect(() => {
     if (error) {
       setErrors((prevErrors) => ({
@@ -159,11 +140,9 @@ export default function SignInForm() {
       }));
     }
   }, [error]);
-
   if (isAuthenticated && otpVerified) {
     return <Navigate to="/" />;
   }
-
   return (
     <div className="flex flex-col flex-1">
       <div className="flex flex-col justify-center flex-1 w-full max-w-md mx-auto">

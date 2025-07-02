@@ -137,6 +137,8 @@ interface ListingFilters {
   property_in: string;
   page:number;
   search:string;
+  from_date:string;
+  to_date:string;
 }
 interface UpdateStatusPayload {
   property_status: number;
@@ -149,7 +151,7 @@ export const fetchListings = createAsyncThunk(
   "listings/fetchListings",
   async (filters: ListingFilters, { rejectWithValue }) => {
     try {
-      const { property_status,property_for, property_in, page,search } = filters;
+      const { property_status,property_for, property_in, page,search,from_date,to_date } = filters;
       const promise = axiosInstance.get<ListingsResponse>(
         "/listings/v1/getAllPropertiesByType",
         {
@@ -158,7 +160,9 @@ export const fetchListings = createAsyncThunk(
             property_for,
             property_in,
             page,
-            search
+            search,
+            from_date,
+            to_date
           },
         }
       );

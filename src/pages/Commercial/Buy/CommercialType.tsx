@@ -22,6 +22,7 @@ import { TableLoader } from "../../../components/Loaders/LoadingLisings";
 import LeadPullModal from "../../../components/common/LeadPullModal";
 import ConfirmDeleteModal from "../../../components/common/ConfirmDeleteModal";
 import ConfirmStatusModal from "../../../components/common/ConfirmStatusModal";
+import DateFilter from "../../../components/common/DateFilter";
 const statusMap: { [key: number]: string } = {
   0: "Review",
   1: "Approved",
@@ -63,6 +64,8 @@ const CommercialTypes: React.FC = () => {
   const [isLeadModalOpen, setIsLeadModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
+  const [fromDate, setFromDate] = useState<string | null>(null);
+  const [toDate, setToDate] = useState<string | null>(null);
   const [statusAction, setStatusAction] = useState<"approve" | "reject" | null>(
     null
   );
@@ -122,15 +125,26 @@ const CommercialTypes: React.FC = () => {
     }`;
   };
   useEffect(() => {
-    const filters = {
+    const filters: any = {
       property_status: parseInt(status || "0", 10),
       property_for: property_for === "buy" ? "Sell" : "Rent",
       property_in: "Commercial",
       page: localPage,
       search: searchQuery,
     };
+    if (fromDate) filters.from_date = fromDate;
+    if (toDate) filters.to_date = toDate;
     dispatch(fetchListings(filters));
-  }, [dispatch, property_for, status, searchQuery, refreshTrigger, localPage]);
+  }, [
+    dispatch,
+    property_for,
+    status,
+    searchQuery,
+    refreshTrigger,
+    localPage,
+    fromDate,
+    toDate,
+  ]);
   useEffect(() => {
     setLocalPage(1);
   }, [searchQuery]);
@@ -328,6 +342,17 @@ const CommercialTypes: React.FC = () => {
         pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
         onFilter={handleSearch}
         inputRef={searchInputRef}
+      />
+      <DateFilter
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={setFromDate}
+        onToDateChange={setToDate}
+        onClear={() => {
+          setFromDate(null);
+          setToDate(null);
+        }}
+        className="mb-4"
       />
       {loading ? (
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">

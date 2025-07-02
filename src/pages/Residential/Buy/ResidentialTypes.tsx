@@ -1,11 +1,4 @@
-import {
-  useState,
-  useRef,
-  useEffect,
-  ChangeEvent,
-  FormEvent,
-  useCallback,
-} from "react";
+import { useState, useRef, useEffect, ChangeEvent, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams, useLocation } from "react-router";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
@@ -29,6 +22,7 @@ import { TableLoader } from "../../../components/Loaders/LoadingLisings";
 import LeadPullModal from "../../../components/common/LeadPullModal";
 import ConfirmDeleteModal from "../../../components/common/ConfirmDeleteModal";
 import ConfirmStatusModal from "../../../components/common/ConfirmStatusModal";
+import DateFilter from "../../../components/common/DateFilter";
 interface LeadPullFormData {
   mobile: string;
   email: string;
@@ -67,6 +61,8 @@ const ResidentialTypes: React.FC = () => {
   const [localPage, setLocalPage] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
   const [initialSearch, setInitialSearch] = useState<string>("");
+  const [fromDate, setFromDate] = useState<string | null>(null);
+  const [toDate, setToDate] = useState<string | null>(null);
   const [isLeadModalOpen, setIsLeadModalOpen] = useState<boolean>(false);
   const [isDeleteModalOpen, setIsDeleteModalOpen] = useState<boolean>(false);
   const [isStatusModalOpen, setIsStatusModalOpen] = useState<boolean>(false);
@@ -127,20 +123,33 @@ const ResidentialTypes: React.FC = () => {
     setSearchQuery("");
     setInitialSearch("");
     setLocalPage(1);
+    setFromDate(null);
+    setToDate(null);
   }, [location.pathname]);
   useEffect(() => {
-    const filters = {
+    const filters: any = {
       property_status: parseInt(status || "0", 10),
       property_for: property_for === "buy" ? "Sell" : "Rent",
       property_in: "Residential",
       page: localPage,
       search: searchQuery,
     };
+    if (fromDate) filters.from_date = fromDate;
+    if (toDate) filters.to_date = toDate;
     dispatch(fetchListings(filters));
-  }, [dispatch, property_for, status, searchQuery, refreshTrigger, localPage]);
+  }, [
+    dispatch,
+    property_for,
+    status,
+    searchQuery,
+    refreshTrigger,
+    localPage,
+    fromDate,
+    toDate,
+  ]);
   useEffect(() => {
     setLocalPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, fromDate, toDate]);
   useEffect(() => {
     const handleStorageChange = () => {
       const currentSearch = localStorage.getItem("searchQuery") || "";
@@ -183,11 +192,10 @@ const ResidentialTypes: React.FC = () => {
   );
   const confirmDelete = useCallback(() => {
     if (selectedProperty) {
-      const property_status = 3;
       setIsDeleteModalOpen(false);
       setSelectedProperty(null);
     }
-  }, [dispatch, selectedProperty]);
+  }, [selectedProperty]);
   const handleApprove = useCallback(
     (
       unique_property_id: string,
@@ -202,9 +210,7 @@ const ResidentialTypes: React.FC = () => {
     []
   );
   const handleView = useCallback((unique_property_id: string) => {
-    if (!unique_property_id) {
-      return;
-    }
+    if (!unique_property_id) return;
     try {
       const url = `https://meetowner.in/property?Id_${encodeURIComponent(
         unique_property_id
@@ -235,7 +241,7 @@ const ResidentialTypes: React.FC = () => {
     setIsLeadModalOpen(true);
     setDropdownOpen(null);
   }, []);
-  const handlepropertyClick = (propertyId: string) => {
+  const handlePropertyClick = (propertyId: string) => {
     if (propertyId) {
       navigate(`/user-activities?property_id=${propertyId}`);
     }
@@ -333,6 +339,17 @@ const ResidentialTypes: React.FC = () => {
         pagePlacHolder="Search by ID, Project Name, User Type, Name, Mobile, or Email"
         onFilter={handleSearch}
         inputRef={searchInputRef}
+      />
+      <DateFilter
+        fromDate={fromDate}
+        toDate={toDate}
+        onFromDateChange={setFromDate}
+        onToDateChange={setToDate}
+        onClear={() => {
+          setFromDate(null);
+          setToDate(null);
+        }}
+        className="mb-4"
       />
       {loading ? (
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -436,7 +453,7 @@ const ResidentialTypes: React.FC = () => {
                               <span
                                 className="block font-medium text-gray-800 text-theme-sm dark:text-white/90 cursor-pointer hover:underline"
                                 onClick={() =>
-                                  handlepropertyClick(item.unique_property_id)
+                                  handlePropertyClick(item.unique_property_id)
                                 }
                               >
                                 {item.property_name}
@@ -461,19 +478,7 @@ const ResidentialTypes: React.FC = () => {
                               <span
                                 style={{ color: "#1D3A76", fontWeight: "bold" }}
                               >
-                                {item.user.user_type === 1
-                                  ? "Admin"
-                                  : item.user.user_type === 2
-                                  ? "User"
-                                  : item.user.user_type === 3
-                                  ? "Builder"
-                                  : item.user.user_type === 4
-                                  ? "Agent"
-                                  : item.user.user_type === 5
-                                  ? "Owner"
-                                  : item.user.user_type === 6
-                                  ? "Channel Partner"
-                                  : "Unknown"}
+                                {userTypeMap[item.user.user_type] || "Unknown"}
                               </span>
                               {hoveredUserId === item.id.toString() &&
                                 item.user && (
@@ -493,10 +498,8 @@ const ResidentialTypes: React.FC = () => {
                             </div>
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {`${
-                              item.updated_date! ? item.updated_date! : "N/A"
-                            } - ${
-                              item.updated_time! ? item.updated_time! : "N/A"
+                            {`${item.updated_date || "N/A"} - ${
+                              item.updated_time || "N/A"
                             }`}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
@@ -514,6 +517,7 @@ const ResidentialTypes: React.FC = () => {
                                       : item.id.toString()
                                   )
                                 }
+                                ref={dropdownButtonRef}
                               >
                                 <svg
                                   className="w-5 h-5 text-gray-500 dark:text-gray-400"
@@ -527,16 +531,20 @@ const ResidentialTypes: React.FC = () => {
                               {dropdownOpen === item.id.toString() && (
                                 <div
                                   ref={dropdownRef}
-                                  className=" relative z-9999 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-xl"
+                                  className="absolute z-50 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-xl"
                                   style={{
-                                    top: `${
-                                      dropdownButtonRef?.current?.getBoundingClientRect()
-                                        .bottom + window.scrollY
-                                    }px`,
-                                    left: `${
-                                      dropdownButtonRef?.current?.getBoundingClientRect()
-                                        .left
-                                    }px`,
+                                    top: dropdownButtonRef.current
+                                      ? `${
+                                          dropdownButtonRef.current.getBoundingClientRect()
+                                            .bottom + window.scrollY
+                                        }px`
+                                      : "auto",
+                                    left: dropdownButtonRef.current
+                                      ? `${
+                                          dropdownButtonRef.current.getBoundingClientRect()
+                                            .left
+                                        }px`
+                                      : "auto",
                                   }}
                                 >
                                   <button
@@ -555,7 +563,6 @@ const ResidentialTypes: React.FC = () => {
                                       Edit
                                     </button>
                                   )}
-                                  {}
                                   {parseInt(status || "0", 10) === 0 && (
                                     <button
                                       onClick={() =>

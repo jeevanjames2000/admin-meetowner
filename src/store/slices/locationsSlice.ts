@@ -97,7 +97,7 @@ const locationSlice = createSlice({
         state.citiesError =
           (action.payload as ErrorResponse)?.message ||
           "Failed to fetch all cities";
-        console.log("All cities fetch failed:", action.payload);
+        console.log("All cities fetch failed:");
       })
       // New getAllStates
       .addCase(getAllStates.pending, (state) => {
@@ -113,7 +113,7 @@ const locationSlice = createSlice({
         state.statesError =
           (action.payload as ErrorResponse)?.message ||
           "Failed to fetch all states";
-        console.log("All states fetch failed:", action.payload);
+        console.log("All states fetch failed:");
       });
   },
 });

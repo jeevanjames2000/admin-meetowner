@@ -99,10 +99,10 @@ const propertySlice = createSlice({
         state.states = action.payload;
       })
       .addCase(getCities.rejected, (state, action) => {
-        console.log("Cities fetch failed:", action.payload);
+        console.log("Cities fetch failed:");
       })
       .addCase(getStates.rejected, (state, action) => {
-        console.log("States fetch failed:", action.payload);
+        console.log("States fetch failed:");
       });
   },
 });
