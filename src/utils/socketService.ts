@@ -77,10 +77,7 @@ export const initSocket = (dispatch: Dispatch, isAuthenticated: boolean) => {
     });
   });
   socket.on("connect_error", (error) => {
-    toast.error("Failed to connect to real-time updates", {
-      position: "top-right",
-      duration: 3000,
-    });
+    console.log("error: ", error);
   });
   socket.on("disconnect", (reason) => {
     if (reason !== "io client disconnect") {
