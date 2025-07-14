@@ -69,7 +69,7 @@ import MostSearchedDetail from "./pages/LeadManagement/MostSearchedDetails";
 import ActiveUsersTable from "./components/ecommerce/ActiveUsersTable";
 import { Toaster } from "react-hot-toast";
 import UserHistory from "./components/tables/userHistory";
-import { io } from "socket.io-client";
+
 import { disconnectSocket, initSocket } from "./utils/socketService";
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
