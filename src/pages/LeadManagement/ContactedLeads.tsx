@@ -342,143 +342,178 @@ const ContactedLeads: React.FC = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                  {paginatedLeads.map((lead, index) => (
-                    <TableRow key={lead.id}>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {startIndex + index + 1}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.user_id || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.fullname || "N/A"}
-                      </TableCell>
-                      {userType === 1 && (
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {lead.mobile || "N/A"}
-                        </TableCell>
-                      )}
-                      {userType === 1 && (
-                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                          {lead.email || "N/A"}
-                        </TableCell>
-                      )}
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.property_for || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {lead.unique_property_id || "N/A"}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
-                        <span className="text-black dark:text-gray-400 cursor-default">
-                          {lead.property_name || "N/A"}
-                        </span>
-                        <div className="absolute z-10 w-64 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 left-0 top-full mt-1 hidden group-hover:block">
-                          <div className="text-sm text-gray-800 dark:text-gray-200">
-                            <p className="font-semibold">
-                              Owner Name:{" "}
-                              <span className="font-normal">
-                                {lead.owner_name || "N/A"}
+                  {paginatedLeads.map((lead, index) => {
+                    const isHotLead = (() => {
+                      if (!lead.created_date) return false;
+                      const today = new Date();
+                      const leadDate = new Date(lead.created_date);
+                      return (
+                        today.getFullYear() === leadDate.getFullYear() &&
+                        today.getMonth() === leadDate.getMonth() &&
+                        today.getDate() === leadDate.getDate()
+                      );
+                    })();
+                    return (
+                      <TableRow
+                        key={lead.id}
+                        className={
+                          isHotLead
+                            ? "bg-red-50 dark:bg-red-900/20 hover:bg-red-100 dark:hover:bg-red-900/30 transition-colors"
+                            : "hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+                        }
+                      >
+                        <TableCell className="flex gap-2 px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {startIndex + index + 1}
+                          {isHotLead && (
+                            <div className="relative inline-block group">
+                              <img
+                                src={
+                                  "../../../public/images/transparent_fire.gif"
+                                }
+                                alt="Hot Lead"
+                                className="inline-block w-6 h-6 mr-2 object-contain animate-fire"
+                              />
+                              <span className="absolute z-10 hidden group-hover:block bg-gray-800 text-white text-xs rounded py-1 px-2 -top-8 left-0">
+                                Hot Lead
                               </span>
-                            </p>
-                            <p className="font-semibold">
-                              Phone Number:{" "}
-                              <span className="font-normal">
-                                {lead.owner_mobile || "N/A"}
-                              </span>
-                            </p>
-                            <p className="font-semibold">
-                              Email:{" "}
-                              <span className="font-normal">
-                                {lead.owner_email || "N/A"}
-                              </span>
-                            </p>
-                            <p className="font-semibold">
-                              Owner Type:{" "}
-                              <span className="font-normal">
-                                {lead.owner_type !== null
-                                  ? userTypeMap[lead.owner_type.toString()] ||
-                                    "Unknown"
-                                  : "N/A"}
-                              </span>
-                            </p>
-                          </div>
-                          <div className="absolute top-[-6px] left-10 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white dark:border-b-gray-800" />
-                        </div>
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {formatDate(lead.created_date)}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {formatTime(lead.created_time)}
-                      </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={(e) => {
-                            if (dropdownOpen === lead.id) {
-                              setDropdownOpen(null);
-                              setDropdownPosition(null);
-                            } else {
-                              const rect = (e.target as HTMLElement)
-                                .closest("td")
-                                ?.getBoundingClientRect();
-                              if (rect) {
-                                setDropdownPosition({
-                                  top: rect.top + rect.height + window.scrollY,
-                                  left:
-                                    rect.left +
-                                    rect.width -
-                                    160 +
-                                    window.scrollX,
-                                });
-                              } else {
-                                setDropdownPosition(null);
-                              }
-                              setDropdownOpen(lead.id);
-                            }
-                          }}
-                        >
-                          <svg
-                            className="w-5 h-5 text-gray-500 dark:text-gray-400"
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                            xmlns="http://www.w3.org/2000/svg"
-                          >
-                            <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
-                          </svg>
-                        </Button>
-                        {dropdownOpen === lead.id &&
-                          dropdownPosition &&
-                          createPortal(
-                            <div
-                              ref={dropdownRef}
-                              style={{
-                                position: "absolute",
-                                top: dropdownPosition.top,
-                                left: dropdownPosition.left,
-                                zIndex: 9999,
-                                width: "160px",
-                              }}
-                              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg"
-                            >
-                              <button
-                                onClick={() => {
-                                  handleView(lead.unique_property_id);
-                                  setDropdownOpen(null);
-                                  setDropdownPosition(null);
-                                }}
-                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                              >
-                                View
-                              </button>
-                            </div>,
-                            document.body
+                              <span className="sr-only">Hot Lead</span>
+                            </div>
                           )}
-                      </TableCell>
-                    </TableRow>
-                  ))}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {lead.user_id || "N/A"}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {lead.fullname || "N/A"}
+                        </TableCell>
+                        {userType === 1 && (
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {lead.mobile || "N/A"}
+                          </TableCell>
+                        )}
+                        {userType === 1 && (
+                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                            {lead.email || "N/A"}
+                          </TableCell>
+                        )}
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {lead.property_for || "N/A"}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {lead.unique_property_id || "N/A"}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative group">
+                          <span className="text-black dark:text-gray-400 cursor-default flex items-center gap-2">
+                            {lead.property_name || "N/A"}
+                          </span>
+                          <div className="absolute z-10 w-64 p-4 bg-white dark:bg-gray-800 rounded-lg shadow-lg border border-gray-200 dark:border-gray-700 left-0 top-full mt-1 hidden group-hover:block">
+                            <div className="text-sm text-gray-800 dark:text-gray-200">
+                              <p className="font-semibold">
+                                Owner Name:{" "}
+                                <span className="font-normal">
+                                  {lead.owner_name || "N/A"}
+                                </span>
+                              </p>
+                              <p className="font-semibold">
+                                Phone Number:{" "}
+                                <span className="font-normal">
+                                  {lead.owner_mobile || "N/A"}
+                                </span>
+                              </p>
+                              <p className="font-semibold">
+                                Email:{" "}
+                                <span className="font-normal">
+                                  {lead.owner_email || "N/A"}
+                                </span>
+                              </p>
+                              <p className="font-semibold">
+                                Owner Type:{" "}
+                                <span className="font-normal">
+                                  {lead.owner_type !== null
+                                    ? userTypeMap[lead.owner_type.toString()] ||
+                                      "Unknown"
+                                    : "N/A"}
+                                </span>
+                              </p>
+                            </div>
+                            <div className="absolute top-[-6px] left-10 w-0 h-0 border-l-8 border-r-8 border-b-8 border-l-transparent border-r-transparent border-b-white dark:border-b-gray-800" />
+                          </div>
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {formatDate(lead.created_date)}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          {formatTime(lead.created_time)}
+                        </TableCell>
+                        <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            onClick={(e) => {
+                              if (dropdownOpen === lead.id) {
+                                setDropdownOpen(null);
+                                setDropdownPosition(null);
+                              } else {
+                                const rect = (e.target as HTMLElement)
+                                  .closest("td")
+                                  ?.getBoundingClientRect();
+                                if (rect) {
+                                  setDropdownPosition({
+                                    top:
+                                      rect.top + rect.height + window.scrollY,
+                                    left:
+                                      rect.left +
+                                      rect.width -
+                                      160 +
+                                      window.scrollX,
+                                  });
+                                } else {
+                                  setDropdownPosition(null);
+                                }
+                                setDropdownOpen(lead.id);
+                              }
+                            }}
+                          >
+                            <svg
+                              className="w-5 h-5 text-gray-500 dark:text-gray-400"
+                              fill="currentColor"
+                              viewBox="0 0 20 20"
+                              xmlns="http://www.w3.org/2000/svg"
+                            >
+                              <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
+                            </svg>
+                          </Button>
+                          {dropdownOpen === lead.id &&
+                            dropdownPosition &&
+                            createPortal(
+                              <div
+                                ref={dropdownRef}
+                                style={{
+                                  position: "absolute",
+                                  top: dropdownPosition.top,
+                                  left: dropdownPosition.left,
+                                  zIndex: 9999,
+                                  width: "160px",
+                                }}
+                                className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg"
+                              >
+                                <button
+                                  onClick={() => {
+                                    handleView(lead.unique_property_id);
+                                    setDropdownOpen(null);
+                                    setDropdownPosition(null);
+                                  }}
+                                  className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                >
+                                  View
+                                </button>
+                              </div>,
+                              document.body
+                            )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
                 </TableBody>
               </Table>
             </div>
