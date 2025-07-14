@@ -367,9 +367,7 @@ const ContactedLeads: React.FC = () => {
                           {isHotLead && (
                             <div className="relative inline-block group">
                               <img
-                                src={
-                                  "../../../public/images/transparent_fire.gif"
-                                }
+                                src={"/images/transparent_fire.gif"}
                                 alt="Hot Lead"
                                 className="inline-block w-6 h-6 mr-2 object-contain animate-fire"
                               />
