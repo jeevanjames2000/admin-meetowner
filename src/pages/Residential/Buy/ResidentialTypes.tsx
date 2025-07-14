@@ -1,6 +1,14 @@
-import { useState, useRef, useEffect, ChangeEvent, useCallback } from "react";
+import {
+  useState,
+  useRef,
+  useEffect,
+  ChangeEvent,
+  useCallback,
+  MutableRefObject,
+} from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams, useLocation } from "react-router";
+import { createPortal } from "react-dom";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageMeta from "../../../components/common/PageMeta";
@@ -57,6 +65,10 @@ const userTypeReverseMap: { [key: string]: string } = Object.keys(
 const ResidentialTypes: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const [hoveredUserId, setHoveredUserId] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [localPage, setLocalPage] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -81,7 +93,9 @@ const ResidentialTypes: React.FC = () => {
   });
   const [formErrors, setFormErrors] = useState<Partial<LeadPullFormData>>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownButtonRefs = useRef<{
+    [key: string]: HTMLButtonElement | null;
+  }>({});
   const navigate = useNavigate();
   const location = useLocation();
   const { property_for, status } = useParams<{
@@ -165,15 +179,19 @@ const ResidentialTypes: React.FC = () => {
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        dropdownOpen &&
+        dropdownPosition &&
+        !document
+          .getElementById(`dropdown-portal-${dropdownOpen}`)
+          ?.contains(event.target as Node)
       ) {
         setDropdownOpen(null);
+        setDropdownPosition(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [dropdownOpen, dropdownPosition]);
   const handleEdit = (item: any) => {
     const editPath =
       property_for === "buy"
@@ -510,14 +528,29 @@ const ResidentialTypes: React.FC = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() =>
+                                onClick={(
+                                  e: React.MouseEvent<HTMLButtonElement>
+                                ) => {
+                                  const btn = e.currentTarget;
+                                  const rect = btn.getBoundingClientRect();
                                   setDropdownOpen(
                                     dropdownOpen === item.id.toString()
                                       ? null
                                       : item.id.toString()
-                                  )
-                                }
-                                ref={dropdownButtonRef}
+                                  );
+                                  setDropdownPosition(
+                                    dropdownOpen === item.id.toString()
+                                      ? null
+                                      : {
+                                          top: rect.bottom + window.scrollY,
+                                          left: rect.left + window.scrollX,
+                                        }
+                                  );
+                                  dropdownButtonRefs.current[item.id] = btn;
+                                }}
+                                ref={(el: HTMLButtonElement | null) => {
+                                  dropdownButtonRefs.current[item.id] = el;
+                                }}
                               >
                                 <svg
                                   className="w-5 h-5 text-gray-500 dark:text-gray-400"
@@ -528,79 +561,91 @@ const ResidentialTypes: React.FC = () => {
                                   <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
                               </Button>
-                              {dropdownOpen === item.id.toString() && (
-                                <div
-                                  ref={dropdownRef}
-                                  className="absolute z-50 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-xl"
-                                  style={{
-                                    top: dropdownButtonRef.current
-                                      ? `${
-                                          dropdownButtonRef.current.getBoundingClientRect()
-                                            .bottom + window.scrollY
-                                        }px`
-                                      : "auto",
-                                    left: dropdownButtonRef.current
-                                      ? `${
-                                          dropdownButtonRef.current.getBoundingClientRect()
-                                            .left
-                                        }px`
-                                      : "auto",
-                                  }}
-                                >
-                                  <button
-                                    onClick={() =>
-                                      handleView(item.unique_property_id)
-                                    }
-                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              {dropdownOpen === item.id.toString() &&
+                                dropdownPosition &&
+                                createPortal(
+                                  <div
+                                    id={`dropdown-portal-${item.id}`}
+                                    style={{
+                                      position: "absolute",
+                                      top: dropdownPosition.top,
+                                      left: dropdownPosition.left,
+                                      zIndex: 9999,
+                                      width: "160px",
+                                    }}
+                                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg"
                                   >
-                                    View
-                                  </button>
-                                  {parseInt(status || "0", 10) !== 2 && (
                                     <button
-                                      onClick={() => handleEdit(item)}
+                                      onClick={() => {
+                                        handleView(item.unique_property_id);
+                                        setDropdownOpen(null);
+                                        setDropdownPosition(null);
+                                      }}
                                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                     >
-                                      Edit
+                                      View
                                     </button>
-                                  )}
-                                  {parseInt(status || "0", 10) === 0 && (
-                                    <button
-                                      onClick={() =>
-                                        handleApprove(
-                                          item.unique_property_id,
-                                          item.property_name || "this property",
-                                          "approve"
-                                        )
-                                      }
-                                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    >
-                                      Approve
-                                    </button>
-                                  )}
-                                  {parseInt(status || "0", 10) !== 2 && (
-                                    <button
-                                      onClick={() =>
-                                        handleApprove(
-                                          item.unique_property_id,
-                                          item.property_name || "this property",
-                                          "reject"
-                                        )
-                                      }
-                                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    >
-                                      Reject
-                                    </button>
-                                  )}
-                                  {parseInt(status || "0", 10) === 1 && (
-                                    <button
-                                      onClick={() => handleLead()}
-                                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    >
-                                      Lead Pull
-                                    </button>
-                                  )}
-                                </div>
-                              )}
+                                    {parseInt(status || "0", 10) !== 2 && (
+                                      <button
+                                        onClick={() => {
+                                          handleEdit(item);
+                                          setDropdownOpen(null);
+                                          setDropdownPosition(null);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        Edit
+                                      </button>
+                                    )}
+                                    {parseInt(status || "0", 10) === 0 && (
+                                      <button
+                                        onClick={() => {
+                                          handleApprove(
+                                            item.unique_property_id,
+                                            item.property_name ||
+                                              "this property",
+                                            "approve"
+                                          );
+                                          setDropdownOpen(null);
+                                          setDropdownPosition(null);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        Approve
+                                      </button>
+                                    )}
+                                    {parseInt(status || "0", 10) !== 2 && (
+                                      <button
+                                        onClick={() => {
+                                          handleApprove(
+                                            item.unique_property_id,
+                                            item.property_name ||
+                                              "this property",
+                                            "reject"
+                                          );
+                                          setDropdownOpen(null);
+                                          setDropdownPosition(null);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        Reject
+                                      </button>
+                                    )}
+                                    {parseInt(status || "0", 10) === 1 && (
+                                      <button
+                                        onClick={() => {
+                                          handleLead();
+                                          setDropdownOpen(null);
+                                          setDropdownPosition(null);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        Lead Pull
+                                      </button>
+                                    )}
+                                  </div>,
+                                  document.body
+                                )}
                             </TableCell>
                           )}
                         </TableRow>

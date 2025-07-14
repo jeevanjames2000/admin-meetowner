@@ -1,6 +1,7 @@
 import { useState, useRef, useEffect, ChangeEvent, useCallback } from "react";
 import { useDispatch, useSelector } from "react-redux";
 import { useNavigate, useParams, useLocation } from "react-router";
+import { createPortal } from "react-dom"; // Added for portal rendering
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageMeta from "../../../components/common/PageMeta";
@@ -23,12 +24,14 @@ import LeadPullModal from "../../../components/common/LeadPullModal";
 import ConfirmDeleteModal from "../../../components/common/ConfirmDeleteModal";
 import ConfirmStatusModal from "../../../components/common/ConfirmStatusModal";
 import DateFilter from "../../../components/common/DateFilter";
+
 const statusMap: { [key: number]: string } = {
   0: "Review",
   1: "Approved",
   2: "Rejected",
   3: "Deleted",
 };
+
 const userTypeMap: { [key: string]: string } = {
   "1": "Admin",
   "2": "User",
@@ -42,21 +45,28 @@ const userTypeMap: { [key: string]: string } = {
   "10": "Customer Support",
   "11": "Customer Service",
 };
+
 const userTypeReverseMap: { [key: string]: string } = Object.keys(
   userTypeMap
 ).reduce((acc, key) => {
   acc[userTypeMap[key].toLowerCase()] = key;
   return acc;
 }, {} as { [key: string]: string });
+
 interface LeadPullFormData {
   mobile: string;
   email: string;
   name: string;
   sourceType: string;
 }
+
 const CommercialTypes: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const [hoveredUserId, setHoveredUserId] = useState<string | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const [refreshTrigger, setRefreshTrigger] = useState<number>(0);
   const [localPage, setLocalPage] = useState<number>(1);
   const [searchQuery, setSearchQuery] = useState<string>("");
@@ -81,7 +91,10 @@ const CommercialTypes: React.FC = () => {
   });
   const [formErrors, setFormErrors] = useState<Partial<LeadPullFormData>>({});
   const searchInputRef = useRef<HTMLInputElement>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const dropdownButtonRefs = useRef<{
+    [key: string]: HTMLButtonElement | null;
+  }>({}); // Changed to handle multiple buttons
+
   const navigate = useNavigate();
   const location = useLocation();
   const { property_for, status } = useParams<{
@@ -101,29 +114,37 @@ const CommercialTypes: React.FC = () => {
     currentCount,
     totalPages,
   } = useSelector((state: RootState) => state.listings as ListingState);
+
   const excludedUserTypes = [9, 10, 11];
+
   useEffect(() => {
     const savedSearch = localStorage.getItem("searchQuery") || "";
     setInitialSearch(savedSearch);
     handleSearch(savedSearch);
   }, []);
+
   useEffect(() => {
     localStorage.removeItem("searchQuery");
     setSearchQuery("");
     setInitialSearch("");
     setLocalPage(1);
+    setFromDate(null);
+    setToDate(null);
   }, [location.pathname]);
+
   useEffect(() => {
     if (!loading && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [loading]);
+
   const getPageTitle = () => {
     const baseTitle = `Commercial ${property_for === "buy" ? "Sell" : "Rent"}`;
     return `${baseTitle} ${
       statusMap[parseInt(status || "0", 10)] || "Unknown"
     }`;
   };
+
   useEffect(() => {
     const filters: any = {
       property_status: parseInt(status || "0", 10),
@@ -145,9 +166,11 @@ const CommercialTypes: React.FC = () => {
     fromDate,
     toDate,
   ]);
+
   useEffect(() => {
     setLocalPage(1);
-  }, [searchQuery]);
+  }, [searchQuery, fromDate, toDate]);
+
   useEffect(() => {
     const handleStorageChange = () => {
       const currentSearch = localStorage.getItem("searchQuery") || "";
@@ -160,22 +183,26 @@ const CommercialTypes: React.FC = () => {
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [initialSearch]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        dropdownOpen &&
+        dropdownPosition &&
+        !document
+          .getElementById(`dropdown-portal-${dropdownOpen}`)
+          ?.contains(event.target as Node)
       ) {
         setDropdownOpen(null);
+        setDropdownPosition(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [dropdownOpen, dropdownPosition]);
+
   const handleView = useCallback((unique_property_id: string) => {
-    if (!unique_property_id) {
-      return;
-    }
+    if (!unique_property_id) return;
     try {
       const url = `https://meetowner.in/property?Id_${encodeURIComponent(
         unique_property_id
@@ -185,27 +212,32 @@ const CommercialTypes: React.FC = () => {
       console.error("Error navigating to property:", error);
     }
   }, []);
+
   const handleEdit = (item: any) => {
     const editPath =
       property_for === "buy" ? "/commercial-buy-edit" : "/commercial-rent-edit";
     navigate(editPath, { state: { property: item } });
     setDropdownOpen(null);
+    setDropdownPosition(null);
   };
+
   const handleDelete = useCallback(
     (unique_property_id: string, property_name: string) => {
       setSelectedProperty({ id: unique_property_id, name: property_name });
       setIsDeleteModalOpen(true);
       setDropdownOpen(null);
+      setDropdownPosition(null);
     },
     []
   );
+
   const confirmDelete = useCallback(() => {
     if (selectedProperty) {
-      const property_status = 3;
       setIsDeleteModalOpen(false);
       setSelectedProperty(null);
     }
-  }, [dispatch, selectedProperty]);
+  }, [selectedProperty]);
+
   const handleApprove = useCallback(
     (
       unique_property_id: string,
@@ -216,9 +248,11 @@ const CommercialTypes: React.FC = () => {
       setStatusAction(action);
       setIsStatusModalOpen(true);
       setDropdownOpen(null);
+      setDropdownPosition(null);
     },
     []
   );
+
   const confirmStatusChange = useCallback(() => {
     if (selectedProperty && statusAction) {
       const property_status = statusAction === "approve" ? 1 : 2;
@@ -236,10 +270,13 @@ const CommercialTypes: React.FC = () => {
       setStatusAction(null);
     }
   }, [dispatch, selectedProperty, statusAction]);
+
   const handleLead = useCallback(() => {
     setIsLeadModalOpen(true);
     setDropdownOpen(null);
+    setDropdownPosition(null);
   }, []);
+
   const validateLeadPullForm = useCallback((): boolean => {
     const newErrors: Partial<LeadPullFormData> = {};
     if (!leadPullFormData.mobile) {
@@ -258,6 +295,7 @@ const CommercialTypes: React.FC = () => {
     setFormErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   }, [leadPullFormData]);
+
   const handleLeadPullSubmit = useCallback(
     (data: LeadPullFormData) => {
       if (validateLeadPullForm()) {
@@ -274,11 +312,13 @@ const CommercialTypes: React.FC = () => {
     },
     [validateLeadPullForm]
   );
+
   const handlepropertyClick = (propertyId: string) => {
     if (propertyId) {
       navigate(`/user-activities?property_id=${propertyId}`);
     }
   };
+
   const handleSearch = (value: string) => {
     let searchValue = value.trim();
     const userTypeKey = userTypeReverseMap[searchValue.toLowerCase()];
@@ -287,12 +327,15 @@ const CommercialTypes: React.FC = () => {
     }
     setSearchQuery(searchValue);
   };
+
   const goToPage = (page: number) => {
     setLocalPage(page);
   };
+
   const goToPreviousPage = () => currentPage > 1 && goToPage(currentPage - 1);
   const goToNextPage = () =>
     currentPage < totalPages && goToPage(currentPage + 1);
+
   const getPaginationItems = () => {
     const pages = [];
     const totalVisiblePages = 7;
@@ -311,6 +354,7 @@ const CommercialTypes: React.FC = () => {
     if (endPage < totalPages) pages.push(totalPages);
     return pages;
   };
+
   const shouldShowActions = (userType: number | undefined) => {
     if (userType === undefined) return false;
     return (
@@ -320,12 +364,12 @@ const CommercialTypes: React.FC = () => {
         parseInt(status || "0", 10) === 2)
     );
   };
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setLeadPullFormData((prev) => ({ ...prev, [name]: value }));
     setFormErrors((prev) => ({ ...prev, [name]: "" }));
   };
-  const dropdownButtonRef = useRef<HTMLButtonElement | null>(null);
 
   return (
     <div className="relative min-h-screen">
@@ -479,19 +523,7 @@ const CommercialTypes: React.FC = () => {
                               <span
                                 style={{ color: "#1D3A76", fontWeight: "bold" }}
                               >
-                                {item.user?.user_type === 1
-                                  ? "Admin"
-                                  : item.user?.user_type === 2
-                                  ? "User"
-                                  : item.user?.user_type === 3
-                                  ? "Builder"
-                                  : item.user?.user_type === 4
-                                  ? "Agent"
-                                  : item.user?.user_type === 5
-                                  ? "Owner"
-                                  : item.user?.user_type === 6
-                                  ? "Channel Partner"
-                                  : "Unknown"}
+                                {userTypeMap[item.user.user_type] || "Unknown"}
                               </span>
                               {hoveredUserId === item.id.toString() &&
                                 item.user && (
@@ -510,7 +542,7 @@ const CommercialTypes: React.FC = () => {
                                 )}
                             </div>
                           </TableCell>
-                          <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                          <TableCell className="px-5 py-4 sm:px-6 text-start- text-gray-500 text-theme-sm dark:text-gray-400">
                             {`${
                               item.updated_date ? item.updated_date : "N/A"
                             } - ${
@@ -525,13 +557,29 @@ const CommercialTypes: React.FC = () => {
                               <Button
                                 variant="outline"
                                 size="sm"
-                                onClick={() =>
+                                onClick={(
+                                  e: React.MouseEvent<HTMLButtonElement>
+                                ) => {
+                                  const btn = e.currentTarget;
+                                  const rect = btn.getBoundingClientRect();
                                   setDropdownOpen(
                                     dropdownOpen === item.id.toString()
                                       ? null
                                       : item.id.toString()
-                                  )
-                                }
+                                  );
+                                  setDropdownPosition(
+                                    dropdownOpen === item.id.toString()
+                                      ? null
+                                      : {
+                                          top: rect.bottom + window.scrollY,
+                                          left: rect.left + window.scrollX,
+                                        }
+                                  );
+                                  dropdownButtonRefs.current[item.id] = btn;
+                                }}
+                                ref={(el: HTMLButtonElement | null) => {
+                                  dropdownButtonRefs.current[item.id] = el;
+                                }}
                               >
                                 <svg
                                   className="w-5 h-5 text-gray-500 dark:text-gray-400"
@@ -542,76 +590,91 @@ const CommercialTypes: React.FC = () => {
                                   <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
                                 </svg>
                               </Button>
-                              {dropdownOpen === item.id.toString() && (
-                                <div
-                                  ref={dropdownRef}
-                                  className=" relative z-9999 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-xl"
-                                  style={{
-                                    top: `${
-                                      dropdownButtonRef?.current?.getBoundingClientRect()
-                                        .bottom + window.scrollY
-                                    }px`,
-                                    left: `${
-                                      dropdownButtonRef?.current?.getBoundingClientRect()
-                                        .left
-                                    }px`,
-                                  }}
-                                >
-                                  <button
-                                    onClick={() =>
-                                      handleView(item.unique_property_id)
-                                    }
-                                    className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              {dropdownOpen === item.id.toString() &&
+                                dropdownPosition &&
+                                createPortal(
+                                  <div
+                                    id={`dropdown-portal-${item.id}`}
+                                    style={{
+                                      position: "absolute",
+                                      top: dropdownPosition.top,
+                                      left: dropdownPosition.left,
+                                      zIndex: 9999,
+                                      width: "160px",
+                                    }}
+                                    className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg"
                                   >
-                                    View
-                                  </button>
-                                  {parseInt(status || "0", 10) !== 2 && (
                                     <button
-                                      onClick={() => handleEdit(item)}
+                                      onClick={() => {
+                                        handleView(item.unique_property_id);
+                                        setDropdownOpen(null);
+                                        setDropdownPosition(null);
+                                      }}
                                       className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
                                     >
-                                      Edit
+                                      View
                                     </button>
-                                  )}
-                                  {}
-                                  {parseInt(status || "0", 10) === 0 && (
-                                    <button
-                                      onClick={() =>
-                                        handleApprove(
-                                          item.unique_property_id,
-                                          item.property_name || "this property",
-                                          "approve"
-                                        )
-                                      }
-                                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    >
-                                      Approve
-                                    </button>
-                                  )}
-                                  {parseInt(status || "0", 10) !== 2 && (
-                                    <button
-                                      onClick={() =>
-                                        handleApprove(
-                                          item.unique_property_id,
-                                          item.property_name || "this property",
-                                          "reject"
-                                        )
-                                      }
-                                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    >
-                                      Reject
-                                    </button>
-                                  )}
-                                  {parseInt(status || "0", 10) === 1 && (
-                                    <button
-                                      onClick={() => handleLead()}
-                                      className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                    >
-                                      Lead Pull
-                                    </button>
-                                  )}
-                                </div>
-                              )}
+                                    {parseInt(status || "0", 10) !== 2 && (
+                                      <button
+                                        onClick={() => {
+                                          handleEdit(item);
+                                          setDropdownOpen(null);
+                                          setDropdownPosition(null);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        Edit
+                                      </button>
+                                    )}
+                                    {parseInt(status || "0", 10) === 0 && (
+                                      <button
+                                        onClick={() => {
+                                          handleApprove(
+                                            item.unique_property_id,
+                                            item.property_name ||
+                                              "this property",
+                                            "approve"
+                                          );
+                                          setDropdownOpen(null);
+                                          setDropdownPosition(null);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        Approve
+                                      </button>
+                                    )}
+                                    {parseInt(status || "0", 10) !== 2 && (
+                                      <button
+                                        onClick={() => {
+                                          handleApprove(
+                                            item.unique_property_id,
+                                            item.property_name ||
+                                              "this property",
+                                            "reject"
+                                          );
+                                          setDropdownOpen(null);
+                                          setDropdownPosition(null);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        Reject
+                                      </button>
+                                    )}
+                                    {parseInt(status || "0", 10) === 1 && (
+                                      <button
+                                        onClick={() => {
+                                          handleLead();
+                                          setDropdownOpen(null);
+                                          setDropdownPosition(null);
+                                        }}
+                                        className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                                      >
+                                        Lead Pull
+                                      </button>
+                                    )}
+                                  </div>,
+                                  document.body
+                                )}
                             </TableCell>
                           )}
                         </TableRow>
@@ -641,7 +704,8 @@ const CommercialTypes: React.FC = () => {
                       return page === "..." ? (
                         <span
                           key={uniqueKey}
-                          className="px-3 py-1 text-gray-500 dark:text-gray-400"
+                          className
+                          Caves="px-3 py-1 text-gray-500 dark:text-gray-400"
                         >
                           ...
                         </span>
@@ -714,4 +778,5 @@ const CommercialTypes: React.FC = () => {
     </div>
   );
 };
+
 export default CommercialTypes;

@@ -60,6 +60,7 @@ export default function Home() {
     activeUsersLoading,
     activeUsersError,
   } = useSelector((state: RootState) => state.employeeUsers);
+  console.log("employeeCounts: ", employeeCounts);
   const navigate = useNavigate();
   useEffect(() => {
     if (!userCounts && !loading && !error) {
@@ -131,7 +132,6 @@ export default function Home() {
       <h1 className="mb-4 text-2xl font-semibold text-gray-800 dark:text-white">
         Dashboard
       </h1>
-      {}
       <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
         {userCounts && userCounts.length > 0 ? (
           userCounts.map((item, index) => (

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
@@ -6,6 +6,8 @@ import Dropdown from "../../components/form/Dropdown"; // Adjust the import path
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
 import { getCities, getStates } from "../../store/slices/propertyDetails";
+import DatePicker from "../../components/form/date-picker";
+import Select from "../../components/form/Select";
 
 // Define interfaces
 interface SelectOption {
@@ -40,6 +42,16 @@ interface FormData {
   builderName: string;
   sizes: SizeEntry[];
   aroundProperty: AroundPropertyEntry[];
+  brochure: File | null;
+  priceSheet: File | null;
+  isUpcoming: boolean;
+  status: "Under Construction" | "Ready to Move";
+  launchType: "Pre Launch" | "Soft Launch" | "Launched";
+  launchDate?: string;
+  possessionEndDate?: string;
+  isReraRegistered: boolean;
+  reraNumber: string;
+  otpOptions: string[];
 }
 
 interface Errors {
@@ -55,9 +67,17 @@ interface Errors {
       buildupArea?: string;
       carpetArea?: string;
       floorPlan?: string;
+      sqftPrice?: string;
     };
   };
   aroundProperty?: string;
+  brochure?: string;
+  priceSheet?: string;
+  launchDate?: string;
+  possessionEndDate?: string;
+  isReraRegistered?: string;
+  reraNumber?: string;
+  otpOptions?: string;
 }
 
 export default function CreateProperty() {
@@ -78,14 +98,29 @@ export default function CreateProperty() {
         buildupArea: "",
         carpetArea: "",
         floorPlan: null,
+        sqftPrice: "",
       },
     ],
     aroundProperty: [],
+    brochure: null,
+    priceSheet: null,
+    isUpcoming: false,
+    status: "Ready to Move",
+    launchType: "Pre Launch",
+    launchDate: "",
+    possessionEndDate: "",
+    isReraRegistered: false,
+    reraNumber: "",
+    otpOptions: [],
   });
 
   const [errors, setErrors] = useState<Errors>({});
   const [placeAroundProperty, setPlaceAroundProperty] = useState("");
   const [distanceFromProperty, setDistanceFromProperty] = useState("");
+
+  const brochureInputRef = useRef<HTMLInputElement>(null);
+  const priceSheetInputRef = useRef<HTMLInputElement>(null);
+  const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
 
   useEffect(() => {
     dispatch(getCities());
@@ -139,6 +174,19 @@ export default function CreateProperty() {
       : formData.propertyType === "Commercial"
       ? commercialSubTypeOptions
       : [];
+
+  const launchTypeOptions: SelectOption[] = [
+    { value: "Pre Launch", label: "Pre Launch" },
+    { value: "Soft Launch", label: "Soft Launch" },
+    { value: "Launched", label: "Launched" },
+  ];
+
+  const otpOptions: SelectOption[] = [
+    { value: "Regular", label: "Regular" },
+    { value: "OTP", label: "OTP" },
+    { value: "Offers", label: "Offers" },
+    { value: "EMI", label: "EMI" },
+  ];
 
   const handleDropdownChange =
     (field: "state" | "city" | "locality") => (value: string, text: string) => {
@@ -215,66 +263,179 @@ export default function CreateProperty() {
       }
     };
 
+  const handleBrochureButtonClick = () => {
+    if (brochureInputRef.current) {
+      brochureInputRef.current.click();
+    }
+  };
+
+  const handleBrochureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      const validFileTypes = ["image/jpeg", "image/png", "application/pdf"];
+      if (!validFileTypes.includes(file.type)) {
+        setErrors((prev) => ({
+          ...prev,
+          brochure: "Only JPEG, PNG, or PDF files are allowed",
+        }));
+        return;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        setErrors((prev) => ({
+          ...prev,
+          brochure: "File size must be less than 20MB",
+        }));
+        return;
+      }
+    }
+    setFormData((prev) => ({ ...prev, brochure: file }));
+    setErrors((prev) => ({ ...prev, brochure: undefined }));
+  };
+
+  const handleDeleteBrochure = () => {
+    setFormData((prev) => ({ ...prev, brochure: null }));
+    setErrors((prev) => ({ ...prev, brochure: undefined }));
+  };
+
   const handleDeleteFile = (id: string) => () => {
-    setFormData({
-      ...formData,
-      sizes: formData.sizes.map((size) =>
+    setFormData((prev) => ({
+      ...prev,
+      sizes: prev.sizes.map((size) =>
         size.id === id ? { ...size, floorPlan: null } : size
       ),
-    });
+    }));
+    setErrors((prev) => ({
+      ...prev,
+      sizes: {
+        ...prev.sizes,
+        [id]: { ...prev.sizes?.[id], floorPlan: undefined },
+      },
+    }));
+  };
+
+  const handlePriceSheetButtonClick = () => {
+    if (priceSheetInputRef.current) {
+      priceSheetInputRef.current.click();
+    }
+  };
+
+  const handlePriceSheetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0] || null;
+    if (file) {
+      const validFileTypes = ["image/jpeg", "image/png", "application/pdf"];
+      if (!validFileTypes.includes(file.type)) {
+        setErrors((prev) => ({
+          ...prev,
+          priceSheet: "Only JPEG, PNG, or PDF files are allowed",
+        }));
+        return;
+      }
+      if (file.size > 20 * 1024 * 1024) {
+        setErrors((prev) => ({
+          ...prev,
+          priceSheet: "File size must be less than 20MB",
+        }));
+        return;
+      }
+    }
+    setFormData((prev) => ({ ...prev, priceSheet: file }));
+    setErrors((prev) => ({ ...prev, priceSheet: undefined }));
+  };
+
+  const handleDeletePriceSheet = () => {
+    setFormData((prev) => ({ ...prev, priceSheet: null }));
+    setErrors((prev) => ({ ...prev, priceSheet: undefined }));
   };
 
   const handleDeleteSize = (id: string) => () => {
-    setFormData({
-      ...formData,
-      sizes: formData.sizes.filter((size) => size.id !== id),
-    });
-    setErrors({
-      ...errors,
+    setFormData((prev) => ({
+      ...prev,
+      sizes: prev.sizes.filter((size) => size.id !== id),
+    }));
+    setErrors((prev) => ({
+      ...prev,
       sizes: Object.fromEntries(
-        Object.entries(errors.sizes || {}).filter(([key]) => key !== id)
+        Object.entries(prev.sizes || {}).filter(([key]) => key !== id)
       ),
-    });
+    }));
   };
 
   const handleAddSize = () => {
-    setFormData({
-      ...formData,
+    setFormData((prev) => ({
+      ...prev,
       sizes: [
-        ...formData.sizes,
+        ...prev.sizes,
         {
-          id: `${Date.now()}-${formData.sizes.length + 1}`,
+          id: `${Date.now()}-${prev.sizes.length + 1}`,
           buildupArea: "",
           carpetArea: "",
           floorPlan: null,
+          sqftPrice: "",
         },
       ],
-    });
+    }));
   };
 
   const handleAddAroundProperty = () => {
     if (placeAroundProperty.trim() && distanceFromProperty.trim()) {
-      setFormData({
-        ...formData,
+      setFormData((prev) => ({
+        ...prev,
         aroundProperty: [
-          ...formData.aroundProperty,
+          ...prev.aroundProperty,
           {
             place: placeAroundProperty.trim(),
             distance: distanceFromProperty.trim(),
           },
         ],
-      });
+      }));
       setPlaceAroundProperty("");
       setDistanceFromProperty("");
-      if (errors.aroundProperty) {
-        setErrors({ ...errors, aroundProperty: undefined });
-      }
+      setErrors((prev) => ({ ...prev, aroundProperty: undefined }));
     } else {
-      setErrors({
-        ...errors,
+      setErrors((prev) => ({
+        ...prev,
         aroundProperty: "Both place and distance are required",
-      });
+      }));
     }
+  };
+
+  const handleDeleteAroundProperty = (index: number) => () => {
+    setFormData((prev) => ({
+      ...prev,
+      aroundProperty: prev.aroundProperty.filter((_, i) => i !== index),
+    }));
+  };
+
+  const handleLaunchDateChange = (selectedDates: Date[]) => {
+    const selectedDate = selectedDates[0];
+    const formattedDate = selectedDate
+      ? `${selectedDate.getFullYear()}-${String(
+          selectedDate.getMonth() + 1
+        ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
+      : "";
+    setFormData((prev) => ({ ...prev, launchDate: formattedDate }));
+    setErrors((prev) => ({ ...prev, launchDate: undefined }));
+  };
+
+  const handlePossessionEndDateChange = (selectedDates: Date[]) => {
+    const selectedDate = selectedDates[0];
+    const formattedDate = selectedDate
+      ? `${selectedDate.getFullYear()}-${String(
+          selectedDate.getMonth() + 1
+        ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
+      : "";
+    setFormData((prev) => ({ ...prev, possessionEndDate: formattedDate }));
+    setErrors((prev) => ({ ...prev, possessionEndDate: undefined }));
+  };
+
+  const handleOtpOptionsChange = (option: string) => {
+    setFormData((prev) => ({
+      ...prev,
+      otpOptions: prev.otpOptions.includes(option)
+        ? prev.otpOptions.filter((opt) => opt !== option)
+        : [...prev.otpOptions, option],
+    }));
+    setErrors((prev) => ({ ...prev, otpOptions: undefined }));
   };
 
   const validateForm = () => {
@@ -360,6 +521,34 @@ export default function CreateProperty() {
   return (
     <ComponentCard title="Create Property">
       <form onSubmit={handleSubmit} className="space-y-6">
+        <div className="min-h-[80px]">
+          <Label htmlFor="projectName">Project Name</Label>
+          <Input
+            type="text"
+            id="projectName"
+            value={formData.projectName}
+            onChange={handleInputChange("projectName")}
+            placeholder="Enter project name"
+          />
+          {errors.projectName && (
+            <p className="text-red-500 text-sm mt-1">{errors.projectName}</p>
+          )}
+        </div>
+
+        <div className="min-h-[80px]">
+          <Label htmlFor="builderName">Builder Name</Label>
+          <Input
+            type="text"
+            id="builderName"
+            value={formData.builderName}
+            onChange={handleInputChange("builderName")}
+            placeholder="Enter builder name"
+          />
+          {errors.builderName && (
+            <p className="text-red-500 text-sm mt-1">{errors.builderName}</p>
+          )}
+        </div>
+
         <Dropdown
           id="state"
           label="Select State"
@@ -417,63 +606,206 @@ export default function CreateProperty() {
           )}
         </div>
 
-        {formData.propertyType && (
-          <div className="min-h-[80px]">
-            <Label htmlFor="propertySubType">Property Sub Type *</Label>
-            <div className="flex flex-wrap gap-4">
-              {propertySubTypeOptions.map((option) => (
-                <button
-                  key={option.value}
-                  type="button"
-                  onClick={() =>
-                    handleSelectChange("propertySubType")(option.value)
-                  }
-                  className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
-                    formData.propertySubType === option.value
-                      ? "bg-[#1D3A76] text-white border-blue-600"
-                      : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
-                  }`}
-                >
-                  {option.label}
-                </button>
-              ))}
-            </div>
-            {errors.propertySubType && (
+        <div className="min-h-[80px]">
+          <Label htmlFor="propertySubType">Property Sub Type *</Label>
+          <div className="flex flex-wrap gap-4">
+            {propertySubTypeOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() =>
+                  handleSelectChange("propertySubType")(option.value)
+                }
+                className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
+                  formData.propertySubType === option.value
+                    ? "bg-[#1D3A76] text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {errors.propertySubType && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.propertySubType}
+            </p>
+          )}
+        </div>
+
+        <div className="min-h-[80px]">
+          <Label htmlFor="status">Construction Status</Label>
+          <div className="flex space-x-4">
+            {["Under Construction", "Ready to Move"].map((statusOption) => (
+              <button
+                key={statusOption}
+                type="button"
+                onClick={() =>
+                  setFormData((prev) => ({
+                    ...prev,
+                    status: statusOption as FormData["status"],
+                    ...(statusOption === "Ready to Move" &&
+                    prev.launchType !== "Launched"
+                      ? { launchDate: "" }
+                      : {}),
+                  }))
+                }
+                className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
+                  formData.status === statusOption
+                    ? "bg-[#1D3A76] text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                }`}
+              >
+                {statusOption}
+              </button>
+            ))}
+          </div>
+        </div>
+        <div className="min-h-[80px] w-full max-w-md">
+          <Select
+            id="launchType"
+            label="Launch Type"
+            options={launchTypeOptions}
+            value={formData.launchType}
+            onChange={handleDropdownChange("launchType")}
+            placeholder="Select launch type..."
+            // error={errors.launchType} // Uncomment if you add launchType to Errors interface
+          />
+        </div>
+        {formData.launchType === "Launched" && (
+          <div className="min-h-[80px] w-full max-w-md">
+            <DatePicker
+              id="launchDate"
+              label="Launch Date"
+              placeholder="Select launch date"
+              defaultDate={formData.launchDate || undefined}
+              onChange={handleLaunchDateChange}
+            />
+            {errors.launchDate && (
+              <p className="text-red-500 text-sm mt-1">{errors.launchDate}</p>
+            )}
+          </div>
+        )}
+        {formData.status === "Under Construction" && (
+          <div className="min-h-[80px] w-full max-w-md">
+            <DatePicker
+              id="possessionEndDate"
+              label="Possession End Date"
+              placeholder="Select possession end date"
+              defaultDate={formData.possessionEndDate || undefined}
+              onChange={handlePossessionEndDateChange}
+            />
+            {errors.possessionEndDate && (
               <p className="text-red-500 text-sm mt-1">
-                {errors.propertySubType}
+                {errors.possessionEndDate}
               </p>
             )}
           </div>
         )}
-
         <div className="min-h-[80px]">
-          <Label htmlFor="projectName">Project Name</Label>
-          <Input
-            type="text"
-            id="projectName"
-            value={formData.projectName}
-            onChange={handleInputChange("projectName")}
-            placeholder="Enter project name"
-          />
-          {errors.projectName && (
-            <p className="text-red-500 text-sm mt-1">{errors.projectName}</p>
+          <Label htmlFor="isReraRegistered">Is this RERA Registered?</Label>
+          <div className="flex space-x-4 mb-5">
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({ ...prev, isReraRegistered: true }))
+              }
+              className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
+                formData.isReraRegistered
+                  ? "bg-[#1D3A76] text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+              }`}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({
+                  ...prev,
+                  isReraRegistered: false,
+                  reraNumber: "",
+                }))
+              }
+              className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
+                !formData.isReraRegistered
+                  ? "bg-[#1D3A76] text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+              }`}
+            >
+              No
+            </button>
+          </div>
+        </div>
+        {formData.isReraRegistered && (
+          <div className="min-h-[80px] w-full max-w-md">
+            <Label htmlFor="reraNumber">RERA Number</Label>
+            <Input
+              type="text"
+              id="reraNumber"
+              value={formData.reraNumber}
+              onChange={handleInputChange("reraNumber")}
+              placeholder="Enter RERA number"
+              className="dark:bg-gray-800"
+            />
+            {errors.reraNumber && (
+              <p className="text-red-500 text-sm mt-1">{errors.reraNumber}</p>
+            )}
+          </div>
+        )}
+        <div className="min-h-[80px]">
+          <Label htmlFor="otpOptions">Payment Modes *</Label>
+          <div className="flex flex-wrap gap-4">
+            {otpOptions.map((option) => (
+              <button
+                key={option.value}
+                type="button"
+                onClick={() => handleOtpOptionsChange(option.value)}
+                className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
+                  formData.otpOptions.includes(option.value)
+                    ? "bg-[#1D3A76] text-white border-blue-600"
+                    : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+                }`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+          {errors.otpOptions && (
+            <p className="text-red-500 text-sm mt-1">{errors.otpOptions}</p>
           )}
         </div>
-
         <div className="min-h-[80px]">
-          <Label htmlFor="builderName">Builder Name</Label>
-          <Input
-            type="text"
-            id="builderName"
-            value={formData.builderName}
-            onChange={handleInputChange("builderName")}
-            placeholder="Enter builder name"
-          />
-          {errors.builderName && (
-            <p className="text-red-500 text-sm mt-1">{errors.builderName}</p>
-          )}
+          <Label htmlFor="isUpcoming">Is this an Upcoming Project?</Label>
+          <div className="flex space-x-4 mb-5">
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({ ...prev, isUpcoming: true }))
+              }
+              className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
+                formData.isUpcoming
+                  ? "bg-[#1D3A76] text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+              }`}
+            >
+              Yes
+            </button>
+            <button
+              type="button"
+              onClick={() =>
+                setFormData((prev) => ({ ...prev, isUpcoming: false }))
+              }
+              className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
+                !formData.isUpcoming
+                  ? "bg-[#1D3A76] text-white border-blue-600"
+                  : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
+              }`}
+            >
+              No
+            </button>
+          </div>
         </div>
-
         <div className="space-y-4">
           <h3 className="text-lg font-semibold">Sizes</h3>
           {formData.sizes.map((size, index) => (
@@ -514,6 +846,7 @@ export default function CreateProperty() {
                   value={size.buildupArea}
                   onChange={handleSizeChange(size.id, "buildupArea")}
                   placeholder="Enter buildup area"
+                  className="dark:bg-gray-800"
                 />
                 {errors.sizes?.[size.id]?.buildupArea && (
                   <p className="text-red-500 text-sm mt-1">
@@ -521,7 +854,6 @@ export default function CreateProperty() {
                   </p>
                 )}
               </div>
-
               <div className="min-h-[80px]">
                 <Label htmlFor={`carpetArea-${size.id}`}>
                   Carpet Area (sq.ft)
@@ -532,6 +864,7 @@ export default function CreateProperty() {
                   value={size.carpetArea}
                   onChange={handleSizeChange(size.id, "carpetArea")}
                   placeholder="Enter carpet area"
+                  className="dark:bg-gray-800"
                 />
                 {errors.sizes?.[size.id]?.carpetArea && (
                   <p className="text-red-500 text-sm mt-1">
@@ -539,17 +872,42 @@ export default function CreateProperty() {
                   </p>
                 )}
               </div>
-
               <div className="min-h-[80px]">
-                <Label htmlFor={`floorPlan-${size.id}`}>Floor Plan</Label>
+                <Label htmlFor={`sqftPrice-${size.id}`}>
+                  Square Foot Price
+                </Label>
+                <Input
+                  type="text"
+                  id={`sqftPrice-${size.id}`}
+                  value={size.sqftPrice}
+                  onChange={handleSizeChange(size.id, "sqftPrice")}
+                  placeholder="Enter square foot price"
+                  className="dark:bg-gray-800"
+                />
+                {errors.sizes?.[size.id]?.sqftPrice && (
+                  <p className="text-red-500 text-sm mt-1">
+                    {errors.sizes[size.id].sqftPrice}
+                  </p>
+                )}
+              </div>
+              <div className="min-h-[80px]">
+                <Label>Floor Plan (Optional)</Label>
                 <div className="flex items-center space-x-2">
                   <input
                     type="file"
                     id={`floorPlan-${size.id}`}
                     accept="image/*,application/pdf"
                     onChange={handleFileChange(size.id)}
-                    className="block w-full text-sm text-gray-500 file:mr-4 file:py-2 file:px-4 file:rounded-md file:border-0 file:text-sm file:font-semibold file:bg-[#1D3A76] file:text-white hover:file:bg-blue-700"
+                    ref={(el) => (fileInputRefs.current[size.id] = el)}
+                    className="hidden"
                   />
+                  <button
+                    type="button"
+                    onClick={() => fileInputRefs.current[size.id]?.click()}
+                    className="px-2 py-2 text-sm font-semibold text-white bg-[#1D3A76] rounded-md hover:bg-blue-900"
+                  >
+                    Choose File
+                  </button>
                   {size.floorPlan && (
                     <button
                       type="button"
@@ -559,6 +917,9 @@ export default function CreateProperty() {
                       Delete
                     </button>
                   )}
+                  <span className="text-sm text-gray-500 truncate max-w-[200px]">
+                    {size.floorPlan?.name || "No file chosen"}
+                  </span>
                 </div>
                 {errors.sizes?.[size.id]?.floorPlan && (
                   <p className="text-red-500 text-sm mt-1">
@@ -566,36 +927,17 @@ export default function CreateProperty() {
                   </p>
                 )}
               </div>
-
-              <div className="min-h-[80px] flex items-end">
-                {size.floorPlan ? (
-                  size.floorPlan.type.startsWith("image/") ? (
-                    <img
-                      src={URL.createObjectURL(size.floorPlan)}
-                      alt="Floor Plan Preview"
-                      className="max-w-[100px] max-h-[100px] object-contain"
-                    />
-                  ) : (
-                    <p className="text-sm text-gray-500 truncate">
-                      {size.floorPlan.name}
-                    </p>
-                  )
-                ) : (
-                  <p className="text-sm text-gray-400">No file selected</p>
-                )}
-              </div>
             </div>
           ))}
           <button
             type="button"
             onClick={handleAddSize}
-            className="px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            className="px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-900 focus:outline-none focus:ring-2 focus:ring-blue-500"
           >
             Add Size
           </button>
         </div>
-
-        <div>
+        <div className="space-y-4">
           <Label htmlFor="aroundProperty" className="mt-4">
             Around This Property *
           </Label>
@@ -606,7 +948,7 @@ export default function CreateProperty() {
               placeholder="Place around property"
               value={placeAroundProperty}
               onChange={(e) => setPlaceAroundProperty(e.target.value)}
-              className="dark:bg-gray-800 "
+              className="dark:bg-gray-800"
             />
             <Input
               type="text"
@@ -614,12 +956,12 @@ export default function CreateProperty() {
               placeholder="Distance from property"
               value={distanceFromProperty}
               onChange={(e) => setDistanceFromProperty(e.target.value)}
-              className="dark:bg-gray-800 "
+              className="dark:bg-gray-800"
             />
             <button
               type="button"
               onClick={handleAddAroundProperty}
-              className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 transition-colors duration-200 w-[20%]"
+              className="px-4 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-900 transition-colors duration-200 w-[20%]"
             >
               Add
             </button>
@@ -640,14 +982,7 @@ export default function CreateProperty() {
                     </span>
                     <button
                       type="button"
-                      onClick={() =>
-                        setFormData({
-                          ...formData,
-                          aroundProperty: formData.aroundProperty.filter(
-                            (_, i) => i !== index
-                          ),
-                        })
-                      }
+                      onClick={handleDeleteAroundProperty(index)}
                       className="text-red-500 hover:text-red-700"
                     >
                       Remove
@@ -657,6 +992,112 @@ export default function CreateProperty() {
               </ul>
             </div>
           )}
+        </div>
+        <div className="space-y-1">
+          <Label>Upload Brochure (Optional)</Label>
+          <div className="flex items-center space-x-2">
+            <input
+              type="file"
+              id="brochure"
+              ref={brochureInputRef}
+              accept="image/jpeg,image/png,application/pdf"
+              onChange={handleBrochureChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={handleBrochureButtonClick}
+              className="px-4 py-2 text-sm font-semibold text-white bg-[#1D3A76] rounded-md hover:bg-blue-900"
+            >
+              Choose File
+            </button>
+            {formData.brochure && (
+              <button
+                type="button"
+                onClick={handleDeleteBrochure}
+                className="text-red-500 hover:text-red-700"
+              >
+                Delete
+              </button>
+            )}
+            <span className="text-sm text-gray-500">
+              {formData.brochure ? formData.brochure.name : "No file chosen"}
+            </span>
+          </div>
+          {errors.brochure && (
+            <p className="text-red-500 text-sm mt-1">{errors.brochure}</p>
+          )}
+          <div className="min-h-[80px] flex items-end">
+            {formData.brochure ? (
+              formData.brochure.type.startsWith("image/") ? (
+                <img
+                  src={URL.createObjectURL(formData.brochure)}
+                  alt="Brochure Preview"
+                  className="max-w-[100px] max-h-[100px] object-contain"
+                />
+              ) : (
+                <p className="text-sm text-gray-500 truncate">
+                  {formData.brochure.name}
+                </p>
+              )
+            ) : (
+              <p className="text-sm text-gray-400"></p>
+            )}
+          </div>
+        </div>
+        <div className="space-y-1">
+          <Label>Upload Price Sheet (Optional)</Label>
+          <div className="flex items-center space-x-2">
+            <input
+              type="file"
+              id="priceSheet"
+              ref={priceSheetInputRef}
+              accept="image/jpeg,image/png,application/pdf"
+              onChange={handlePriceSheetChange}
+              className="hidden"
+            />
+            <button
+              type="button"
+              onClick={handlePriceSheetButtonClick}
+              className="px-4 py-2 text-sm font-semibold text-white bg-[#1D3A76] rounded-md hover:bg-blue-900"
+            >
+              Choose File
+            </button>
+            {formData.priceSheet && (
+              <button
+                type="button"
+                onClick={handleDeletePriceSheet}
+                className="text-red-500 hover:text-red-700"
+              >
+                Delete
+              </button>
+            )}
+            <span className="text-sm text-gray-500">
+              {formData.priceSheet
+                ? formData.priceSheet.name
+                : "No file chosen"}
+            </span>
+          </div>
+          {errors.priceSheet && (
+            <p className="text-red-500 text-sm mt-1">{errors.priceSheet}</p>
+          )}
+          <div className="min-h-[80px] flex items-end">
+            {formData.priceSheet ? (
+              formData.priceSheet.type.startsWith("image/") ? (
+                <img
+                  src={URL.createObjectURL(formData.priceSheet)}
+                  alt="Price Sheet Preview"
+                  className="max-w-[100px] max-h-[100px] object-contain"
+                />
+              ) : (
+                <p className="text-sm text-gray-500 truncate">
+                  {formData.priceSheet.name}
+                </p>
+              )
+            ) : (
+              <p className="text-sm text-gray-400"></p>
+            )}
+          </div>
         </div>
 
         <div className="flex justify-center">

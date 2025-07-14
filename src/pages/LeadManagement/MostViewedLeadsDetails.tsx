@@ -15,7 +15,6 @@ import { AppDispatch, RootState } from "../../store/store";
 import { fetchPropertyViewDetails, LeadsState } from "../../store/slices/leads";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
 import FilterBar from "../../components/common/FilterBar";
-
 const MostViewedDetailsPage: React.FC = () => {
   const dispatch = useDispatch<AppDispatch>();
   const { property_id } = useParams<{ property_id: string }>();
@@ -31,8 +30,6 @@ const MostViewedDetailsPage: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
   const dropdownRef = useRef<HTMLDivElement>(null);
   const itemsPerPage = 10;
-
-  // Fetch property view details on mount or when property_id changes
   useEffect(() => {
     if (property_id) {
       dispatch(fetchPropertyViewDetails({ property_id }))
@@ -41,8 +38,6 @@ const MostViewedDetailsPage: React.FC = () => {
         .catch((err) => console.error("Fetch failed:", err));
     }
   }, [dispatch, property_id]);
-
-  // Handle click outside to close dropdown
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -55,16 +50,12 @@ const MostViewedDetailsPage: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
-  // Clear all filters
   const clearFilters = () => {
     setFilterValue("");
     setStartDate(null);
     setEndDate(null);
     setCurrentPage(1);
   };
-
-  // Filter property view details
   const filteredDetails = useMemo(() => {
     return propertyViewDetails.filter((detail) => {
       const searchableFields = [
@@ -80,7 +71,6 @@ const MostViewedDetailsPage: React.FC = () => {
       const matchesSearch = searchableFields.some((field) =>
         field.toLowerCase().includes(filterValue.toLowerCase())
       );
-
       let matchesDate = true;
       if (startDate || endDate) {
         if (!detail.created_date) {
@@ -96,36 +86,28 @@ const MostViewedDetailsPage: React.FC = () => {
           }
         }
       }
-
       return matchesSearch && matchesDate;
     });
   }, [propertyViewDetails, filterValue, startDate, endDate]);
-
-  // Pagination logic
   const totalItems = filteredDetails.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedDetails = filteredDetails.slice(startIndex, endIndex);
-
   const goToPage = (page: number) => {
     if (page >= 1 && page <= totalPages) {
       setCurrentPage(page);
     }
   };
-
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
-
     if (totalPages <= totalVisiblePages + 2) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -133,7 +115,6 @@ const MostViewedDetailsPage: React.FC = () => {
     } else {
       let start = Math.max(2, currentPage - 2);
       let end = Math.min(totalPages - 1, currentPage + 2);
-
       if (currentPage <= 3) {
         start = 2;
         end = 5;
@@ -142,7 +123,6 @@ const MostViewedDetailsPage: React.FC = () => {
         start = totalPages - 4;
         end = totalPages - 1;
       }
-
       pages.push(1);
       if (start > 2) pages.push("...");
       for (let i = start; i <= end; i++) {
@@ -151,17 +131,12 @@ const MostViewedDetailsPage: React.FC = () => {
       if (end < totalPages - 1) pages.push("...");
       if (totalPages > 1) pages.push(totalPages);
     }
-
     return pages;
   };
-
-  // Handle search filter
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
-
-  // Format date for display
   const formatDate = (dateString: string | null) => {
     if (!dateString) return "N/A";
     try {
@@ -175,8 +150,6 @@ const MostViewedDetailsPage: React.FC = () => {
       return "N/A";
     }
   };
-
-  // Handle view action
   const handleView = (property_id: string | null) => {
     if (!property_id) {
       console.error("Property ID is missing");
@@ -191,8 +164,6 @@ const MostViewedDetailsPage: React.FC = () => {
       console.error("Error navigating to property:", error);
     }
   };
-
-  // Loading state
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -202,8 +173,6 @@ const MostViewedDetailsPage: React.FC = () => {
       </div>
     );
   }
-
-  // Error or no data state
   if (error || propertyViewDetailsCount === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -216,7 +185,6 @@ const MostViewedDetailsPage: React.FC = () => {
           pagePlacHolder="Filter by user ID, property ID, name, mobile, email, address, or city"
           onFilter={handleFilter}
         />
-
         <ComponentCard title={`Most Viewed Details - ${property_id}`}>
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
             {error ? `Error: ${error}` : "No Data Available"}
@@ -225,7 +193,6 @@ const MostViewedDetailsPage: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <PageMeta
@@ -238,7 +205,6 @@ const MostViewedDetailsPage: React.FC = () => {
         onFilter={handleFilter}
       />
       <div className="space-y-6">
-        {/* FilterBar for date filters */}
         <div className="flex flex-col sm:flex-row justify-between gap-3 ">
           <FilterBar
             showUserTypeFilter={false}
@@ -260,14 +226,12 @@ const MostViewedDetailsPage: React.FC = () => {
           />
         </div>
 
-        {/* Display active filters */}
         {(filterValue || startDate || endDate) && (
           <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
             Filters: Search: {filterValue || "None"} | Date:{" "}
             {startDate || "Any"} to {endDate || "Any"}
           </div>
         )}
-
         <ComponentCard title={`Most Viewed Details - ${property_id}`}>
           <div className="overflow-hidden rounded-xl border border-gray-200 bg-white dark:border-white/[0.05] dark:bg-white/[0.03]">
             <div className="max-w-full overflow-x-auto">
@@ -425,8 +389,7 @@ const MostViewedDetailsPage: React.FC = () => {
               </Table>
             </div>
           </div>
-
-          {/* Pagination */}
+          {}
           {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -481,5 +444,4 @@ const MostViewedDetailsPage: React.FC = () => {
     </div>
   );
 };
-
 export default MostViewedDetailsPage;

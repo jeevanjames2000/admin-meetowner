@@ -35,6 +35,7 @@ interface LeadByContacted {
   mobile: string | null;
   email: string | null;
   created_date: string | null;
+  created_time: string | null;
   property_for: string | null;
   property_name: string | null;
   owner_user_id: number | null;

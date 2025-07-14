@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef, useMemo } from "react";
+import { createPortal } from "react-dom";
 import { useParams } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import ComponentCard from "../../components/common/ComponentCard";
@@ -14,9 +15,7 @@ import Button from "../../components/ui/button/Button";
 import { AppDispatch, RootState } from "../../store/store";
 import { fetchLeads, LeadsState } from "../../store/slices/leads";
 import PageBreadcrumbList from "../../components/common/PageBreadCrumbLists";
-
 import FilterBar from "../../components/common/FilterBar";
-
 const userTypeMap: { [key: string]: string } = {
   "1": "Admin",
   "3": "Builder",
@@ -24,12 +23,10 @@ const userTypeMap: { [key: string]: string } = {
   "5": "Owner",
   "6": "Channel Partner",
 };
-
 interface SelectOption {
   value: string;
   label: string;
 }
-
 const PropertyLeadsBuy: React.FC = () => {
   const { property_for, status } = useParams<{
     property_for: string;
@@ -43,6 +40,10 @@ const PropertyLeadsBuy: React.FC = () => {
   const itemsPerPage = 10;
   const dropdownRef = useRef<HTMLDivElement>(null);
   const [dropdownOpen, setDropdownOpen] = useState<number | null>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
   const [filterValue, setFilterValue] = useState<string>("");
   const userType = useSelector(
     (state: RootState) => state.auth.user?.user_type
@@ -50,18 +51,15 @@ const PropertyLeadsBuy: React.FC = () => {
   const [startDate, setStartDate] = useState<string | null>(null);
   const [endDate, setEndDate] = useState<string | null>(null);
   const [selectedUserType, setSelectedUserType] = useState<string | null>(null);
-
   const filters = {
     property_for:
       status === "1" ? "Sell" : status === "2" ? "Rent" : property_for || "",
   };
-
   useEffect(() => {
     if (filters.property_for) {
       dispatch(fetchLeads(filters));
     }
   }, [dispatch, property_for, status]);
-
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
     const day = String(date.getDate()).padStart(2, "0");
@@ -69,7 +67,6 @@ const PropertyLeadsBuy: React.FC = () => {
     const year = date.getFullYear();
     return `${day}-${month}-${year}`;
   };
-
   const formatTime = (timeString: string | null) => {
     if (!timeString) return "null";
     const [hours, minutes] = timeString.split(":");
@@ -78,7 +75,6 @@ const PropertyLeadsBuy: React.FC = () => {
     const formattedHour = hour % 12 || 12;
     return `${String(formattedHour).padStart(2, "0")}:${minutes} ${period}`;
   };
-
   const clearFilters = () => {
     setFilterValue("");
     setSelectedUserType(null);
@@ -86,7 +82,6 @@ const PropertyLeadsBuy: React.FC = () => {
     setEndDate(null);
     setCurrentPage(1);
   };
-
   const filteredLeads = useMemo(() => {
     return leads.filter((lead) => {
       const searchableFields = [
@@ -108,19 +103,17 @@ const PropertyLeadsBuy: React.FC = () => {
       const matchesSearch = searchableFields.some((field) =>
         field.toLowerCase().includes(filterValue.toLowerCase())
       );
-
       const matchesUserType =
         selectedUserType === null ||
         selectedUserType === "" ||
         userTypeMap[lead.owner_type!] === selectedUserType;
-
       let matchesDate = true;
       if (startDate || endDate) {
         if (!lead.searched_on_date) {
           matchesDate = false;
         } else {
           try {
-            const leadDate = lead.searched_on_date.split("T")[0]; // Extract YYYY-MM-DD
+            const leadDate = lead.searched_on_date.split("T")[0];
             matchesDate =
               (!startDate || leadDate >= startDate) &&
               (!endDate || leadDate <= endDate);
@@ -129,33 +122,26 @@ const PropertyLeadsBuy: React.FC = () => {
           }
         }
       }
-
       return matchesSearch && matchesUserType && matchesDate;
     });
   }, [leads, filterValue, selectedUserType, startDate, endDate]);
-
   const totalItems = filteredLeads.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = Math.min(startIndex + itemsPerPage, totalItems);
   const paginatedLeads = filteredLeads.slice(startIndex, endIndex);
-
   const goToPage = (page: number) => {
     setCurrentPage(page);
   };
-
   const goToPreviousPage = () => {
     if (currentPage > 1) setCurrentPage(currentPage - 1);
   };
-
   const goToNextPage = () => {
     if (currentPage < totalPages) setCurrentPage(currentPage + 1);
   };
-
   const getPaginationItems = () => {
     const pages: (number | string)[] = [];
     const totalVisiblePages = 5;
-
     if (totalPages <= totalVisiblePages + 2) {
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
@@ -163,36 +149,28 @@ const PropertyLeadsBuy: React.FC = () => {
     } else {
       let start = Math.max(2, currentPage - 2);
       let end = Math.min(totalPages - 1, currentPage + 2);
-
       if (currentPage <= 3) {
         start = 2;
         end = 5;
       }
-
       if (currentPage >= totalPages - 2) {
         start = totalPages - 4;
         end = totalPages - 1;
       }
-
       pages.push(1);
       if (start > 2) pages.push("...");
-
       for (let i = start; i <= end; i++) {
         pages.push(i);
       }
-
       if (end < totalPages - 1) pages.push("...");
       if (totalPages > 1) pages.push(totalPages);
     }
-
     return pages;
   };
-
   const handleFilter = (value: string) => {
     setFilterValue(value);
     setCurrentPage(1);
   };
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -200,12 +178,12 @@ const PropertyLeadsBuy: React.FC = () => {
         !dropdownRef.current.contains(event.target as Node)
       ) {
         setDropdownOpen(null);
+        setDropdownPosition(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
-
   const userFilterOptions: SelectOption[] = [
     { value: "", label: "All Users" },
     ...Object.entries(userTypeMap).map(([key, value]) => ({
@@ -213,8 +191,6 @@ const PropertyLeadsBuy: React.FC = () => {
       label: value,
     })),
   ];
-
-  // Handle View action
   const handleView = (property_id: string) => {
     if (!property_id) {
       console.error("Property ID is missing");
@@ -224,12 +200,11 @@ const PropertyLeadsBuy: React.FC = () => {
       const url = `https://meetowner.in/property?Id_${encodeURIComponent(
         property_id
       )}`;
-      window.open(url, "_blank"); // Open in new tab
+      window.open(url, "_blank");
     } catch (error) {
       console.error("Error navigating to property:", error);
     }
   };
-
   if (loading) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -239,7 +214,6 @@ const PropertyLeadsBuy: React.FC = () => {
       </div>
     );
   }
-
   if (error || !leads || leads.length === 0) {
     return (
       <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
@@ -268,7 +242,6 @@ const PropertyLeadsBuy: React.FC = () => {
       </div>
     );
   }
-
   return (
     <div className="relative min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <PageMeta
@@ -312,7 +285,6 @@ const PropertyLeadsBuy: React.FC = () => {
             {endDate || "Any"}
           </div>
         )}
-
         <ComponentCard
           title={`Lead Management ${
             filters.property_for === "Sell" ? "Buy" : "Rent"
@@ -469,11 +441,29 @@ const PropertyLeadsBuy: React.FC = () => {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() =>
-                            setDropdownOpen(
-                              dropdownOpen === lead.id ? null : lead.id
-                            )
-                          }
+                          onClick={(e) => {
+                            if (dropdownOpen === lead.id) {
+                              setDropdownOpen(null);
+                              setDropdownPosition(null);
+                            } else {
+                              const rect = (e.target as HTMLElement)
+                                .closest("td")
+                                ?.getBoundingClientRect();
+                              if (rect) {
+                                setDropdownPosition({
+                                  top: rect.top + rect.height + window.scrollY,
+                                  left:
+                                    rect.left +
+                                    rect.width -
+                                    160 +
+                                    window.scrollX,
+                                });
+                              } else {
+                                setDropdownPosition(null);
+                              }
+                              setDropdownOpen(lead.id);
+                            }
+                          }}
                         >
                           <svg
                             className="w-5 h-5 text-gray-500 dark:text-gray-400"
@@ -484,22 +474,33 @@ const PropertyLeadsBuy: React.FC = () => {
                             <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
                         </Button>
-                        {dropdownOpen === lead.id && (
-                          <div
-                            ref={dropdownRef}
-                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
-                          >
-                            <button
-                              onClick={() => {
-                                handleView(lead.property_id);
-                                setDropdownOpen(null);
+                        {dropdownOpen === lead.id &&
+                          dropdownPosition &&
+                          createPortal(
+                            <div
+                              ref={dropdownRef}
+                              style={{
+                                position: "absolute",
+                                top: dropdownPosition.top,
+                                left: dropdownPosition.left,
+                                zIndex: 9999,
+                                width: "160px",
                               }}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg"
                             >
-                              View
-                            </button>
-                          </div>
-                        )}
+                              <button
+                                onClick={() => {
+                                  handleView(lead.property_id);
+                                  setDropdownOpen(null);
+                                  setDropdownPosition(null);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                View
+                              </button>
+                            </div>,
+                            document.body
+                          )}
                       </TableCell>
                     </TableRow>
                   ))}
@@ -507,7 +508,6 @@ const PropertyLeadsBuy: React.FC = () => {
               </Table>
             </div>
           </div>
-
           {totalItems > itemsPerPage && (
             <div className="flex flex-col sm:flex-row justify-between items-center mt-4 px-4 py-2 gap-4">
               <div className="text-sm text-gray-500 dark:text-gray-400">
@@ -562,5 +562,4 @@ const PropertyLeadsBuy: React.FC = () => {
     </div>
   );
 };
-
 export default PropertyLeadsBuy;

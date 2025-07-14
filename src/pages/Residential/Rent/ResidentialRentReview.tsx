@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect } from "react";
+import { createPortal } from "react-dom";
 import PageBreadcrumb from "../../../components/common/PageBreadCrumb";
 import ComponentCard from "../../../components/common/ComponentCard";
 import PageMeta from "../../../components/common/PageMeta";
@@ -71,20 +72,30 @@ const ResidentialRentReview: React.FC = () => {
     generateRandomData()
   );
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
-  const dropdownRef = useRef<HTMLDivElement>(null);
+  const [dropdownPosition, setDropdownPosition] = useState<{
+    top: number;
+    left: number;
+  } | null>(null);
+  const dropdownButtonRefs = useRef<{
+    [key: string]: HTMLButtonElement | null;
+  }>({});
   const navigate = useNavigate();
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
-        dropdownRef.current &&
-        !dropdownRef.current.contains(event.target as Node)
+        dropdownOpen &&
+        dropdownPosition &&
+        !document
+          .getElementById(`dropdown-portal-${dropdownOpen}`)
+          ?.contains(event.target as Node)
       ) {
         setDropdownOpen(null);
+        setDropdownPosition(null);
       }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
-  }, []);
+  }, [dropdownOpen, dropdownPosition]);
   const handleEdit = (item: ResidentialBuyData) => {
     setDropdownOpen(null);
     navigate("/residential-rent-edit");
@@ -191,11 +202,25 @@ const ResidentialRentReview: React.FC = () => {
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 relative">
                         <button
-                          onClick={() =>
+                          onClick={(e) => {
+                            const btn = e.currentTarget;
+                            const rect = btn.getBoundingClientRect();
                             setDropdownOpen(
                               dropdownOpen === item.id ? null : item.id
-                            )
-                          }
+                            );
+                            setDropdownPosition(
+                              dropdownOpen === item.id
+                                ? null
+                                : {
+                                    top: rect.bottom + window.scrollY,
+                                    left: rect.left + window.scrollX,
+                                  }
+                            );
+                            dropdownButtonRefs.current[item.id] = btn;
+                          }}
+                          ref={(el) => {
+                            dropdownButtonRefs.current[item.id] = el;
+                          }}
                           className="focus:outline-none"
                         >
                           <svg
@@ -207,31 +232,53 @@ const ResidentialRentReview: React.FC = () => {
                             <path d="M6 10a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0zm6 0a2 2 0 11-4 0 2 2 0 014 0z" />
                           </svg>
                         </button>
-                        {dropdownOpen === item.id && (
-                          <div
-                            ref={dropdownRef}
-                            className="absolute right-0 mt-2 w-40 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg z-10"
-                          >
-                            <button
-                              onClick={() => handleEdit(item)}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                        {dropdownOpen === item.id &&
+                          dropdownPosition &&
+                          createPortal(
+                            <div
+                              id={`dropdown-portal-${item.id}`}
+                              style={{
+                                position: "absolute",
+                                top: dropdownPosition.top,
+                                left: dropdownPosition.left,
+                                zIndex: 9999,
+                                width: "160px",
+                              }}
+                              className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-md shadow-lg"
                             >
-                              Edit
-                            </button>
-                            <button
-                              onClick={() => handleDelete(item.id)}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              Delete
-                            </button>
-                            <button
-                              onClick={() => handleApprove(item)}
-                              className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                            >
-                              Approve
-                            </button>
-                          </div>
-                        )}
+                              <button
+                                onClick={() => {
+                                  handleEdit(item);
+                                  setDropdownOpen(null);
+                                  setDropdownPosition(null);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                Edit
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleDelete(item.id);
+                                  setDropdownOpen(null);
+                                  setDropdownPosition(null);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                Delete
+                              </button>
+                              <button
+                                onClick={() => {
+                                  handleApprove(item);
+                                  setDropdownOpen(null);
+                                  setDropdownPosition(null);
+                                }}
+                                className="block w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
+                              >
+                                Approve
+                              </button>
+                            </div>,
+                            document.body
+                          )}
                       </TableCell>
                     </TableRow>
                   ))}
