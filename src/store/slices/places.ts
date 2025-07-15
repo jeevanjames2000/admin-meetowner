@@ -1,3 +1,5 @@
+
+
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
@@ -88,6 +90,17 @@ interface InsertPlacePayload {
 interface FetchCitiesParams {
   state?: string;
 }
+interface LocalityData {
+  name: string;
+  city: string;
+}
+
+interface PlacesState {
+  // ... existing state properties ...
+  localities: LocalityData[];
+  localitiesLoading: boolean;
+  localitiesError: string | null;
+}
 export const fetchAllStates = createAsyncThunk(
   "places/fetchAllStates",
   async (_, { rejectWithValue }) => {
@@ -129,7 +142,27 @@ export const fetchAllCities = createAsyncThunk(
     }
   }
 );
+export const fetchLocalities = createAsyncThunk(
+  "places/fetchLocalities",
+  async (
+    { city, query }: { city: string; query: string },
+    { rejectWithValue }
+  ) => {
+    try {
+      const promise = axiosInstance.get<LocalityData[]>(
+        `/api/v1/search?city=${encodeURIComponent(city)}&query=${encodeURIComponent(query)}`
+      );
+    
 
+      const response = await promise;
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+      const errorMessage = axiosError.response?.data?.message || "Failed to fetch localities";
+      return rejectWithValue(errorMessage);
+    }
+  }
+);
 export const insertPlace = createAsyncThunk(
   "places/insertPlace",
   async (payload: InsertPlacePayload, { rejectWithValue }) => {
@@ -288,6 +321,9 @@ const placesSlice = createSlice({
     cities: [],
     citiesLoading: false,
     citiesError: null,
+      localities: [],
+    localitiesLoading: false,
+    localitiesError: null,
   } as unknown as PlacesState,
   reducers: {
     clearPlaces: (state) => {
@@ -397,6 +433,19 @@ const placesSlice = createSlice({
       .addCase(fetchAllCities.rejected, (state, action) => {
         state.citiesLoading = false;
         state.citiesError = action.payload as string;
+      });
+       builder
+      .addCase(fetchLocalities.pending, (state) => {
+        state.localitiesLoading = true;
+        state.localitiesError = null;
+      })
+      .addCase(fetchLocalities.fulfilled, (state, action) => {
+        state.localitiesLoading = false;
+        state.localities = action.payload;
+      })
+      .addCase(fetchLocalities.rejected, (state, action) => {
+        state.localitiesLoading = false;
+        state.localitiesError = action.payload as string;
       });
   },
 });

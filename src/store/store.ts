@@ -22,6 +22,7 @@ import employeeUsersSlice from './slices/employeeUsers';
 import userEditSlice from './slices/userEditSlicet';
 import userActivitySlice from './slices/user_activity';
 import leadsReducer from "./slices/leadSlice"
+import propertyLinksSlice from "./slices/propertyLinksSlice";
 const preloadedState = {
     auth : initializeAuthState()
 }
@@ -49,6 +50,7 @@ const store =  configureStore({
         userEdit:userEditSlice,
         userActivity:userActivitySlice,
         liveLeads: leadsReducer,
+        propertyLinks:propertyLinksSlice,
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),

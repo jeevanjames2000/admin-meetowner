@@ -71,6 +71,7 @@ import { Toaster } from "react-hot-toast";
 import UserHistory from "./components/tables/userHistory";
 
 import { disconnectSocket, initSocket } from "./utils/socketService";
+import PropertyLinks from "./pages/Forms/PropertyLinks";
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, token, user } = useSelector(
@@ -391,6 +392,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <AboutUsPage />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/propertylinks"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <PropertyLinks />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }
@@ -736,7 +747,7 @@ export default function App() {
                 }
               />
             </Route>
-            {}
+
             <Route path="/signin" element={<SignIn />} />
             <Route path="/signup" element={<SignUp />} />
             <Route path="*" element={<NotFound />} />

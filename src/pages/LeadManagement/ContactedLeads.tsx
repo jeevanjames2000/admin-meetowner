@@ -362,7 +362,7 @@ const ContactedLeads: React.FC = () => {
                             : "hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
                         }
                       >
-                        <TableCell className="flex gap-2 px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
+                        <TableCell className="flex  px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                           {startIndex + index + 1}
                           {isHotLead && (
                             <div className="relative inline-block group">

@@ -1,4 +1,10 @@
-import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import {
+  useCallback,
+  useEffect,
+  useLayoutEffect,
+  useRef,
+  useState,
+} from "react";
 import { Link, useLocation } from "react-router";
 
 import {
@@ -10,13 +16,18 @@ import {
   UserCircleIcon,
 } from "../icons";
 import { useSidebar } from "../context/SidebarContext";
-import { FaAd, FaBell,FaBusinessTime,FaUserTie,FaHouseUser ,FaMapMarkerAlt, FaVideo    } from "react-icons/fa";
+import {
+  FaAd,
+  FaBell,
+  FaBusinessTime,
+  FaUserTie,
+  FaHouseUser,
+  FaMapMarkerAlt,
+  FaVideo,
+} from "react-icons/fa";
 import { useSelector } from "react-redux";
 import { RootState } from "../store/store";
 import { filterNavItemsByUserType, NavItem } from "../hooks/navFilter";
-
-
-
 
 export const navItems: NavItem[] = [
   {
@@ -28,40 +39,104 @@ export const navItems: NavItem[] = [
     icon: <CalenderIcon />,
     name: "Residential Buy",
     subItems: [
-      { name: "Review", path: "/residential/buy/0", data: { "property_in": "Residential", "property_for": "Sell", "status": 0 } },
-      { name: "Approved", path: "/residential/buy/1", data: { "property_in": "Residential", "property_for": "Sell", "status": 1 } },
-      { name: "Rejected", path: "/residential/buy/2", data: { "property_in": "Residential", "property_for": "Sell", "status": 2 } },
-      { name: "Deleted", path: "/residential/buy/3", data: { "property_in": "Residential", "property_for": "Sell", "status": 3 } },
+      {
+        name: "Review",
+        path: "/residential/buy/0",
+        data: { property_in: "Residential", property_for: "Sell", status: 0 },
+      },
+      {
+        name: "Approved",
+        path: "/residential/buy/1",
+        data: { property_in: "Residential", property_for: "Sell", status: 1 },
+      },
+      {
+        name: "Rejected",
+        path: "/residential/buy/2",
+        data: { property_in: "Residential", property_for: "Sell", status: 2 },
+      },
+      {
+        name: "Deleted",
+        path: "/residential/buy/3",
+        data: { property_in: "Residential", property_for: "Sell", status: 3 },
+      },
     ],
   },
   {
     icon: <CalenderIcon />,
     name: "Residential Rent",
     subItems: [
-      { name: "Review", path: "/residential/rent/0", data: { "property_in": "Residential", "property_for": "Rent", "status": 0 } },
-      { name: "Approved", path: "/residential/rent/1", data: { "property_in": "Residential", "property_for": "Rent", "status": 1 } },
-      { name: "Rejected", path: "/residential/rent/2", data: { "property_in": "Residential", "property_for": "Rent", "status": 2 } },
-      { name: "Deleted", path: "/residential/rent/3", data: { "property_in": "Residential", "property_for": "Rent", "status": 3 } },
+      {
+        name: "Review",
+        path: "/residential/rent/0",
+        data: { property_in: "Residential", property_for: "Rent", status: 0 },
+      },
+      {
+        name: "Approved",
+        path: "/residential/rent/1",
+        data: { property_in: "Residential", property_for: "Rent", status: 1 },
+      },
+      {
+        name: "Rejected",
+        path: "/residential/rent/2",
+        data: { property_in: "Residential", property_for: "Rent", status: 2 },
+      },
+      {
+        name: "Deleted",
+        path: "/residential/rent/3",
+        data: { property_in: "Residential", property_for: "Rent", status: 3 },
+      },
     ],
   },
   {
     icon: <CalenderIcon />,
     name: "Commercial Buy",
     subItems: [
-      { name: "Review", path: "/commercial/buy/0", data: { "property_in": "Commercial", "property_for": "Sell", "status": 0 } },
-      { name: "Approved", path: "/commercial/buy/1", data: { "property_in": "Commercial", "property_for": "Sell", "status": 1 } },
-      { name: "Rejected", path: "/commercial/buy/2", data: { "property_in": "Commercial", "property_for": "Sell", "status": 2 } },
-      { name: "Deleted", path: "/commercial/buy/3", data: { "property_in": "Commercial", "property_for": "Sell", "status": 3 } },
+      {
+        name: "Review",
+        path: "/commercial/buy/0",
+        data: { property_in: "Commercial", property_for: "Sell", status: 0 },
+      },
+      {
+        name: "Approved",
+        path: "/commercial/buy/1",
+        data: { property_in: "Commercial", property_for: "Sell", status: 1 },
+      },
+      {
+        name: "Rejected",
+        path: "/commercial/buy/2",
+        data: { property_in: "Commercial", property_for: "Sell", status: 2 },
+      },
+      {
+        name: "Deleted",
+        path: "/commercial/buy/3",
+        data: { property_in: "Commercial", property_for: "Sell", status: 3 },
+      },
     ],
   },
   {
     icon: <CalenderIcon />,
     name: "Commercial Rent",
     subItems: [
-      { name: "Review", path: "/commercial/Rent/0", data: { "property_in": "Commercial", "property_for": "Sell", "status": 0 } },
-      { name: "Approved", path: "/commercial/Rent/1", data: { "property_in": "Commercial", "property_for": "Sell", "status": 1 } },
-      { name: "Rejected", path: "/commercial/Rent/2", data: { "property_in": "Commercial", "property_for": "Sell", "status": 2 } },
-      { name: "Deleted", path: "/commercial/Rent/3", data: { "property_in": "Commercial", "property_for": "Sell", "status": 3 } },
+      {
+        name: "Review",
+        path: "/commercial/Rent/0",
+        data: { property_in: "Commercial", property_for: "Sell", status: 0 },
+      },
+      {
+        name: "Approved",
+        path: "/commercial/Rent/1",
+        data: { property_in: "Commercial", property_for: "Sell", status: 1 },
+      },
+      {
+        name: "Rejected",
+        path: "/commercial/Rent/2",
+        data: { property_in: "Commercial", property_for: "Sell", status: 2 },
+      },
+      {
+        name: "Deleted",
+        path: "/commercial/Rent/3",
+        data: { property_in: "Commercial", property_for: "Sell", status: 3 },
+      },
     ],
   },
   {
@@ -70,9 +145,9 @@ export const navItems: NavItem[] = [
     subItems: [
       { name: "Buy", path: "/leads/buy/1" },
       { name: "Rent", path: "/leads/rent/2" },
-       { name: "Contacted", path: "/leads/contacted" },
-       {name:'Most Viewed',path:"/leads/mostviewed"},
-        {name:'Most Searched',path:"/leads/mostsearched"},
+      { name: "Contacted", path: "/leads/contacted" },
+      { name: "Most Viewed", path: "/leads/mostviewed" },
+      { name: "Most Searched", path: "/leads/mostsearched" },
     ],
   },
   {
@@ -84,8 +159,9 @@ export const navItems: NavItem[] = [
     name: "Pages",
     icon: <ListIcon />,
     subItems: [
+      { name: "Property Links", path: "/propertylinks", pro: false },
       { name: "About Us", path: "/about-us", pro: false },
-      {name : "Home Footer",path:'/home-footer',pro:false},
+      { name: "Home Footer", path: "/home-footer", pro: false },
       { name: "Services", path: "/services", pro: false },
       { name: "Careers", path: "/careers", pro: false },
       { name: "Terms", path: "/terms", pro: false },
@@ -96,29 +172,31 @@ export const navItems: NavItem[] = [
     icon: <FaBusinessTime />,
     name: "Accounts",
     subItems: [
-      { name: "Generate Payments", path: "/accounts/generate-payment-links", pro: false },
-       { name: "Payment Success", path: "/payments/success" },
-        { name: "Payment Processing", path: "/payments/processing" },
-        { name: "Payment rejected", path: "/payments/rejected" },
-        { name: "Payment Cancelled", path: "/payments/cancelled" },
-        { name: "Expiry Soon", path: "/accounts/expiry-payments" },
-     
-      
+      {
+        name: "Generate Payments",
+        path: "/accounts/generate-payment-links",
+        pro: false,
+      },
+      { name: "Payment Success", path: "/payments/success" },
+      { name: "Payment Processing", path: "/payments/processing" },
+      { name: "Payment rejected", path: "/payments/rejected" },
+      { name: "Payment Cancelled", path: "/payments/cancelled" },
+      { name: "Expiry Soon", path: "/accounts/expiry-payments" },
     ],
   },
   {
     name: "Employees",
     icon: <FaUserTie />,
     subItems: [
-      { name: "Create Employee", path: "/create-employee", },
-      { name: "All Employees", path: "/all-employees",  },
+      { name: "Create Employee", path: "/create-employee" },
+      { name: "All Employees", path: "/all-employees" },
     ],
   },
   {
     name: "Projects",
     icon: <FaHouseUser />,
     subItems: [
-      { name: "Add Projects", path: "/projects/add-projects",},
+      { name: "Add Projects", path: "/projects/add-projects" },
       // { name: "All Projects", path: "/projects/all-projects", pro: false },
     ],
   },
@@ -128,19 +206,17 @@ export const navItems: NavItem[] = [
   //   subItems: [
   //     // { name: "Create User", path: "/create-user", pro: false },
   //      { name: "All Users", path: "/all-users", pro: false },
-    
+
   //   ],
   // },
   {
     name: "Maps",
-    icon: <FaMapMarkerAlt  />,
+    icon: <FaMapMarkerAlt />,
     subItems: [
       { name: "Places", path: "/maps/locality", pro: false },
       { name: "Places List", path: "/maps/allPlaces", pro: false },
       // { name: "States", path: "/maps/states", pro: false },
       // { name: "Cities", path: "/maps/cities", pro: false },
-      
-      
     ],
   },
   {
@@ -149,7 +225,7 @@ export const navItems: NavItem[] = [
     subItems: [
       { name: "All Ads", path: "/adds/all_ads", pro: false },
       { name: "Listing Ads", path: "/adds/listing_ads", pro: false },
-       { name: "Property Ads", path: "/adds/property_ads", pro: false },
+      { name: "Property Ads", path: "/adds/property_ads", pro: false },
       { name: "Create Ads", path: "/adds/upload-ads", pro: false },
     ],
   },
@@ -159,12 +235,15 @@ export const navItems: NavItem[] = [
     subItems: [
       { name: "Builder", path: "/packages/builder", pro: false },
       { name: "Agents", path: "/packages/agent", pro: false },
-      { name: "Channel Partners", path: "/packages/channel_partner", pro: false },
+      {
+        name: "Channel Partners",
+        path: "/packages/channel_partner",
+        pro: false,
+      },
       { name: "Owners", path: "/packages/owner", pro: false },
       { name: "Users", path: "/packages/user", pro: false },
-      {name: "Create Custom Packages", path: "/custompackages", pro: false },
-      {name: "All Custom Packages", path: "/allcustompackages", pro: false },
-     
+      { name: "Create Custom Packages", path: "/custompackages", pro: false },
+      { name: "All Custom Packages", path: "/allcustompackages", pro: false },
     ],
   },
   // {
@@ -173,25 +252,23 @@ export const navItems: NavItem[] = [
   //   subItems: [
   //     { name: "Offline", path: "quotations/offline",},
   //     {name :'Online', path:"quotations/online"}
-   
+
   //   ],
   // },
-   {
+  {
     name: "Push Notifications",
     icon: <FaBell />,
     subItems: [
-      { name: "Send Notifications", path: "notification/notify",},
-      {name :'All Notificatons', path:'notifications/all'}
-   
+      { name: "Send Notifications", path: "notification/notify" },
+      { name: "All Notificatons", path: "notifications/all" },
     ],
   },
   {
     name: "Dynamic Screens",
     icon: <FaVideo />,
     subItems: [
-      { name: "All Shorts", path: "Shorts/all",},
-       { name: "Create Short", path: "Shorts/Create",},
-   
+      { name: "All Shorts", path: "Shorts/all" },
+      { name: "Create Short", path: "Shorts/Create" },
     ],
   },
 ];
@@ -199,25 +276,47 @@ export const navItems: NavItem[] = [
 const AppSidebar: React.FC = () => {
   const { isExpanded, isMobileOpen, isHovered, setIsHovered } = useSidebar();
   const location = useLocation();
-  const userType = useSelector((state: RootState) => state.auth.user?.user_type);
-  
+  const userType = useSelector(
+    (state: RootState) => state.auth.user?.user_type
+  );
 
-  const [openSubmenu, setOpenSubmenu] = useState<{ type: "main"; index: number } | null>(null);
-  const [openNestedSubmenu, setOpenNestedSubmenu] = useState<{ type: "main"; index: number; subIndex: number } | null>(null);
-  const [openDeepNestedSubmenu, setOpenDeepNestedSubmenu] = useState<{ type: "main"; index: number; subIndex: number; nestedIndex: number } | null>(null);
-
-  
+  const [openSubmenu, setOpenSubmenu] = useState<{
+    type: "main";
+    index: number;
+  } | null>(null);
+  const [openNestedSubmenu, setOpenNestedSubmenu] = useState<{
+    type: "main";
+    index: number;
+    subIndex: number;
+  } | null>(null);
+  const [openDeepNestedSubmenu, setOpenDeepNestedSubmenu] = useState<{
+    type: "main";
+    index: number;
+    subIndex: number;
+    nestedIndex: number;
+  } | null>(null);
 
   const filteredNavItems = filterNavItemsByUserType(navItems, userType);
- 
+
   const subMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
   const nestedSubMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const deepNestedSubMenuRefs = useRef<Record<string, HTMLDivElement | null>>({});
-  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>({});
-  const [nestedSubMenuHeight, setNestedSubMenuHeight] = useState<Record<string, number>>({});
-  const [deepNestedSubMenuHeight, setDeepNestedSubMenuHeight] = useState<Record<string, number>>({});
+  const deepNestedSubMenuRefs = useRef<Record<string, HTMLDivElement | null>>(
+    {}
+  );
+  const [subMenuHeight, setSubMenuHeight] = useState<Record<string, number>>(
+    {}
+  );
+  const [nestedSubMenuHeight, setNestedSubMenuHeight] = useState<
+    Record<string, number>
+  >({});
+  const [deepNestedSubMenuHeight, setDeepNestedSubMenuHeight] = useState<
+    Record<string, number>
+  >({});
 
-  const isActive = useCallback((path?: string) => !!path && location.pathname === path, [location.pathname]);
+  const isActive = useCallback(
+    (path?: string) => !!path && location.pathname === path,
+    [location.pathname]
+  );
 
   useEffect(() => {
     let submenuMatched = false;
@@ -240,7 +339,12 @@ const AppSidebar: React.FC = () => {
                   if (isActive(deepNestedItem.path)) {
                     setOpenSubmenu({ type: "main", index });
                     setOpenNestedSubmenu({ type: "main", index, subIndex });
-                    setOpenDeepNestedSubmenu({ type: "main", index, subIndex, nestedIndex });
+                    setOpenDeepNestedSubmenu({
+                      type: "main",
+                      index,
+                      subIndex,
+                      nestedIndex,
+                    });
                     submenuMatched = true;
                   }
                 });
@@ -262,36 +366,60 @@ const AppSidebar: React.FC = () => {
     if (openSubmenu) {
       const key = `${openSubmenu.type}-${openSubmenu.index}`;
       if (subMenuRefs.current[key]) {
-        setSubMenuHeight((prev) => ({ ...prev, [key]: subMenuRefs.current[key]?.scrollHeight || 0 }));
+        setSubMenuHeight((prev) => ({
+          ...prev,
+          [key]: subMenuRefs.current[key]?.scrollHeight || 0,
+        }));
       }
     }
     if (openNestedSubmenu) {
       const key = `${openNestedSubmenu.type}-${openNestedSubmenu.index}-${openNestedSubmenu.subIndex}`;
       if (nestedSubMenuRefs.current[key]) {
-        setNestedSubMenuHeight((prev) => ({ ...prev, [key]: nestedSubMenuRefs.current[key]?.scrollHeight || 0 }));
+        setNestedSubMenuHeight((prev) => ({
+          ...prev,
+          [key]: nestedSubMenuRefs.current[key]?.scrollHeight || 0,
+        }));
       }
     }
     if (openDeepNestedSubmenu) {
       const key = `${openDeepNestedSubmenu.type}-${openDeepNestedSubmenu.index}-${openDeepNestedSubmenu.subIndex}-${openDeepNestedSubmenu.nestedIndex}`;
       if (deepNestedSubMenuRefs.current[key]) {
-        setDeepNestedSubMenuHeight((prev) => ({ ...prev, [key]: deepNestedSubMenuRefs.current[key]?.scrollHeight || 0 }));
+        setDeepNestedSubMenuHeight((prev) => ({
+          ...prev,
+          [key]: deepNestedSubMenuRefs.current[key]?.scrollHeight || 0,
+        }));
       }
     }
   }, [openSubmenu, openNestedSubmenu, openDeepNestedSubmenu]);
 
   const handleSubmenuToggle = (index: number) => {
-    setOpenSubmenu((prev) => (prev?.type === "main" && prev.index === index ? null : { type: "main", index }));
+    setOpenSubmenu((prev) =>
+      prev?.type === "main" && prev.index === index
+        ? null
+        : { type: "main", index }
+    );
   };
 
   const handleNestedSubmenuToggle = (index: number, subIndex: number) => {
     setOpenNestedSubmenu((prev) =>
-      prev?.type === "main" && prev.index === index && prev.subIndex === subIndex ? null : { type: "main", index, subIndex }
+      prev?.type === "main" &&
+      prev.index === index &&
+      prev.subIndex === subIndex
+        ? null
+        : { type: "main", index, subIndex }
     );
   };
 
-  const handleDeepNestedSubmenuToggle = (index: number, subIndex: number, nestedIndex: number) => {
+  const handleDeepNestedSubmenuToggle = (
+    index: number,
+    subIndex: number,
+    nestedIndex: number
+  ) => {
     setOpenDeepNestedSubmenu((prev) =>
-      prev?.type === "main" && prev.index === index && prev.subIndex === subIndex && prev.nestedIndex === nestedIndex
+      prev?.type === "main" &&
+      prev.index === index &&
+      prev.subIndex === subIndex &&
+      prev.nestedIndex === nestedIndex
         ? null
         : { type: "main", index, subIndex, nestedIndex }
     );
@@ -308,14 +436,22 @@ const AppSidebar: React.FC = () => {
                 openSubmenu?.type === "main" && openSubmenu?.index === index
                   ? "bg-gray-100 text-blue-600"
                   : "hover:bg-gray-50 text-gray-700"
-              } ${!isExpanded && !isHovered ? "lg:justify-center" : "lg:justify-start"}`}
+              } ${
+                !isExpanded && !isHovered
+                  ? "lg:justify-center"
+                  : "lg:justify-start"
+              }`}
             >
               <span className="w-6 h-4 flex-shrink-4">{nav.icon}</span>
-              {(isExpanded || isHovered || isMobileOpen) && <span className="flex-1 text-left">{nav.name}</span>}
+              {(isExpanded || isHovered || isMobileOpen) && (
+                <span className="flex-1 text-left">{nav.name}</span>
+              )}
               {(isExpanded || isHovered || isMobileOpen) && (
                 <ChevronDownIcon
                   className={`w-5 h-5 transition-transform duration-200 ${
-                    openSubmenu?.type === "main" && openSubmenu?.index === index ? "rotate-180 text-blue-600" : "text-gray-500"
+                    openSubmenu?.type === "main" && openSubmenu?.index === index
+                      ? "rotate-180 text-blue-600"
+                      : "text-gray-500"
                   }`}
                 />
               )}
@@ -325,17 +461,26 @@ const AppSidebar: React.FC = () => {
               <Link
                 to={nav.path}
                 className={`flex items-center w-full p-2 rounded-lg ${
-                  isActive(nav.path) ? "bg-gray-100 text-blue-600" : "hover:bg-gray-50 text-gray-700"
+                  isActive(nav.path)
+                    ? "bg-gray-100 text-blue-600"
+                    : "hover:bg-gray-50 text-gray-700"
                 }`}
               >
                 <span className="w-6 h-6 mr-2">{nav.icon}</span>
-                {(isExpanded || isHovered || isMobileOpen) && <span className="flex-1 text-left">{nav.name}</span>}
+                {(isExpanded || isHovered || isMobileOpen) && (
+                  <span className="flex-1 text-left">{nav.name}</span>
+                )}
               </Link>
             )
           )}
-          {nav.name === "Dashboard" && (isExpanded || isHovered || isMobileOpen) && (
-            <h2 className={`mt-2 text-ml flex leading-[20px] text-[#1D3A76] justify-start p-2`}>Listings</h2>
-          )}
+          {nav.name === "Dashboard" &&
+            (isExpanded || isHovered || isMobileOpen) && (
+              <h2
+                className={`mt-2 text-ml flex leading-[20px] text-[#1D3A76] justify-start p-2`}
+              >
+                Listings
+              </h2>
+            )}
           {nav.subItems && (isExpanded || isHovered || isMobileOpen) && (
             <div
               ref={(el: HTMLDivElement | null) => {
@@ -343,7 +488,10 @@ const AppSidebar: React.FC = () => {
               }}
               className="overflow-hidden transition-all duration-300"
               style={{
-                height: openSubmenu?.type === "main" && openSubmenu?.index === index ? `${subMenuHeight[`main-${index}`] || 0}px` : "0px",
+                height:
+                  openSubmenu?.type === "main" && openSubmenu?.index === index
+                    ? `${subMenuHeight[`main-${index}`] || 0}px`
+                    : "0px",
               }}
             >
               <ul className="mt-1 space-y-1 ml-6">
@@ -352,7 +500,9 @@ const AppSidebar: React.FC = () => {
                     {subItem.nestedItems ? (
                       <div>
                         <button
-                          onClick={() => handleNestedSubmenuToggle(index, subIndex)}
+                          onClick={() =>
+                            handleNestedSubmenuToggle(index, subIndex)
+                          }
                           className={`w-full flex items-center justify-between p-2 rounded-lg ${
                             openNestedSubmenu?.type === "main" &&
                             openNestedSubmenu?.index === index &&
@@ -374,7 +524,9 @@ const AppSidebar: React.FC = () => {
                         </button>
                         <div
                           ref={(el: HTMLDivElement | null) => {
-                            nestedSubMenuRefs.current[`main-${index}-${subIndex}`] = el;
+                            nestedSubMenuRefs.current[
+                              `main-${index}-${subIndex}`
+                            ] = el;
                           }}
                           className="overflow-hidden transition-all duration-300"
                           style={{
@@ -382,85 +534,121 @@ const AppSidebar: React.FC = () => {
                               openNestedSubmenu?.type === "main" &&
                               openNestedSubmenu?.index === index &&
                               openNestedSubmenu?.subIndex === subIndex
-                                ? `${nestedSubMenuHeight[`main-${index}-${subIndex}`] || 0}px`
+                                ? `${
+                                    nestedSubMenuHeight[
+                                      `main-${index}-${subIndex}`
+                                    ] || 0
+                                  }px`
                                 : "0px",
                           }}
                         >
                           <ul className="mt-1 space-y-1 ml-4">
-                            {subItem.nestedItems.map((nestedItem, nestedIndex) => (
-                              <li key={nestedItem.name}>
-                                {nestedItem.nestedItems ? (
-                                  <div>
-                                    <button
-                                      onClick={() => handleDeepNestedSubmenuToggle(index, subIndex, nestedIndex)}
-                                      className={`w-full flex items-center justify-between p-2 rounded-lg ${
-                                        openDeepNestedSubmenu?.type === "main" &&
-                                        openDeepNestedSubmenu?.index === index &&
-                                        openDeepNestedSubmenu?.subIndex === subIndex &&
-                                        openDeepNestedSubmenu?.nestedIndex === nestedIndex
-                                          ? "bg-gray-50 text-blue-600"
-                                          : "hover:bg-gray-50 text-gray-700"
-                                      }`}
-                                    >
-                                      <span>{nestedItem.name}</span>
-                                      <ChevronDownIcon
-                                        className={`w-5 h-5 transition-transform duration-200 ${
-                                          openDeepNestedSubmenu?.type === "main" &&
-                                          openDeepNestedSubmenu?.index === index &&
-                                          openDeepNestedSubmenu?.subIndex === subIndex &&
-                                          openDeepNestedSubmenu?.nestedIndex === nestedIndex
-                                            ? "rotate-180 text-blue-600"
-                                            : "text-gray-500"
+                            {subItem.nestedItems.map(
+                              (nestedItem, nestedIndex) => (
+                                <li key={nestedItem.name}>
+                                  {nestedItem.nestedItems ? (
+                                    <div>
+                                      <button
+                                        onClick={() =>
+                                          handleDeepNestedSubmenuToggle(
+                                            index,
+                                            subIndex,
+                                            nestedIndex
+                                          )
+                                        }
+                                        className={`w-full flex items-center justify-between p-2 rounded-lg ${
+                                          openDeepNestedSubmenu?.type ===
+                                            "main" &&
+                                          openDeepNestedSubmenu?.index ===
+                                            index &&
+                                          openDeepNestedSubmenu?.subIndex ===
+                                            subIndex &&
+                                          openDeepNestedSubmenu?.nestedIndex ===
+                                            nestedIndex
+                                            ? "bg-gray-50 text-blue-600"
+                                            : "hover:bg-gray-50 text-gray-700"
                                         }`}
-                                      />
-                                    </button>
-                                    <div
-                                      ref={(el: HTMLDivElement | null) => {
-                                        deepNestedSubMenuRefs.current[`main-${index}-${subIndex}-${nestedIndex}`] = el;
-                                      }}
-                                      className="overflow-hidden transition-all duration-300"
-                                      style={{
-                                        height:
-                                          openDeepNestedSubmenu?.type === "main" &&
-                                          openDeepNestedSubmenu?.index === index &&
-                                          openDeepNestedSubmenu?.subIndex === subIndex &&
-                                          openDeepNestedSubmenu?.nestedIndex === nestedIndex
-                                            ? `${deepNestedSubMenuHeight[`main-${index}-${subIndex}-${nestedIndex}`] || 0}px`
-                                            : "0px",
-                                      }}
-                                    >
-                                      <ul className="mt-1 space-y-1 ml-4">
-                                        {nestedItem.nestedItems.map((deepNestedItem) => (
-                                          <li key={deepNestedItem.name}>
-                                            <Link
-                                              to={deepNestedItem.path}
-                                              className={`block p-2 rounded-lg ${
-                                                isActive(deepNestedItem.path)
-                                                  ? "bg-gray-100 text-blue-600"
-                                                  : "hover:bg-gray-50 text-gray-700"
-                                              }`}
-                                            >
-                                              {deepNestedItem.name}
-                                            </Link>
-                                          </li>
-                                        ))}
-                                      </ul>
+                                      >
+                                        <span>{nestedItem.name}</span>
+                                        <ChevronDownIcon
+                                          className={`w-5 h-5 transition-transform duration-200 ${
+                                            openDeepNestedSubmenu?.type ===
+                                              "main" &&
+                                            openDeepNestedSubmenu?.index ===
+                                              index &&
+                                            openDeepNestedSubmenu?.subIndex ===
+                                              subIndex &&
+                                            openDeepNestedSubmenu?.nestedIndex ===
+                                              nestedIndex
+                                              ? "rotate-180 text-blue-600"
+                                              : "text-gray-500"
+                                          }`}
+                                        />
+                                      </button>
+                                      <div
+                                        ref={(el: HTMLDivElement | null) => {
+                                          deepNestedSubMenuRefs.current[
+                                            `main-${index}-${subIndex}-${nestedIndex}`
+                                          ] = el;
+                                        }}
+                                        className="overflow-hidden transition-all duration-300"
+                                        style={{
+                                          height:
+                                            openDeepNestedSubmenu?.type ===
+                                              "main" &&
+                                            openDeepNestedSubmenu?.index ===
+                                              index &&
+                                            openDeepNestedSubmenu?.subIndex ===
+                                              subIndex &&
+                                            openDeepNestedSubmenu?.nestedIndex ===
+                                              nestedIndex
+                                              ? `${
+                                                  deepNestedSubMenuHeight[
+                                                    `main-${index}-${subIndex}-${nestedIndex}`
+                                                  ] || 0
+                                                }px`
+                                              : "0px",
+                                        }}
+                                      >
+                                        <ul className="mt-1 space-y-1 ml-4">
+                                          {nestedItem.nestedItems.map(
+                                            (deepNestedItem) => (
+                                              <li key={deepNestedItem.name}>
+                                                <Link
+                                                  to={deepNestedItem.path}
+                                                  className={`block p-2 rounded-lg ${
+                                                    isActive(
+                                                      deepNestedItem.path
+                                                    )
+                                                      ? "bg-gray-100 text-blue-600"
+                                                      : "hover:bg-gray-50 text-gray-700"
+                                                  }`}
+                                                >
+                                                  {deepNestedItem.name}
+                                                </Link>
+                                              </li>
+                                            )
+                                          )}
+                                        </ul>
+                                      </div>
                                     </div>
-                                  </div>
-                                ) : (
-                                  nestedItem.path && (
-                                    <Link
-                                      to={nestedItem.path}
-                                      className={`block p-2 rounded-lg ${
-                                        isActive(nestedItem.path) ? "bg-gray-100 text-blue-600" : "hover:bg-gray-50 text-gray-700"
-                                      }`}
-                                    >
-                                      {nestedItem.name}
-                                    </Link>
-                                  )
-                                )}
-                              </li>
-                            ))}
+                                  ) : (
+                                    nestedItem.path && (
+                                      <Link
+                                        to={nestedItem.path}
+                                        className={`block p-2 rounded-lg ${
+                                          isActive(nestedItem.path)
+                                            ? "bg-gray-100 text-blue-600"
+                                            : "hover:bg-gray-50 text-gray-700"
+                                        }`}
+                                      >
+                                        {nestedItem.name}
+                                      </Link>
+                                    )
+                                  )}
+                                </li>
+                              )
+                            )}
                           </ul>
                         </div>
                       </div>
@@ -469,15 +657,21 @@ const AppSidebar: React.FC = () => {
                         <Link
                           to={subItem.path}
                           className={`block p-2 rounded-lg ${
-                            isActive(subItem.path) ? "bg-gray-100 text-blue-600" : "hover:bg-gray-50 text-gray-700"
+                            isActive(subItem.path)
+                              ? "bg-gray-100 text-blue-600"
+                              : "hover:bg-gray-50 text-gray-700"
                           }`}
                         >
                           {subItem.name}
                           {subItem.new && (
-                            <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">new</span>
+                            <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">
+                              new
+                            </span>
                           )}
                           {subItem.pro && (
-                            <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">pro</span>
+                            <span className="ml-2 px-1.5 py-0.5 text-xs rounded-full bg-gray-100 text-gray-500">
+                              pro
+                            </span>
                           )}
                         </Link>
                       )
@@ -495,17 +689,41 @@ const AppSidebar: React.FC = () => {
   return (
     <aside
       className={`fixed mt-16 flex flex-col lg:mt-0 top-0 px-5 left-0 bg-white dark:bg-gray-900 dark:border-gray-800 text-gray-900 h-screen transition-all duration-300 ease-in-out z-50 border-r border-gray-200 
-        ${isExpanded || isMobileOpen ? "w-[290px]" : isHovered ? "w-[290px]" : "w-[80px]"}
-        ${isMobileOpen ? "translate-x-0" : "-translate-x-full"} lg:translate-x-0`}
+        ${
+          isExpanded || isMobileOpen
+            ? "w-[290px]"
+            : isHovered
+            ? "w-[290px]"
+            : "w-[80px]"
+        }
+        ${
+          isMobileOpen ? "translate-x-0" : "-translate-x-full"
+        } lg:translate-x-0`}
       onMouseEnter={() => !isExpanded && setIsHovered(true)}
       onMouseLeave={() => setIsHovered(false)}
     >
-      <div className={`py-8 flex ${!isExpanded && !isHovered ? "lg:justify-center" : "justify-start"}`}>
+      <div
+        className={`py-8 flex ${
+          !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
+        }`}
+      >
         <Link to="/">
           {isExpanded || isHovered || isMobileOpen ? (
             <>
-              <img className="dark:hidden" src="/images/logo.png" alt="Logo" width={150} height={40} />
-              <img className="hidden dark:block" src="/images/logo/logo-dark.svg" alt="Logo" width={150} height={40} />
+              <img
+                className="dark:hidden"
+                src="/images/logo.png"
+                alt="Logo"
+                width={150}
+                height={40}
+              />
+              <img
+                className="hidden dark:block"
+                src="/images/logo/logo-dark.svg"
+                alt="Logo"
+                width={150}
+                height={40}
+              />
             </>
           ) : (
             <img src="/images/logo.png" alt="Logo" width={100} height={50} />
@@ -519,7 +737,11 @@ const AppSidebar: React.FC = () => {
               !isExpanded && !isHovered ? "lg:justify-center" : "justify-start"
             }`}
           >
-            {isExpanded || isHovered || isMobileOpen ? "Menu" : <HorizontaLDots className="size-6" />}
+            {isExpanded || isHovered || isMobileOpen ? (
+              "Menu"
+            ) : (
+              <HorizontaLDots className="size-6" />
+            )}
           </h2>
           {renderMenuItems(filteredNavItems)}
         </nav>
