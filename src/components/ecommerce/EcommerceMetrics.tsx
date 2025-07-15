@@ -60,7 +60,7 @@ export default function Home() {
     activeUsersLoading,
     activeUsersError,
   } = useSelector((state: RootState) => state.employeeUsers);
-  console.log("employeeCounts: ", employeeCounts);
+
   const navigate = useNavigate();
   useEffect(() => {
     if (!userCounts && !loading && !error) {
