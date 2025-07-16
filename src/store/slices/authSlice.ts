@@ -1,19 +1,40 @@
-import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
+import { createAsyncThunk, createSlice, createAction } from "@reduxjs/toolkit";
 import { AxiosError } from "axios";
 import { toast } from "react-hot-toast";
 import { jwtDecode } from "jwt-decode";
 import axiosInstance from "../../utils/axiosInstance";
+
 interface LoginRequest {
   mobile: string;
   password: string;
+  isWhatsapp?: boolean;
+  countryCode?: string;
 }
+
 interface SendOtpRequest {
   mobile: string;
 }
+
+interface SendWhatsappRequest {
+  mobile: string;
+  countryCode?: string;
+}
+
+interface WhatsappOtpResponse {
+  success: boolean;
+  data: {
+    id: string;
+    status: string;
+    message: string;
+  };
+  otp: number;
+}
+
 interface VerifyOtpRequest {
   mobile: string;
   otp: string;
 }
+
 interface User {
   user_id: number;
   mobile: string;
@@ -40,6 +61,7 @@ interface User {
   from_app?: number | null;
   uploaded_from_seller_panel?: string | null;
 }
+
 interface ProfileResponse {
   id: number;
   mobile: string;
@@ -66,19 +88,23 @@ interface ProfileResponse {
   from_app?: number | null;
   uploaded_from_seller_panel?: string | null;
 }
+
 interface LoginResponse {
   message: string;
   user: User;
   token: string;
 }
+
 interface OtpResponse {
   status: string;
   message: string;
   apiResponse?: any;
 }
+
 interface ErrorResponse {
   message?: string;
 }
+
 export interface AuthState {
   isAuthenticated: boolean;
   user: User | null;
@@ -90,29 +116,46 @@ export interface AuthState {
   otpVerified: boolean;
   tempUser: User | null;
   tempToken: string | null;
+  otp: string | null;
+  isWhatsappFlow: boolean;
 }
+
 interface DecodedToken {
   exp: number;
   [key: string]: any;
 }
+
 interface UserCount {
   user_type: string;
   count: number;
   trend?: "up" | "down";
   percentage?: number;
 }
+
 export const loginUser = createAsyncThunk(
   "auth/loginUser",
   async (credentials: LoginRequest, { rejectWithValue, dispatch }) => {
     try {
-      const promise = axiosInstance.post<LoginResponse>("/auth/v1/loginAgent", credentials);
+      const promise = axiosInstance.post<LoginResponse>("/auth/v1/loginAgent", {
+        mobile: credentials.mobile,
+        password: credentials.password,
+      });
       toast.promise(promise, {
         loading: "Logging in...",
         success: "Login successful! Sending OTP...",
         error: "Login failed",
       });
       const response = await promise;
-      await dispatch(sendOtpAdmin({ mobile: credentials.mobile }));
+      if (credentials.isWhatsapp) {
+        await dispatch(
+          sendWhatsapp({
+            mobile: credentials.mobile,
+            countryCode: credentials.countryCode || "+91",
+          })
+        ).unwrap();
+      } else {
+        await dispatch(sendOtpAdmin({ mobile: credentials.mobile })).unwrap();
+      }
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
@@ -139,6 +182,7 @@ export const loginUser = createAsyncThunk(
     }
   }
 );
+
 export const sendOtpAdmin = createAsyncThunk(
   "auth/sendOtpAdmin",
   async ({ mobile }: SendOtpRequest, { rejectWithValue }) => {
@@ -158,6 +202,30 @@ export const sendOtpAdmin = createAsyncThunk(
     }
   }
 );
+
+export const sendWhatsapp = createAsyncThunk(
+  "auth/sendWhatsapp",
+  async ({ mobile, countryCode }: SendWhatsappRequest, { rejectWithValue }) => {
+    try {
+      const response = await axiosInstance.post<WhatsappOtpResponse>(
+        "/auth/v1/sendGallaboxOTP",
+        {
+          mobile,
+          countryCode: countryCode?.replace("+", "") || "91",
+        }
+      );
+      toast.success("WhatsApp OTP sent!");
+      return response.data;
+    } catch (error) {
+      const axiosError = error as AxiosError<ErrorResponse>;
+    
+      return rejectWithValue(
+        axiosError.response?.data?.message || "Failed to send WhatsApp OTP"
+      );
+    }
+  }
+);
+
 export const verifyOtpAdmin = createAsyncThunk(
   "auth/verifyOtpAdmin",
   async ({ mobile, otp }: VerifyOtpRequest, { rejectWithValue, dispatch, getState }) => {
@@ -190,6 +258,9 @@ export const verifyOtpAdmin = createAsyncThunk(
     }
   }
 );
+
+export const verifyWhatsappOtpLocally = createAction<{ otp: string }>("auth/verifyWhatsappOtpLocally");
+
 export const getProfile = createAsyncThunk(
   "auth/getProfile",
   async (user_id: number, { rejectWithValue }) => {
@@ -223,6 +294,7 @@ export const getProfile = createAsyncThunk(
     }
   }
 );
+
 export const getAllUsersCount = createAsyncThunk(
   "auth/getAllUsersCount",
   async (_, { rejectWithValue }) => {
@@ -244,6 +316,7 @@ export const getAllUsersCount = createAsyncThunk(
     }
   }
 );
+
 const authSlice = createSlice({
   name: "auth",
   initialState: {
@@ -257,6 +330,8 @@ const authSlice = createSlice({
     otpVerified: false,
     tempUser: null,
     tempToken: null,
+    otp: null,
+    isWhatsappFlow: false,
   } as AuthState,
   reducers: {
     logout: (state) => {
@@ -269,6 +344,8 @@ const authSlice = createSlice({
       state.otpVerified = false;
       state.tempUser = null;
       state.tempToken = null;
+      state.otp = null;
+      state.isWhatsappFlow = false;
       localStorage.removeItem("token");
       localStorage.removeItem("name");
       localStorage.removeItem("userType");
@@ -285,6 +362,29 @@ const authSlice = createSlice({
       state.error = null;
       state.tempUser = null;
       state.tempToken = null;
+      state.otp = null;
+      state.isWhatsappFlow = false;
+    },
+    verifyWhatsappOtpLocally: (state, action) => {
+      const { otp } = action.payload;
+      if (state.otp && otp === state.otp) {
+        state.otpVerified = true;
+        state.isAuthenticated = true;
+        state.user = state.tempUser;
+        state.token = state.tempToken;
+        state.error = null;
+        if (state.tempUser && state.tempToken) {
+          localStorage.setItem("token", state.tempToken);
+          localStorage.setItem("name", state.tempUser.name);
+          localStorage.setItem("userType", state.tempUser.user_type.toString());
+          localStorage.setItem("email", state.tempUser.email || "");
+          localStorage.setItem("mobile", state.tempUser.mobile);
+          localStorage.setItem("city", state.tempUser.city || "");
+          localStorage.setItem("state", state.tempUser.state || "");
+          localStorage.setItem("userId", state.tempUser.user_id.toString());
+          localStorage.setItem("photo", state.tempUser.photo || "");
+        }
+      }
     },
   },
   extraReducers: (builder) => {
@@ -318,6 +418,7 @@ const authSlice = createSlice({
       .addCase(sendOtpAdmin.pending, (state) => {
         state.loading = true;
         state.error = null;
+        state.isWhatsappFlow = false;
       })
       .addCase(sendOtpAdmin.fulfilled, (state) => {
         state.loading = false;
@@ -328,6 +429,25 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.tempUser = null;
         state.tempToken = null;
+        state.otp = null;
+      })
+      .addCase(sendWhatsapp.pending, (state) => {
+        state.loading = true;
+        state.error = null;
+        state.isWhatsappFlow = true;
+      })
+      .addCase(sendWhatsapp.fulfilled, (state, action) => {
+        state.loading = false;
+        state.otpSent = true;
+        state.otp = action.payload.otp ? action.payload.otp.toString() : null;
+      })
+      .addCase(sendWhatsapp.rejected, (state, action) => {
+        state.loading = false;
+        state.error = action.payload as string;
+        state.tempUser = null;
+        state.tempToken = null;
+        state.otp = null;
+        state.isWhatsappFlow = false;
       })
       .addCase(verifyOtpAdmin.pending, (state) => {
         state.loading = true;
@@ -356,6 +476,7 @@ const authSlice = createSlice({
         state.error = action.payload as string;
         state.tempUser = null;
         state.tempToken = null;
+        state.otp = null;
       })
       .addCase(getProfile.pending, (state) => {
         state.loading = true;
@@ -407,6 +528,7 @@ const authSlice = createSlice({
         state.otpVerified = false;
         state.tempUser = null;
         state.tempToken = null;
+        state.otp = null;
         localStorage.clear();
       })
       .addCase(getAllUsersCount.pending, (state) => {
@@ -423,6 +545,7 @@ const authSlice = createSlice({
       });
   },
 });
+
 export const isTokenExpired = (token: string | null): boolean => {
   if (!token) return true;
   try {
@@ -434,5 +557,6 @@ export const isTokenExpired = (token: string | null): boolean => {
     return true;
   }
 };
+
 export const { logout, resetOtpState } = authSlice.actions;
 export default authSlice.reducer;
