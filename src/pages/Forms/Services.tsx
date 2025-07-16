@@ -1,4 +1,7 @@
 import { useState, useRef, useEffect, FormEvent } from "react";
+import { useDispatch, useSelector } from "react-redux";
+import { RootState, AppDispatch } from "../../store/store";
+import { fetchServices, updateServices } from "../../store/slices/legals";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import ReactQuill from "react-quill";
@@ -73,7 +76,7 @@ const RichTextEditor: React.FC<{
   onChange: (value: string) => void;
 }> = ({ value, onChange }) => {
   const quillRef = useRef<ReactQuill>(null);
-  const [height, setHeight] = useState<number>(200);
+  const [height, setHeight] = useState<number>(500);
   const [isDragging, setIsDragging] = useState<boolean>(false);
   const startY = useRef<number>(0);
   const startHeight = useRef<number>(0);
@@ -154,42 +157,59 @@ const RichTextEditor: React.FC<{
   );
 };
 const ServicesPage: React.FC = () => {
+  const dispatch = useDispatch<AppDispatch>();
+  const { services, loading, error, updateSuccess } =
+    useSelector((state: RootState) => state.legals) || {};
   const [formData, setFormData] = useState<FormData>({
     title: "Our Services",
-    description: `1. Rentals: Find the perfect place to call home with our extensive rental listings.\n2. Sales: Explore properties for sale, whether you're looking for a new home or an investment opportunity.\n3. Plots: Discover vacant plots to build your dream home or invest in future development.\n4. Commercial: Searching for the ideal location for your business? We've got you covered with commercial property listings.`,
+    description: "",
   });
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setFormData((prev) => ({ ...prev, [name]: value }));
-  };
+  useEffect(() => {
+    dispatch(fetchServices());
+  }, [dispatch]);
+  useEffect(() => {
+    if (services) {
+      setFormData((prev) => ({ ...prev, description: services }));
+    }
+  }, [services]);
   const handleDescriptionChange = (value: string) => {
     setFormData((prev) => ({ ...prev, description: value }));
   };
   const handleSubmit = (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
+    dispatch(updateServices({ services: formData.description }));
   };
   return (
     <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
       <ComponentCard title="Add/Update Services">
         <form onSubmit={handleSubmit} className="space-y-6">
-          {}
-          {}
           <div>
             <Label htmlFor="description">Description</Label>
             <ErrorBoundary>
-              <RichTextEditor
-                value={formData.description}
-                onChange={handleDescriptionChange}
-              />
+              <div className="prose max-w-none">
+                <RichTextEditor
+                  value={formData.description}
+                  onChange={handleDescriptionChange}
+                />
+              </div>
             </ErrorBoundary>
+            {loading && (
+              <div className="text-xs text-blue-500 mt-2">Loading...</div>
+            )}
+            {error && <div className="text-xs text-red-500 mt-2">{error}</div>}
+            {updateSuccess && (
+              <div className="text-xs text-green-600 mt-2">
+                Updated successfully!
+              </div>
+            )}
           </div>
-          {}
           <div className="flex justify-end">
             <button
               type="submit"
               className="w-full sm:w-auto px-6 py-2 bg-[#1D3A76] text-white rounded-lg hover:bg-blue-700 transition-colors duration-200"
+              disabled={loading}
             >
-              Submit
+              {loading ? "Saving..." : "Submit"}
             </button>
           </div>
         </form>
