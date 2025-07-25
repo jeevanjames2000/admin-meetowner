@@ -103,9 +103,9 @@ export default function SignInForm() {
     } catch (err: any) {
       setErrors((prevErrors) => ({
         ...prevErrors,
-        general: err.message || "An unexpected error occurred",
+        general: err.message || "Access denied!",
       }));
-      toast.error(err.message || "An unexpected error occurred");
+      toast.error(err.message || "Access denied!");
     }
   };
   const handleWhatsappLogin = async () => {
@@ -141,9 +141,9 @@ export default function SignInForm() {
     } catch (err: any) {
       setErrors((prevErrors) => ({
         ...prevErrors,
-        general: err.message || "An unexpected error occurred",
+        general: err.message || "Access denied!",
       }));
-      toast.error(err.message || "An unexpected error occurred");
+      toast.error(err.message || "Access denied!");
     }
   };
   const handleSubmitOtp = async (e: { preventDefault: () => void }) => {

@@ -2,12 +2,17 @@ import React, { useEffect, useRef, useState } from "react";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
-import Dropdown from "../../components/form/Dropdown"; // Adjust the import path
+import Dropdown from "../../components/form/Dropdown";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
 import { getCities, getStates } from "../../store/slices/propertyDetails";
 import DatePicker from "../../components/form/date-picker";
 import Select from "../../components/form/Select";
+import {
+  createProjectData,
+  uploadProjectAssets,
+  resetCreateProjectStatus,
+} from "../../store/slices/upcoming";
 
 // Define interfaces
 interface SelectOption {
@@ -25,10 +30,11 @@ interface SizeEntry {
   buildupArea: string;
   carpetArea: string;
   floorPlan: File | null;
+  sqftPrice?: string;
 }
 
 interface AroundPropertyEntry {
-  place: string;
+  title: string;
   distance: string;
 }
 
@@ -66,16 +72,15 @@ interface Errors {
     [key: string]: {
       buildupArea?: string;
       carpetArea?: string;
-      floorPlan?: string;
       sqftPrice?: string;
     };
   };
   aroundProperty?: string;
   brochure?: string;
   priceSheet?: string;
+  launchType?: string;
   launchDate?: string;
   possessionEndDate?: string;
-  isReraRegistered?: string;
   reraNumber?: string;
   otpOptions?: string;
 }
@@ -83,6 +88,9 @@ interface Errors {
 export default function CreateProperty() {
   const dispatch = useDispatch<AppDispatch>();
   const { cities, states } = useSelector((state: RootState) => state.property);
+  const { createProjectStatus, createProjectError } = useSelector(
+    (state: RootState) => state.upcoming
+  );
 
   const [formData, setFormData] = useState<FormData>({
     state: "",
@@ -104,8 +112,8 @@ export default function CreateProperty() {
     aroundProperty: [],
     brochure: null,
     priceSheet: null,
-    isUpcoming: false,
-    status: "Ready to Move",
+    isUpcoming: true,
+    status: "Under Construction",
     launchType: "Pre Launch",
     launchDate: "",
     possessionEndDate: "",
@@ -126,6 +134,45 @@ export default function CreateProperty() {
     dispatch(getCities());
     dispatch(getStates());
   }, [dispatch]);
+
+  useEffect(() => {
+    if (createProjectStatus === "succeeded") {
+      alert("Project created successfully!");
+      setFormData({
+        state: "",
+        city: "",
+        locality: "",
+        propertyType: "",
+        propertySubType: "",
+        projectName: "",
+        builderName: "",
+        sizes: [
+          {
+            id: `${Date.now()}-1`,
+            buildupArea: "",
+            carpetArea: "",
+            floorPlan: null,
+            sqftPrice: "",
+          },
+        ],
+        aroundProperty: [],
+        brochure: null,
+        priceSheet: null,
+        isUpcoming: true,
+        status: "Under Construction",
+        launchType: "Pre Launch",
+        launchDate: "",
+        possessionEndDate: "",
+        isReraRegistered: false,
+        reraNumber: "",
+        otpOptions: [],
+      });
+      dispatch(resetCreateProjectStatus());
+    } else if (createProjectStatus === "failed" && createProjectError) {
+      alert(`Error: ${createProjectError}`);
+      dispatch(resetCreateProjectStatus());
+    }
+  }, [createProjectStatus, createProjectError, dispatch]);
 
   // Mock locality options (replace with actual API if available)
   const localityOptions: Option[] = [
@@ -189,7 +236,8 @@ export default function CreateProperty() {
   ];
 
   const handleDropdownChange =
-    (field: "state" | "city" | "locality") => (value: string, text: string) => {
+    (field: "state" | "city" | "locality" | "launchType") =>
+    (value: string, text: string) => {
       setFormData({
         ...formData,
         [field]: value,
@@ -203,19 +251,18 @@ export default function CreateProperty() {
 
   const handleSelectChange =
     (field: "propertyType" | "propertySubType") => (value: string) => {
-      const newFormData = {
+      setFormData({
         ...formData,
         [field]: value,
         ...(field === "propertyType" && { propertySubType: "" }),
-      };
-      setFormData(newFormData);
+      });
       if (errors[field]) {
         setErrors({ ...errors, [field]: undefined });
       }
     };
 
   const handleInputChange =
-    (field: "projectName" | "builderName") =>
+    (field: "projectName" | "builderName" | "reraNumber") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setFormData({ ...formData, [field]: e.target.value });
       if (errors[field]) {
@@ -224,7 +271,7 @@ export default function CreateProperty() {
     };
 
   const handleSizeChange =
-    (id: string, field: "buildupArea" | "carpetArea") =>
+    (id: string, field: "buildupArea" | "carpetArea" | "sqftPrice") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
       setFormData({
         ...formData,
@@ -246,6 +293,35 @@ export default function CreateProperty() {
   const handleFileChange =
     (id: string) => (e: React.ChangeEvent<HTMLInputElement>) => {
       const file = e.target.files?.[0] || null;
+      if (file) {
+        const validFileTypes = ["image/jpeg", "image/png", "application/pdf"];
+        if (!validFileTypes.includes(file.type)) {
+          setErrors({
+            ...errors,
+            sizes: {
+              ...errors.sizes,
+              [id]: {
+                ...errors.sizes?.[id],
+                floorPlan: "Only JPEG, PNG, or PDF files are allowed",
+              },
+            },
+          });
+          return;
+        }
+        if (file.size > 20 * 1024 * 1024) {
+          setErrors({
+            ...errors,
+            sizes: {
+              ...errors.sizes,
+              [id]: {
+                ...errors.sizes?.[id],
+                floorPlan: "File size must be less than 20MB",
+              },
+            },
+          });
+          return;
+        }
+      }
       setFormData({
         ...formData,
         sizes: formData.sizes.map((size) =>
@@ -264,9 +340,7 @@ export default function CreateProperty() {
     };
 
   const handleBrochureButtonClick = () => {
-    if (brochureInputRef.current) {
-      brochureInputRef.current.click();
-    }
+    brochureInputRef.current?.click();
   };
 
   const handleBrochureChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -274,49 +348,44 @@ export default function CreateProperty() {
     if (file) {
       const validFileTypes = ["image/jpeg", "image/png", "application/pdf"];
       if (!validFileTypes.includes(file.type)) {
-        setErrors((prev) => ({
-          ...prev,
+        setErrors({
+          ...errors,
           brochure: "Only JPEG, PNG, or PDF files are allowed",
-        }));
+        });
         return;
       }
       if (file.size > 20 * 1024 * 1024) {
-        setErrors((prev) => ({
-          ...prev,
-          brochure: "File size must be less than 20MB",
-        }));
+        setErrors({ ...errors, brochure: "File size must be less than 20MB" });
         return;
       }
     }
-    setFormData((prev) => ({ ...prev, brochure: file }));
-    setErrors((prev) => ({ ...prev, brochure: undefined }));
+    setFormData({ ...formData, brochure: file });
+    setErrors({ ...errors, brochure: undefined });
   };
 
   const handleDeleteBrochure = () => {
-    setFormData((prev) => ({ ...prev, brochure: null }));
-    setErrors((prev) => ({ ...prev, brochure: undefined }));
+    setFormData({ ...formData, brochure: null });
+    setErrors({ ...errors, brochure: undefined });
   };
 
   const handleDeleteFile = (id: string) => () => {
-    setFormData((prev) => ({
-      ...prev,
-      sizes: prev.sizes.map((size) =>
+    setFormData({
+      ...formData,
+      sizes: formData.sizes.map((size) =>
         size.id === id ? { ...size, floorPlan: null } : size
       ),
-    }));
-    setErrors((prev) => ({
-      ...prev,
+    });
+    setErrors({
+      ...errors,
       sizes: {
-        ...prev.sizes,
-        [id]: { ...prev.sizes?.[id], floorPlan: undefined },
+        ...errors.sizes,
+        [id]: { ...errors.sizes?.[id], floorPlan: undefined },
       },
-    }));
+    });
   };
 
   const handlePriceSheetButtonClick = () => {
-    if (priceSheetInputRef.current) {
-      priceSheetInputRef.current.click();
-    }
+    priceSheetInputRef.current?.click();
   };
 
   const handlePriceSheetChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -324,86 +393,86 @@ export default function CreateProperty() {
     if (file) {
       const validFileTypes = ["image/jpeg", "image/png", "application/pdf"];
       if (!validFileTypes.includes(file.type)) {
-        setErrors((prev) => ({
-          ...prev,
+        setErrors({
+          ...errors,
           priceSheet: "Only JPEG, PNG, or PDF files are allowed",
-        }));
+        });
         return;
       }
       if (file.size > 20 * 1024 * 1024) {
-        setErrors((prev) => ({
-          ...prev,
+        setErrors({
+          ...errors,
           priceSheet: "File size must be less than 20MB",
-        }));
+        });
         return;
       }
     }
-    setFormData((prev) => ({ ...prev, priceSheet: file }));
-    setErrors((prev) => ({ ...prev, priceSheet: undefined }));
+    setFormData({ ...formData, priceSheet: file });
+    setErrors({ ...errors, priceSheet: undefined });
   };
 
   const handleDeletePriceSheet = () => {
-    setFormData((prev) => ({ ...prev, priceSheet: null }));
-    setErrors((prev) => ({ ...prev, priceSheet: undefined }));
+    setFormData({ ...formData, priceSheet: null });
+    setErrors({ ...errors, priceSheet: undefined });
   };
 
   const handleDeleteSize = (id: string) => () => {
-    setFormData((prev) => ({
-      ...prev,
-      sizes: prev.sizes.filter((size) => size.id !== id),
-    }));
-    setErrors((prev) => ({
-      ...prev,
+    setFormData({
+      ...formData,
+      sizes: formData.sizes.filter((size) => size.id !== id),
+    });
+    setErrors({
+      ...errors,
       sizes: Object.fromEntries(
-        Object.entries(prev.sizes || {}).filter(([key]) => key !== id)
+        Object.entries(errors.sizes || {}).filter(([key]) => key !== id)
       ),
-    }));
+    });
   };
 
   const handleAddSize = () => {
-    setFormData((prev) => ({
-      ...prev,
+    setFormData({
+      ...formData,
       sizes: [
-        ...prev.sizes,
+        ...formData.sizes,
         {
-          id: `${Date.now()}-${prev.sizes.length + 1}`,
+          id: `${Date.now()}-${formData.sizes.length + 1}`,
           buildupArea: "",
           carpetArea: "",
           floorPlan: null,
           sqftPrice: "",
         },
       ],
-    }));
+    });
   };
 
   const handleAddAroundProperty = () => {
     if (placeAroundProperty.trim() && distanceFromProperty.trim()) {
-      setFormData((prev) => ({
-        ...prev,
+      setFormData({
+        ...formData,
         aroundProperty: [
-          ...prev.aroundProperty,
+          ...formData.aroundProperty,
           {
-            place: placeAroundProperty.trim(),
+            title: placeAroundProperty.trim(),
             distance: distanceFromProperty.trim(),
           },
         ],
-      }));
+      });
       setPlaceAroundProperty("");
       setDistanceFromProperty("");
-      setErrors((prev) => ({ ...prev, aroundProperty: undefined }));
+      setErrors({ ...errors, aroundProperty: undefined });
     } else {
-      setErrors((prev) => ({
-        ...prev,
+      setErrors({
+        ...errors,
         aroundProperty: "Both place and distance are required",
-      }));
+      });
     }
   };
 
   const handleDeleteAroundProperty = (index: number) => () => {
-    setFormData((prev) => ({
-      ...prev,
-      aroundProperty: prev.aroundProperty.filter((_, i) => i !== index),
-    }));
+    setFormData({
+      ...formData,
+      aroundProperty: formData.aroundProperty.filter((_, i) => i !== index),
+    });
   };
 
   const handleLaunchDateChange = (selectedDates: Date[]) => {
@@ -413,8 +482,8 @@ export default function CreateProperty() {
           selectedDate.getMonth() + 1
         ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
       : "";
-    setFormData((prev) => ({ ...prev, launchDate: formattedDate }));
-    setErrors((prev) => ({ ...prev, launchDate: undefined }));
+    setFormData({ ...formData, launchDate: formattedDate });
+    setErrors({ ...errors, launchDate: undefined });
   };
 
   const handlePossessionEndDateChange = (selectedDates: Date[]) => {
@@ -424,18 +493,18 @@ export default function CreateProperty() {
           selectedDate.getMonth() + 1
         ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
       : "";
-    setFormData((prev) => ({ ...prev, possessionEndDate: formattedDate }));
-    setErrors((prev) => ({ ...prev, possessionEndDate: undefined }));
+    setFormData({ ...formData, possessionEndDate: formattedDate });
+    setErrors({ ...errors, possessionEndDate: undefined });
   };
 
   const handleOtpOptionsChange = (option: string) => {
-    setFormData((prev) => ({
-      ...prev,
-      otpOptions: prev.otpOptions.includes(option)
-        ? prev.otpOptions.filter((opt) => opt !== option)
-        : [...prev.otpOptions, option],
-    }));
-    setErrors((prev) => ({ ...prev, otpOptions: undefined }));
+    setFormData({
+      ...formData,
+      otpOptions: formData.otpOptions.includes(option)
+        ? formData.otpOptions.filter((opt) => opt !== option)
+        : [...formData.otpOptions, option],
+    });
+    setErrors({ ...errors, otpOptions: undefined });
   };
 
   const validateForm = () => {
@@ -452,28 +521,32 @@ export default function CreateProperty() {
       newErrors.projectName = "Project Name is required";
     if (!formData.builderName.trim())
       newErrors.builderName = "Builder Name is required";
+    if (!formData.launchType) newErrors.launchType = "Launch Type is required";
     if (formData.aroundProperty.length === 0)
       newErrors.aroundProperty =
         "At least one place around property is required";
+    if (formData.isReraRegistered && !formData.reraNumber.trim())
+      newErrors.reraNumber = "RERA Number is required if RERA registered";
 
     const sizeErrors: {
       [key: string]: {
         buildupArea?: string;
         carpetArea?: string;
-        floorPlan?: string;
+        sqftPrice?: string;
       };
     } = {};
     formData.sizes.forEach((size) => {
       const errorsForSize: {
         buildupArea?: string;
         carpetArea?: string;
-        floorPlan?: string;
+        sqftPrice?: string;
       } = {};
       if (!size.buildupArea.trim())
         errorsForSize.buildupArea = "Buildup Area is required";
       if (!size.carpetArea.trim())
         errorsForSize.carpetArea = "Carpet Area is required";
-      if (!size.floorPlan) errorsForSize.floorPlan = "Floor Plan is required";
+      if (size.sqftPrice && isNaN(Number(size.sqftPrice)))
+        errorsForSize.sqftPrice = "Square Foot Price must be a number";
       if (Object.keys(errorsForSize).length > 0) {
         sizeErrors[size.id] = errorsForSize;
       }
@@ -487,34 +560,70 @@ export default function CreateProperty() {
     return Object.keys(newErrors).length === 0;
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (validateForm()) {
-      const stateName =
-        stateOptions.find((option) => option.value === formData.state)?.text ||
-        formData.state;
-      const cityName =
-        cityOptions.find((option) => option.value === formData.city)?.text ||
-        formData.city;
-      const localityName =
-        localityOptions.find((option) => option.value === formData.locality)
-          ?.text || formData.locality;
+    if (!validateForm()) return;
 
-      const propertyData = {
-        state: stateName,
-        city: cityName,
-        locality: localityName,
-        propertyType: formData.propertyType,
-        propertySubType: formData.propertySubType,
-        projectName: formData.projectName,
-        builderName: formData.builderName,
-        sizes: formData.sizes.map((size) => ({
-          buildupArea: size.buildupArea,
-          carpetArea: size.carpetArea,
-          floorPlan: size.floorPlan ? size.floorPlan.name : null,
-        })),
-        aroundProperty: formData.aroundProperty,
-      };
+    const uniquePropertyId = Date.now();
+    const stateName =
+      stateOptions.find((option) => option.value === formData.state)?.text ||
+      formData.state;
+    const cityName =
+      cityOptions.find((option) => option.value === formData.city)?.text ||
+      formData.city;
+    const localityName =
+      localityOptions.find((option) => option.value === formData.locality)
+        ?.text || formData.locality;
+
+    const projectData: CreateProjectDataPayload = {
+      unique_property_id: uniquePropertyId,
+      property_name: formData.projectName,
+      builder_name: formData.builderName,
+      state: stateName,
+      city: cityName,
+      location: localityName,
+      property_type: formData.propertyType,
+      property_for: "Sale", // Assuming "Sale" as default; adjust if needed
+      sub_type: formData.propertySubType,
+      possession_status: formData.status,
+      launch_type: formData.launchType,
+      launch_date:
+        formData.launchType === "Launched" ? formData.launchDate : undefined,
+      possession_end_date:
+        formData.status === "Under Construction"
+          ? formData.possessionEndDate
+          : undefined,
+      is_rera_registered: formData.isReraRegistered,
+      rera_number: formData.isReraRegistered ? formData.reraNumber : undefined,
+      otp_options:
+        formData.otpOptions.length > 0 ? formData.otpOptions : undefined,
+      sizes: formData.sizes.map((size) => ({
+        buildup_area: Number(size.buildupArea),
+        carpet_area: Number(size.carpetArea),
+        sqft_price: size.sqftPrice ? Number(size.sqftPrice) : undefined,
+      })),
+      around_property: formData.aroundProperty,
+    };
+
+    const result = await dispatch(createProjectData(projectData));
+    if (createProjectData.fulfilled.match(result)) {
+      const { unique_property_id, size_ids } = result.payload;
+      if (
+        formData.brochure ||
+        formData.priceSheet ||
+        formData.sizes.some((s) => s.floorPlan)
+      ) {
+        const uploadPayload: UploadProjectAssetsPayload = {
+          unique_property_id,
+          size_ids,
+          brochure: formData.brochure || undefined,
+          price_sheet: formData.priceSheet || undefined,
+          floor_plans: formData.sizes
+            .filter((s) => s.floorPlan)
+            .map((s) => s.floorPlan!),
+        };
+        await dispatch(uploadProjectAssets(uploadPayload));
+      }
     }
   };
 
@@ -522,7 +631,7 @@ export default function CreateProperty() {
     <ComponentCard title="Create Property">
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="min-h-[80px]">
-          <Label htmlFor="projectName">Project Name</Label>
+          <Label htmlFor="projectName">Project Name *</Label>
           <Input
             type="text"
             id="projectName"
@@ -536,7 +645,7 @@ export default function CreateProperty() {
         </div>
 
         <div className="min-h-[80px]">
-          <Label htmlFor="builderName">Builder Name</Label>
+          <Label htmlFor="builderName">Builder Name *</Label>
           <Input
             type="text"
             id="builderName"
@@ -551,20 +660,20 @@ export default function CreateProperty() {
 
         <Dropdown
           id="state"
-          label="Select State"
+          label="Select State *"
           options={stateOptions}
           value={formData.state}
-          onChange={(value, text) => handleDropdownChange("state")(value, text)}
+          onChange={handleDropdownChange("state")}
           placeholder="Search for a state..."
           error={errors.state}
         />
 
         <Dropdown
           id="city"
-          label="Select City"
+          label="Select City *"
           options={cityOptions}
           value={formData.city}
-          onChange={(value, text) => handleDropdownChange("city")(value, text)}
+          onChange={handleDropdownChange("city")}
           placeholder="Search for a city..."
           disabled={!formData.state}
           error={errors.city}
@@ -572,12 +681,10 @@ export default function CreateProperty() {
 
         <Dropdown
           id="locality"
-          label="Select Locality"
+          label="Select Locality *"
           options={localityOptions}
           value={formData.locality}
-          onChange={(value, text) =>
-            handleDropdownChange("locality")(value, text)
-          }
+          onChange={handleDropdownChange("locality")}
           placeholder="Search for a locality..."
           disabled={!formData.city}
           error={errors.locality}
@@ -634,21 +741,21 @@ export default function CreateProperty() {
         </div>
 
         <div className="min-h-[80px]">
-          <Label htmlFor="status">Construction Status</Label>
+          <Label htmlFor="status">Construction Status *</Label>
           <div className="flex space-x-4">
             {["Under Construction", "Ready to Move"].map((statusOption) => (
               <button
                 key={statusOption}
                 type="button"
                 onClick={() =>
-                  setFormData((prev) => ({
-                    ...prev,
+                  setFormData({
+                    ...formData,
                     status: statusOption as FormData["status"],
                     ...(statusOption === "Ready to Move" &&
-                    prev.launchType !== "Launched"
+                    formData.launchType !== "Launched"
                       ? { launchDate: "" }
                       : {}),
-                  }))
+                  })
                 }
                 className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                   formData.status === statusOption
@@ -661,17 +768,21 @@ export default function CreateProperty() {
             ))}
           </div>
         </div>
+
         <div className="min-h-[80px] w-full max-w-md">
+          <Label htmlFor="launchType">Launch Type *</Label>
           <Select
             id="launchType"
-            label="Launch Type"
             options={launchTypeOptions}
             value={formData.launchType}
-            onChange={handleDropdownChange("launchType")}
+            onChange={(value) =>
+              handleDropdownChange("launchType")(value, value)
+            }
             placeholder="Select launch type..."
-            // error={errors.launchType} // Uncomment if you add launchType to Errors interface
+            error={errors.launchType}
           />
         </div>
+
         {formData.launchType === "Launched" && (
           <div className="min-h-[80px] w-full max-w-md">
             <DatePicker
@@ -686,6 +797,7 @@ export default function CreateProperty() {
             )}
           </div>
         )}
+
         {formData.status === "Under Construction" && (
           <div className="min-h-[80px] w-full max-w-md">
             <DatePicker
@@ -702,13 +814,14 @@ export default function CreateProperty() {
             )}
           </div>
         )}
+
         <div className="min-h-[80px]">
           <Label htmlFor="isReraRegistered">Is this RERA Registered?</Label>
           <div className="flex space-x-4 mb-5">
             <button
               type="button"
               onClick={() =>
-                setFormData((prev) => ({ ...prev, isReraRegistered: true }))
+                setFormData({ ...formData, isReraRegistered: true })
               }
               className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                 formData.isReraRegistered
@@ -721,11 +834,11 @@ export default function CreateProperty() {
             <button
               type="button"
               onClick={() =>
-                setFormData((prev) => ({
-                  ...prev,
+                setFormData({
+                  ...formData,
                   isReraRegistered: false,
                   reraNumber: "",
-                }))
+                })
               }
               className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
                 !formData.isReraRegistered
@@ -737,9 +850,10 @@ export default function CreateProperty() {
             </button>
           </div>
         </div>
+
         {formData.isReraRegistered && (
           <div className="min-h-[80px] w-full max-w-md">
-            <Label htmlFor="reraNumber">RERA Number</Label>
+            <Label htmlFor="reraNumber">RERA Number *</Label>
             <Input
               type="text"
               id="reraNumber"
@@ -753,8 +867,9 @@ export default function CreateProperty() {
             )}
           </div>
         )}
+
         <div className="min-h-[80px]">
-          <Label htmlFor="otpOptions">Payment Modes *</Label>
+          <Label htmlFor="otpOptions">Payment Modes</Label>
           <div className="flex flex-wrap gap-4">
             {otpOptions.map((option) => (
               <button
@@ -775,39 +890,9 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.otpOptions}</p>
           )}
         </div>
-        <div className="min-h-[80px]">
-          <Label htmlFor="isUpcoming">Is this an Upcoming Project?</Label>
-          <div className="flex space-x-4 mb-5">
-            <button
-              type="button"
-              onClick={() =>
-                setFormData((prev) => ({ ...prev, isUpcoming: true }))
-              }
-              className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
-                formData.isUpcoming
-                  ? "bg-[#1D3A76] text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
-              }`}
-            >
-              Yes
-            </button>
-            <button
-              type="button"
-              onClick={() =>
-                setFormData((prev) => ({ ...prev, isUpcoming: false }))
-              }
-              className={`px-4 py-2 rounded-lg border transition-colors duration-200 ${
-                !formData.isUpcoming
-                  ? "bg-[#1D3A76] text-white border-blue-600"
-                  : "bg-white text-gray-700 border-gray-300 dark:bg-gray-800 dark:text-gray-300 dark:border-gray-700"
-              }`}
-            >
-              No
-            </button>
-          </div>
-        </div>
+
         <div className="space-y-4">
-          <h3 className="text-lg font-semibold">Sizes</h3>
+          <Label htmlFor="sizes">Sizes *</Label>
           {formData.sizes.map((size, index) => (
             <div
               key={size.id}
@@ -838,7 +923,7 @@ export default function CreateProperty() {
               )}
               <div className="min-h-[80px]">
                 <Label htmlFor={`buildupArea-${size.id}`}>
-                  Buildup Area (sq.ft)
+                  Buildup Area (sq.ft) *
                 </Label>
                 <Input
                   type="text"
@@ -856,7 +941,7 @@ export default function CreateProperty() {
               </div>
               <div className="min-h-[80px]">
                 <Label htmlFor={`carpetArea-${size.id}`}>
-                  Carpet Area (sq.ft)
+                  Carpet Area (sq.ft) *
                 </Label>
                 <Input
                   type="text"
@@ -891,12 +976,12 @@ export default function CreateProperty() {
                 )}
               </div>
               <div className="min-h-[80px]">
-                <Label>Floor Plan (Optional)</Label>
+                <Label>Floor Plan</Label>
                 <div className="flex items-center space-x-2">
                   <input
                     type="file"
                     id={`floorPlan-${size.id}`}
-                    accept="image/*,application/pdf"
+                    accept="image/jpeg,image/png,application/pdf"
                     onChange={handleFileChange(size.id)}
                     ref={(el) => (fileInputRefs.current[size.id] = el)}
                     className="hidden"
@@ -937,6 +1022,7 @@ export default function CreateProperty() {
             Add Size
           </button>
         </div>
+
         <div className="space-y-4">
           <Label htmlFor="aroundProperty" className="mt-4">
             Around This Property *
@@ -978,7 +1064,7 @@ export default function CreateProperty() {
                     className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
                   >
                     <span>
-                      {entry.place} - {entry.distance}
+                      {entry.title} - {entry.distance}
                     </span>
                     <button
                       type="button"
@@ -993,8 +1079,9 @@ export default function CreateProperty() {
             </div>
           )}
         </div>
+
         <div className="space-y-1">
-          <Label>Upload Brochure (Optional)</Label>
+          <Label>Upload Brochure</Label>
           <div className="flex items-center space-x-2">
             <input
               type="file"
@@ -1045,8 +1132,9 @@ export default function CreateProperty() {
             )}
           </div>
         </div>
+
         <div className="space-y-1">
-          <Label>Upload Price Sheet (Optional)</Label>
+          <Label>Upload Price Sheet</Label>
           <div className="flex items-center space-x-2">
             <input
               type="file"
@@ -1103,9 +1191,10 @@ export default function CreateProperty() {
         <div className="flex justify-center">
           <button
             type="submit"
-            className="w-[60%] px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50"
+            disabled={createProjectStatus === "loading"}
+            className={`w-[60%] px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50`}
           >
-            Submit
+            {createProjectStatus === "loading" ? "Submitting..." : "Submit"}
           </button>
         </div>
       </form>

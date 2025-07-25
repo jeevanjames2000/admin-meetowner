@@ -24,6 +24,7 @@ import userActivitySlice from './slices/user_activity';
 import leadsReducer from "./slices/leadSlice"
 import propertyLinksSlice from "./slices/propertyLinksSlice";
 import legalsReducer from './slices/legals';
+import upcomingReducer from './slices/upcoming';
 const preloadedState = {
     auth : initializeAuthState()
 }
@@ -53,6 +54,7 @@ const store =  configureStore({
         liveLeads: leadsReducer,
         propertyLinks:propertyLinksSlice,
         legals: legalsReducer,
+        upcoming: upcomingReducer, 
     },
     preloadedState,
     middleware: (getDefaultMiddleware) => getDefaultMiddleware({serializableCheck: false}),
