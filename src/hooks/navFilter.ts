@@ -33,7 +33,7 @@ export const filterNavItemsByUserType = (navItems: NavItem[], userType: number |
 
   return navItems
     .filter((item) => {
-      console.log("item: ", userType);
+      
       if (userType === 1) return true; 
       if (userType === 7) return !["Pages", "Packages", "Ads", "Push Notifications", "Maps", "Dynamic Screens","Employees"].includes(item.name); // Manager
       if (userType === 8) return !["Dashboard","Residential Buy","Residential Rent","Commercial Buy","Commercial Rent", "Ads", "Packages"].includes(item.name); // Telecaller
@@ -43,7 +43,7 @@ export const filterNavItemsByUserType = (navItems: NavItem[], userType: number |
       return true; 
     })
     .map((item) => {
-      if (item.name === "Accounts") {
+      if (item.name === "Accounts") { 
         return {
           ...item,
           subItems: filterAccountsSubItems(item.subItems),
