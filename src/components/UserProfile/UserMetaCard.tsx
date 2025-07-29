@@ -100,17 +100,17 @@ export default function UserMetaCard() {
             <img
               src={
                 hasValidPhoto()
-                  ? `https://api.meetowner.in/${user?.photo}`
+                  ? `https://api.meetowner.in/aws/v1/s3/uploads/${user?.photo}`
                   : getPlaceholderImage()
               }
               alt="User profile"
               className="w-full h-full object-cover"
               crossOrigin="anonymous"
               onError={(e) => {
-                e.currentTarget.src = getPlaceholderImage(); // Fallback to placeholder
+                e.currentTarget.src = getPlaceholderImage();
               }}
             />
-            {/* Edit Button - Always Available */}
+
             <label
               htmlFor="photo-upload"
               className="absolute bottom-2 right-1 bg-blue-500 text-white rounded-full p-1 cursor-pointer hover:bg-blue-600 transition-colors opacity-0 group-hover:opacity-100"
