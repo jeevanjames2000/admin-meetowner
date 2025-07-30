@@ -1,39 +1,44 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import ComponentCard from "../../components/common/ComponentCard";
 import Label from "../../components/form/Label";
 import Input from "../../components/form/input/InputField";
 import Dropdown from "../../components/form/Dropdown";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../store/store";
-import { getCities, getStates } from "../../store/slices/propertyDetails";
 import DatePicker from "../../components/form/date-picker";
 import Select from "../../components/form/Select";
 import {
   createProjectData,
   uploadProjectAssets,
   resetCreateProjectStatus,
+  deletePlacesAroundProperty,
+  deletePropertySizes,
+  deleteBroucherOrPriceSheet,
+  createPropertySizes,
+  createAroundThisProperty,
+  getPropertySizes,
+  getAroundThisProperty,
 } from "../../store/slices/upcoming";
+import {
+  fetchAllCities,
+  fetchLocalities,
+  fetchAllStates,
+} from "../../store/slices/places";
+import { useLocation } from "react-router";
+import toast from "react-hot-toast";
 
-// Define interfaces
-interface SelectOption {
-  value: string;
-  label: string;
-}
-
-interface Option {
-  value: string;
-  text: string;
-}
-
+// Update interfaces
 interface SizeEntry {
   id: string;
   buildupArea: string;
   carpetArea: string;
   floorPlan: File | null;
   sqftPrice?: string;
+  size_id?: number;
 }
 
 interface AroundPropertyEntry {
+  id?: string; // Changed from placeid to id to match API response
   title: string;
   distance: string;
 }
@@ -46,8 +51,6 @@ interface FormData {
   propertySubType: string;
   projectName: string;
   builderName: string;
-  sizes: SizeEntry[];
-  aroundProperty: AroundPropertyEntry[];
   brochure: File | null;
   priceSheet: File | null;
   isUpcoming: boolean;
@@ -68,14 +71,6 @@ interface Errors {
   propertySubType?: string;
   projectName?: string;
   builderName?: string;
-  sizes?: {
-    [key: string]: {
-      buildupArea?: string;
-      carpetArea?: string;
-      sqftPrice?: string;
-    };
-  };
-  aroundProperty?: string;
   brochure?: string;
   priceSheet?: string;
   launchType?: string;
@@ -83,70 +78,310 @@ interface Errors {
   possessionEndDate?: string;
   reraNumber?: string;
   otpOptions?: string;
+  sizes?: string; // For general size errors
+  aroundProperty?: string; // For general around property errors
+}
+
+interface CreateProjectDataPayload {
+  unique_property_id: string;
+  property_name: string;
+  builder_name: string;
+  state: string;
+  city: string;
+  location: string;
+  property_type: string;
+  property_for: string;
+  sub_type: string;
+  possession_status: string;
+  launch_type: string;
+  launch_date?: string;
+  possession_end_date?: string;
+  is_rera_registered: boolean;
+  rera_number?: string;
+  otp_options?: string[];
+}
+
+interface UploadProjectAssetsPayload {
+  unique_property_id: string;
+  size_ids: number[];
+  brochure?: File;
+  price_sheet?: File;
+  floor_plans: File[];
+}
+
+interface UpcomingProject {
+  unique_property_id: string;
+  property_name: string;
+  builder_name: string;
+  state: string;
+  city: string;
+  location: string;
+  property_type: string;
+  property_for: string;
+  sub_type: string;
+  possession_status: string;
+  launch_type: string;
+  launch_date?: string;
+  possession_end_date?: string;
+  is_rera_registered: number;
+  rera_number?: string;
+  otp_options?: string[];
+  brochure?: string;
+  price_sheet?: string;
 }
 
 export default function CreateProperty() {
   const dispatch = useDispatch<AppDispatch>();
-  const { cities, states } = useSelector((state: RootState) => state.property);
+  const location = useLocation();
+  const { cities, states, localities } = useSelector(
+    (state: RootState) => state.places
+  );
   const { createProjectStatus, createProjectError } = useSelector(
     (state: RootState) => state.upcoming
   );
+  const project = location.state?.project as UpcomingProject | undefined;
+  const isEditMode = !!project;
 
-  const [formData, setFormData] = useState<FormData>({
-    state: "",
-    city: "",
-    locality: "",
-    propertyType: "",
-    propertySubType: "",
-    projectName: "",
-    builderName: "",
-    sizes: [
-      {
-        id: `${Date.now()}-1`,
-        buildupArea: "",
-        carpetArea: "",
-        floorPlan: null,
-        sqftPrice: "",
-      },
-    ],
-    aroundProperty: [],
-    brochure: null,
-    priceSheet: null,
-    isUpcoming: true,
-    status: "Under Construction",
-    launchType: "Pre Launch",
-    launchDate: "",
-    possessionEndDate: "",
-    isReraRegistered: false,
-    reraNumber: "",
-    otpOptions: [],
-  });
-
-  const [errors, setErrors] = useState<Errors>({});
+  // Separate states for sizes and aroundProperty
+  const [sizes, setSizes] = useState<SizeEntry[]>([]);
+  const [aroundProperty, setAroundProperty] = useState<AroundPropertyEntry[]>(
+    []
+  );
   const [placeAroundProperty, setPlaceAroundProperty] = useState("");
   const [distanceFromProperty, setDistanceFromProperty] = useState("");
 
+  const [formData, setFormData] = useState<FormData>(() => {
+    if (isEditMode && project) {
+      return {
+        state: project.state || "",
+        city: project.city || "",
+        locality: project.location || "",
+        propertyType: project.property_type || "",
+        propertySubType: project.sub_type || "",
+        projectName: project.property_name || "",
+        builderName: project.builder_name || "",
+        brochure: null,
+        priceSheet: null,
+        isUpcoming: true,
+        status: project.possession_status as
+          | "Under Construction"
+          | "Ready to Move",
+        launchType: project.launch_type as
+          | "Pre Launch"
+          | "Soft Launch"
+          | "Launched",
+        launchDate: project.launch_date || "",
+        possessionEndDate: project.possession_end_date || "",
+        isReraRegistered: !!project.is_rera_registered,
+        reraNumber: project.rera_number || "",
+        otpOptions: project.otp_options?.length ? project.otp_options : [],
+      };
+    }
+    return {
+      state: "",
+      city: "",
+      locality: "",
+      propertyType: "",
+      propertySubType: "",
+      projectName: "",
+      builderName: "",
+      brochure: null,
+      priceSheet: null,
+      isUpcoming: true,
+      status: "Under Construction",
+      launchType: "Pre Launch",
+      launchDate: "",
+      possessionEndDate: "",
+      isReraRegistered: false,
+      reraNumber: "",
+      otpOptions: [],
+    };
+  });
+
+  const [errors, setErrors] = useState<Errors>({});
   const brochureInputRef = useRef<HTMLInputElement>(null);
   const priceSheetInputRef = useRef<HTMLInputElement>(null);
   const fileInputRefs = useRef<{ [key: string]: HTMLInputElement | null }>({});
+  const localityInputRef = useRef<HTMLDivElement>(null);
+  const [isLocalityDropdownOpen, setIsLocalityDropdownOpen] = useState(false);
+
+  // Fetch sizes and aroundProperty in edit mode
+  useEffect(() => {
+    if (isEditMode && project?.unique_property_id) {
+      // Fetch property sizes
+      dispatch(
+        getPropertySizes({ unique_property_id: project.unique_property_id })
+      ).then((result) => {
+        if (getPropertySizes.fulfilled.match(result)) {
+          setSizes(
+            result.payload.map((size, index) => ({
+              id: `${project.unique_property_id}-${index}`,
+              buildupArea: size.buildup_area?.toString() || "",
+              carpetArea: size.carpet_area?.toString() || "",
+              floorPlan: null,
+              sqftPrice: size.sqft_price?.toString() || "",
+              size_id: size.size_id,
+            }))
+          );
+        } else {
+          toast.error(result.payload || "Failed to fetch property sizes");
+        }
+      });
+
+      // Fetch around property entries
+      dispatch(
+        getAroundThisProperty({
+          unique_property_id: project.unique_property_id,
+        })
+      ).then((result) => {
+        if (getAroundThisProperty.fulfilled.match(result)) {
+          setAroundProperty(
+            result.payload.map((entry) => ({
+              id: entry.id,
+              title: entry.title,
+              distance: entry.distance,
+            }))
+          );
+        } else {
+          toast.error(
+            result.payload || "Failed to fetch around property entries"
+          );
+        }
+      });
+    } else {
+      // Initialize with one empty size in create mode
+      setSizes([
+        {
+          id: `${Date.now()}-1`,
+          buildupArea: "",
+          carpetArea: "",
+          floorPlan: null,
+          sqftPrice: "",
+        },
+      ]);
+      setAroundProperty([]);
+    }
+  }, [dispatch, isEditMode, project]);
+
+  const debounce = (func: (...args: any[]) => void, wait: number) => {
+    let timeout: NodeJS.Timeout | null = null;
+    return (...args: any[]) => {
+      if (timeout) clearTimeout(timeout);
+      timeout = setTimeout(() => {
+        func(...args);
+        timeout = null;
+      }, wait);
+    };
+  };
+
+  const city = formData.city;
+  const state = formData.state;
+  const debouncedFetchLocalities = useCallback(
+    debounce((city: string, state: string, query: string) => {
+      dispatch(fetchLocalities({ city, state, query }));
+    }, 300),
+    [dispatch]
+  );
 
   useEffect(() => {
-    dispatch(getCities());
-    dispatch(getStates());
+    dispatch(fetchAllStates());
   }, [dispatch]);
 
   useEffect(() => {
+    if (formData.state) {
+      dispatch(fetchAllCities({ state: formData.state }));
+    }
+  }, [dispatch, formData.state]);
+
+  useEffect(() => {
+    if (formData.city) {
+      dispatch(fetchLocalities({ city: formData.city, state: formData.state }));
+    }
+  }, [dispatch, formData.city, formData.state]);
+
+  const handleLocalityChange = useCallback(
+    (e: React.ChangeEvent<HTMLInputElement>) => {
+      const searchTerm = e.target.value;
+      setFormData((prev) => ({
+        ...prev,
+        locality: searchTerm,
+      }));
+      if (city) {
+        debouncedFetchLocalities(city, state, searchTerm);
+        setIsLocalityDropdownOpen(true);
+      }
+      if (errors.locality) {
+        setErrors((prev) => ({ ...prev, locality: undefined }));
+      }
+    },
+    [city, state, debouncedFetchLocalities, errors.locality]
+  );
+
+  const handleLocalitySelect = useCallback(
+    (locality: string) => {
+      setFormData((prev) => ({
+        ...prev,
+        locality,
+      }));
+      setIsLocalityDropdownOpen(false);
+      if (errors.locality) {
+        setErrors((prev) => ({ ...prev, locality: undefined }));
+      }
+    },
+    [errors.locality]
+  );
+
+  useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (
+        localityInputRef.current &&
+        !localityInputRef.current.contains(e.target as Node)
+      ) {
+        setIsLocalityDropdownOpen(false);
+      }
+    };
+    document.addEventListener("click", handleClickOutside);
+    return () => {
+      document.removeEventListener("click", handleClickOutside);
+    };
+  }, []);
+
+  const handleLocalityFocus = () => {
+    if (city && formData.locality) {
+      debouncedFetchLocalities(city, state, formData.locality);
+      setIsLocalityDropdownOpen(true);
+    }
+  };
+
+  // Remove alert-based feedback, rely on toasts
+  useEffect(() => {
     if (createProjectStatus === "succeeded") {
-      alert("Project created successfully!");
-      setFormData({
-        state: "",
-        city: "",
-        locality: "",
-        propertyType: "",
-        propertySubType: "",
-        projectName: "",
-        builderName: "",
-        sizes: [
+      toast.success(
+        isEditMode
+          ? "Project updated successfully!"
+          : "Project created successfully!"
+      );
+      if (!isEditMode) {
+        setFormData({
+          state: "",
+          city: "",
+          locality: "",
+          propertyType: "",
+          propertySubType: "",
+          projectName: "",
+          builderName: "",
+          brochure: null,
+          priceSheet: null,
+          isUpcoming: true,
+          status: "Under Construction",
+          launchType: "Pre Launch",
+          launchDate: "",
+          possessionEndDate: "",
+          isReraRegistered: false,
+          reraNumber: "",
+          otpOptions: [],
+        });
+        setSizes([
           {
             id: `${Date.now()}-1`,
             buildupArea: "",
@@ -154,43 +389,34 @@ export default function CreateProperty() {
             floorPlan: null,
             sqftPrice: "",
           },
-        ],
-        aroundProperty: [],
-        brochure: null,
-        priceSheet: null,
-        isUpcoming: true,
-        status: "Under Construction",
-        launchType: "Pre Launch",
-        launchDate: "",
-        possessionEndDate: "",
-        isReraRegistered: false,
-        reraNumber: "",
-        otpOptions: [],
-      });
+        ]);
+        setAroundProperty([]);
+        setPlaceAroundProperty("");
+        setDistanceFromProperty("");
+      }
       dispatch(resetCreateProjectStatus());
     } else if (createProjectStatus === "failed" && createProjectError) {
-      alert(`Error: ${createProjectError}`);
+      toast.error(`Error: ${createProjectError}`);
       dispatch(resetCreateProjectStatus());
     }
-  }, [createProjectStatus, createProjectError, dispatch]);
-
-  // Mock locality options (replace with actual API if available)
-  const localityOptions: Option[] = [
-    { value: "locality1", text: "Locality 1" },
-    { value: "locality2", text: "Locality 2" },
-    { value: "locality3", text: "Locality 3" },
-  ];
-
-  const cityOptions: Option[] =
-    cities?.map((city: any) => ({
-      value: city.value,
-      text: city.label,
-    })) || [];
+  }, [createProjectStatus, createProjectError, dispatch, isEditMode]);
 
   const stateOptions: Option[] =
-    states?.map((state: any) => ({
-      value: state.value,
-      text: state.label,
+    states.map((state: any) => ({
+      value: state.name,
+      text: state.name,
+    })) || [];
+
+  const cityOptions: Option[] =
+    cities.map((city: any) => ({
+      value: city.name,
+      text: city.name,
+    })) || [];
+
+  const placeOptions: Option[] =
+    localities.map((place: any) => ({
+      value: place.locality,
+      text: place.locality,
     })) || [];
 
   const propertyTypeOptions: SelectOption[] = [
@@ -238,55 +464,48 @@ export default function CreateProperty() {
   const handleDropdownChange =
     (field: "state" | "city" | "locality" | "launchType") =>
     (value: string, text: string) => {
-      setFormData({
-        ...formData,
+      setFormData((prev) => ({
+        ...prev,
         [field]: value,
         ...(field === "state" && { city: "", locality: "" }),
         ...(field === "city" && { locality: "" }),
-      });
+      }));
       if (errors[field]) {
-        setErrors({ ...errors, [field]: undefined });
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
       }
     };
 
   const handleSelectChange =
     (field: "propertyType" | "propertySubType") => (value: string) => {
-      setFormData({
-        ...formData,
+      setFormData((prev) => ({
+        ...prev,
         [field]: value,
         ...(field === "propertyType" && { propertySubType: "" }),
-      });
+      }));
       if (errors[field]) {
-        setErrors({ ...errors, [field]: undefined });
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
       }
     };
 
   const handleInputChange =
     (field: "projectName" | "builderName" | "reraNumber") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFormData({ ...formData, [field]: e.target.value });
+      setFormData((prev) => ({ ...prev, [field]: e.target.value }));
       if (errors[field]) {
-        setErrors({ ...errors, [field]: undefined });
+        setErrors((prev) => ({ ...prev, [field]: undefined }));
       }
     };
 
   const handleSizeChange =
     (id: string, field: "buildupArea" | "carpetArea" | "sqftPrice") =>
     (e: React.ChangeEvent<HTMLInputElement>) => {
-      setFormData({
-        ...formData,
-        sizes: formData.sizes.map((size) =>
+      setSizes((prev) =>
+        prev.map((size) =>
           size.id === id ? { ...size, [field]: e.target.value } : size
-        ),
-      });
-      if (errors.sizes?.[id]?.[field]) {
-        setErrors({
-          ...errors,
-          sizes: {
-            ...errors.sizes,
-            [id]: { ...errors.sizes?.[id], [field]: undefined },
-          },
-        });
+        )
+      );
+      if (errors.sizes) {
+        setErrors((prev) => ({ ...prev, sizes: undefined }));
       }
     };
 
@@ -296,46 +515,27 @@ export default function CreateProperty() {
       if (file) {
         const validFileTypes = ["image/jpeg", "image/png", "application/pdf"];
         if (!validFileTypes.includes(file.type)) {
-          setErrors({
-            ...errors,
-            sizes: {
-              ...errors.sizes,
-              [id]: {
-                ...errors.sizes?.[id],
-                floorPlan: "Only JPEG, PNG, or PDF files are allowed",
-              },
-            },
-          });
+          setErrors((prev) => ({
+            ...prev,
+            sizes: "Only JPEG, PNG, or PDF files are allowed for floor plans",
+          }));
           return;
         }
         if (file.size > 20 * 1024 * 1024) {
-          setErrors({
-            ...errors,
-            sizes: {
-              ...errors.sizes,
-              [id]: {
-                ...errors.sizes?.[id],
-                floorPlan: "File size must be less than 20MB",
-              },
-            },
-          });
+          setErrors((prev) => ({
+            ...prev,
+            sizes: "Floor plan file size must be less than 20MB",
+          }));
           return;
         }
       }
-      setFormData({
-        ...formData,
-        sizes: formData.sizes.map((size) =>
+      setSizes((prev) =>
+        prev.map((size) =>
           size.id === id ? { ...size, floorPlan: file } : size
-        ),
-      });
-      if (errors.sizes?.[id]?.floorPlan) {
-        setErrors({
-          ...errors,
-          sizes: {
-            ...errors.sizes,
-            [id]: { ...errors.sizes?.[id], floorPlan: undefined },
-          },
-        });
+        )
+      );
+      if (errors.sizes) {
+        setErrors((prev) => ({ ...prev, sizes: undefined }));
       }
     };
 
@@ -348,40 +548,55 @@ export default function CreateProperty() {
     if (file) {
       const validFileTypes = ["image/jpeg", "image/png", "application/pdf"];
       if (!validFileTypes.includes(file.type)) {
-        setErrors({
-          ...errors,
+        setErrors((prev) => ({
+          ...prev,
           brochure: "Only JPEG, PNG, or PDF files are allowed",
-        });
+        }));
         return;
       }
       if (file.size > 20 * 1024 * 1024) {
-        setErrors({ ...errors, brochure: "File size must be less than 20MB" });
+        setErrors((prev) => ({
+          ...prev,
+          brochure: "File size must be less than 20MB",
+        }));
         return;
       }
     }
-    setFormData({ ...formData, brochure: file });
-    setErrors({ ...errors, brochure: undefined });
+    setFormData((prev) => ({ ...prev, brochure: file }));
+    setErrors((prev) => ({ ...prev, brochure: undefined }));
   };
 
   const handleDeleteBrochure = () => {
-    setFormData({ ...formData, brochure: null });
-    setErrors({ ...errors, brochure: undefined });
+    if (isEditMode && project?.brochure) {
+      dispatch(
+        deleteBroucherOrPriceSheet({
+          key: project.brochure,
+          unique_property_id: project.unique_property_id,
+        })
+      ).then((result) => {
+        if (deleteBroucherOrPriceSheet.fulfilled.match(result)) {
+          toast.success("Brochure deleted successfully");
+        } else {
+          toast.error(result.payload || "Failed to delete brochure");
+        }
+      });
+    } else {
+      toast.success("Brochure removed successfully");
+    }
+    setFormData((prev) => ({ ...prev, brochure: null }));
+    setErrors((prev) => ({ ...prev, brochure: undefined }));
+    if (brochureInputRef.current) {
+      brochureInputRef.current.value = "";
+    }
   };
 
   const handleDeleteFile = (id: string) => () => {
-    setFormData({
-      ...formData,
-      sizes: formData.sizes.map((size) =>
-        size.id === id ? { ...size, floorPlan: null } : size
-      ),
-    });
-    setErrors({
-      ...errors,
-      sizes: {
-        ...errors.sizes,
-        [id]: { ...errors.sizes?.[id], floorPlan: undefined },
-      },
-    });
+    setSizes((prev) =>
+      prev.map((size) => (size.id === id ? { ...size, floorPlan: null } : size))
+    );
+    if (errors.sizes) {
+      setErrors((prev) => ({ ...prev, sizes: undefined }));
+    }
   };
 
   const handlePriceSheetButtonClick = () => {
@@ -393,86 +608,120 @@ export default function CreateProperty() {
     if (file) {
       const validFileTypes = ["image/jpeg", "image/png", "application/pdf"];
       if (!validFileTypes.includes(file.type)) {
-        setErrors({
-          ...errors,
+        setErrors((prev) => ({
+          ...prev,
           priceSheet: "Only JPEG, PNG, or PDF files are allowed",
-        });
+        }));
         return;
       }
       if (file.size > 20 * 1024 * 1024) {
-        setErrors({
-          ...errors,
+        setErrors((prev) => ({
+          ...prev,
           priceSheet: "File size must be less than 20MB",
-        });
+        }));
         return;
       }
     }
-    setFormData({ ...formData, priceSheet: file });
-    setErrors({ ...errors, priceSheet: undefined });
+    setFormData((prev) => ({ ...prev, priceSheet: file }));
+    setErrors((prev) => ({ ...prev, priceSheet: undefined }));
   };
 
   const handleDeletePriceSheet = () => {
-    setFormData({ ...formData, priceSheet: null });
-    setErrors({ ...errors, priceSheet: undefined });
+    if (isEditMode && project?.price_sheet) {
+      dispatch(
+        deleteBroucherOrPriceSheet({
+          key: project.price_sheet,
+          unique_property_id: project.unique_property_id,
+        })
+      ).then((result) => {
+        if (deleteBroucherOrPriceSheet.fulfilled.match(result)) {
+          toast.success("Price sheet deleted successfully");
+        } else {
+          toast.error(result.payload || "Failed to delete price sheet");
+        }
+      });
+    } else {
+      toast.success("Price sheet removed successfully");
+    }
+    setFormData((prev) => ({ ...prev, priceSheet: null }));
+    setErrors((prev) => ({ ...prev, priceSheet: undefined }));
+    if (priceSheetInputRef.current) {
+      priceSheetInputRef.current.value = "";
+    }
   };
 
-  const handleDeleteSize = (id: string) => () => {
-    setFormData({
-      ...formData,
-      sizes: formData.sizes.filter((size) => size.id !== id),
-    });
-    setErrors({
-      ...errors,
-      sizes: Object.fromEntries(
-        Object.entries(errors.sizes || {}).filter(([key]) => key !== id)
-      ),
-    });
+  const handleDeleteSize = (id: string) => async () => {
+    if (isEditMode && project && sizes.length === 1) {
+      const result = await dispatch(
+        deletePropertySizes({
+          unique_property_id: project.unique_property_id,
+        })
+      );
+      if (deletePropertySizes.fulfilled.match(result)) {
+        setSizes([]);
+        toast.success("Property sizes deleted successfully");
+      } else {
+        toast.error(result.payload || "Failed to delete property sizes");
+      }
+    } else {
+      setSizes((prev) => prev.filter((size) => size.id !== id));
+      toast.success("Size removed successfully");
+    }
   };
 
   const handleAddSize = () => {
-    setFormData({
-      ...formData,
-      sizes: [
-        ...formData.sizes,
-        {
-          id: `${Date.now()}-${formData.sizes.length + 1}`,
-          buildupArea: "",
-          carpetArea: "",
-          floorPlan: null,
-          sqftPrice: "",
-        },
-      ],
-    });
+    setSizes((prev) => [
+      ...prev,
+      {
+        id: `${Date.now()}-${prev.length + 1}`,
+        buildupArea: "",
+        carpetArea: "",
+        floorPlan: null,
+        sqftPrice: "",
+      },
+    ]);
   };
 
   const handleAddAroundProperty = () => {
     if (placeAroundProperty.trim() && distanceFromProperty.trim()) {
-      setFormData({
-        ...formData,
-        aroundProperty: [
-          ...formData.aroundProperty,
-          {
-            title: placeAroundProperty.trim(),
-            distance: distanceFromProperty.trim(),
-          },
-        ],
-      });
+      setAroundProperty((prev) => [
+        ...prev,
+        {
+          title: placeAroundProperty.trim(),
+          distance: distanceFromProperty.trim(),
+        },
+      ]);
       setPlaceAroundProperty("");
       setDistanceFromProperty("");
-      setErrors({ ...errors, aroundProperty: undefined });
+      setErrors((prev) => ({ ...prev, aroundProperty: undefined }));
+      toast.success("Around property entry added successfully");
     } else {
-      setErrors({
-        ...errors,
+      setErrors((prev) => ({
+        ...prev,
         aroundProperty: "Both place and distance are required",
-      });
+      }));
+      toast.error("Both place and distance are required");
     }
   };
 
-  const handleDeleteAroundProperty = (index: number) => () => {
-    setFormData({
-      ...formData,
-      aroundProperty: formData.aroundProperty.filter((_, i) => i !== index),
-    });
+  const handleDeleteAroundProperty = (index: number) => async () => {
+    if (isEditMode && project && aroundProperty[index].id) {
+      const result = await dispatch(
+        deletePlacesAroundProperty({
+          placeid: aroundProperty[index].id!,
+          unique_property_id: project.unique_property_id,
+        })
+      );
+      if (deletePlacesAroundProperty.fulfilled.match(result)) {
+        setAroundProperty((prev) => prev.filter((_, i) => i !== index));
+        toast.success("Around property entry deleted successfully");
+      } else {
+        toast.error(result.payload || "Failed to delete around property entry");
+      }
+    } else {
+      setAroundProperty((prev) => prev.filter((_, i) => i !== index));
+      toast.success("Around property entry removed successfully");
+    }
   };
 
   const handleLaunchDateChange = (selectedDates: Date[]) => {
@@ -482,8 +731,11 @@ export default function CreateProperty() {
           selectedDate.getMonth() + 1
         ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
       : "";
-    setFormData({ ...formData, launchDate: formattedDate });
-    setErrors({ ...errors, launchDate: undefined });
+    setFormData((prev) => ({
+      ...prev,
+      launchDate: formattedDate,
+    }));
+    setErrors((prev) => ({ ...prev, launchDate: undefined }));
   };
 
   const handlePossessionEndDateChange = (selectedDates: Date[]) => {
@@ -493,23 +745,25 @@ export default function CreateProperty() {
           selectedDate.getMonth() + 1
         ).padStart(2, "0")}-${String(selectedDate.getDate()).padStart(2, "0")}`
       : "";
-    setFormData({ ...formData, possessionEndDate: formattedDate });
-    setErrors({ ...errors, possessionEndDate: undefined });
+    setFormData((prev) => ({
+      ...prev,
+      possessionEndDate: formattedDate,
+    }));
+    setErrors((prev) => ({ ...prev, possessionEndDate: undefined }));
   };
 
   const handleOtpOptionsChange = (option: string) => {
-    setFormData({
-      ...formData,
-      otpOptions: formData.otpOptions.includes(option)
-        ? formData.otpOptions.filter((opt) => opt !== option)
-        : [...formData.otpOptions, option],
-    });
-    setErrors({ ...errors, otpOptions: undefined });
+    setFormData((prev) => ({
+      ...prev,
+      otpOptions: prev.otpOptions.includes(option)
+        ? prev.otpOptions.filter((opt) => opt !== option)
+        : [...prev.otpOptions, option],
+    }));
+    setErrors((prev) => ({ ...prev, otpOptions: undefined }));
   };
 
   const validateForm = () => {
     let newErrors: Errors = {};
-
     if (!formData.state) newErrors.state = "State is required";
     if (!formData.city) newErrors.city = "City is required";
     if (!formData.locality) newErrors.locality = "Locality is required";
@@ -522,49 +776,44 @@ export default function CreateProperty() {
     if (!formData.builderName.trim())
       newErrors.builderName = "Builder Name is required";
     if (!formData.launchType) newErrors.launchType = "Launch Type is required";
-    if (formData.aroundProperty.length === 0)
-      newErrors.aroundProperty =
-        "At least one place around property is required";
     if (formData.isReraRegistered && !formData.reraNumber.trim())
       newErrors.reraNumber = "RERA Number is required if RERA registered";
-
-    const sizeErrors: {
-      [key: string]: {
-        buildupArea?: string;
-        carpetArea?: string;
-        sqftPrice?: string;
-      };
-    } = {};
-    formData.sizes.forEach((size) => {
-      const errorsForSize: {
-        buildupArea?: string;
-        carpetArea?: string;
-        sqftPrice?: string;
-      } = {};
-      if (!size.buildupArea.trim())
-        errorsForSize.buildupArea = "Buildup Area is required";
-      if (!size.carpetArea.trim())
-        errorsForSize.carpetArea = "Carpet Area is required";
-      if (size.sqftPrice && isNaN(Number(size.sqftPrice)))
-        errorsForSize.sqftPrice = "Square Foot Price must be a number";
-      if (Object.keys(errorsForSize).length > 0) {
-        sizeErrors[size.id] = errorsForSize;
+    if (formData.launchType === "Launched" && !formData.launchDate)
+      newErrors.launchDate = "Launch Date is required for Launched projects";
+    if (formData.status === "Under Construction" && !formData.possessionEndDate)
+      newErrors.possessionEndDate =
+        "Possession End Date is required for Under Construction projects";
+    if (sizes.length === 0)
+      newErrors.sizes = "At least one size entry is required";
+    if (aroundProperty.length === 0)
+      newErrors.aroundProperty =
+        "At least one place around property is required";
+    sizes.forEach((size) => {
+      if (!size.buildupArea.trim() || !size.carpetArea.trim()) {
+        newErrors.sizes =
+          "Buildup Area and Carpet Area are required for all sizes";
+      }
+      if (size.sqftPrice && isNaN(Number(size.sqftPrice))) {
+        newErrors.sizes = "Square Foot Price must be a number for all sizes";
       }
     });
-
-    if (Object.keys(sizeErrors).length > 0) {
-      newErrors.sizes = sizeErrors;
-    }
-
+    aroundProperty.forEach((entry) => {
+      if (!entry.title.trim() || !entry.distance.trim()) {
+        newErrors.aroundProperty =
+          "Place and distance are required for all around property entries";
+      }
+    });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
+
+  const generateUniqueId = () =>
+    `MO-${Math.floor(100000 + Math.random() * 900000)}`;
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!validateForm()) return;
 
-    const uniquePropertyId = Date.now();
     const stateName =
       stateOptions.find((option) => option.value === formData.state)?.text ||
       formData.state;
@@ -572,18 +821,20 @@ export default function CreateProperty() {
       cityOptions.find((option) => option.value === formData.city)?.text ||
       formData.city;
     const localityName =
-      localityOptions.find((option) => option.value === formData.locality)
-        ?.text || formData.locality;
+      placeOptions.find((option) => option.value === formData.locality)?.text ||
+      formData.locality;
 
     const projectData: CreateProjectDataPayload = {
-      unique_property_id: uniquePropertyId,
+      unique_property_id: isEditMode
+        ? project!.unique_property_id
+        : generateUniqueId(),
       property_name: formData.projectName,
       builder_name: formData.builderName,
       state: stateName,
       city: cityName,
       location: localityName,
       property_type: formData.propertyType,
-      property_for: "Sale", // Assuming "Sale" as default; adjust if needed
+      property_for: "Sale",
       sub_type: formData.propertySubType,
       possession_status: formData.status,
       launch_type: formData.launchType,
@@ -597,39 +848,130 @@ export default function CreateProperty() {
       rera_number: formData.isReraRegistered ? formData.reraNumber : undefined,
       otp_options:
         formData.otpOptions.length > 0 ? formData.otpOptions : undefined,
-      sizes: formData.sizes.map((size) => ({
-        buildup_area: Number(size.buildupArea),
-        carpet_area: Number(size.carpetArea),
-        sqft_price: size.sqftPrice ? Number(size.sqftPrice) : undefined,
-      })),
-      around_property: formData.aroundProperty,
     };
 
-    const result = await dispatch(createProjectData(projectData));
-    if (createProjectData.fulfilled.match(result)) {
-      const { unique_property_id, size_ids } = result.payload;
-      if (
-        formData.brochure ||
-        formData.priceSheet ||
-        formData.sizes.some((s) => s.floorPlan)
-      ) {
-        const uploadPayload: UploadProjectAssetsPayload = {
-          unique_property_id,
-          size_ids,
-          brochure: formData.brochure || undefined,
-          price_sheet: formData.priceSheet || undefined,
-          floor_plans: formData.sizes
-            .filter((s) => s.floorPlan)
-            .map((s) => s.floorPlan!),
-        };
-        await dispatch(uploadProjectAssets(uploadPayload));
+    try {
+      const projectResult = await dispatch(createProjectData(projectData));
+      if (createProjectData.fulfilled.match(projectResult)) {
+        const { unique_property_id } = projectResult.payload;
+        toast.success(
+          isEditMode
+            ? "Project data updated successfully"
+            : "Project data created successfully"
+        );
+
+        // Handle sizes
+        if (sizes.length > 0) {
+          // In edit mode, delete existing sizes before adding new ones
+          if (isEditMode) {
+            const deleteResult = await dispatch(
+              deletePropertySizes({ unique_property_id })
+            );
+            if (!deletePropertySizes.fulfilled.match(deleteResult)) {
+              toast.error(
+                deleteResult.payload ||
+                  "Failed to delete existing property sizes"
+              );
+              return;
+            }
+          }
+          const sizesData = sizes.map((size) => ({
+            buildup_area: Number(size.buildupArea),
+            carpet_area: Number(size.carpetArea),
+            sqft_price: size.sqftPrice ? Number(size.sqftPrice) : undefined,
+          }));
+          const sizesResult = await dispatch(
+            createPropertySizes({ unique_property_id, sizes: sizesData })
+          );
+          if (createPropertySizes.fulfilled.match(sizesResult)) {
+            toast.success("Property sizes saved successfully");
+          } else {
+            toast.error(sizesResult.payload || "Failed to save property sizes");
+            return;
+          }
+        }
+
+        // Handle around property entries
+        if (aroundProperty.length > 0) {
+          // In edit mode, delete existing around property entries before adding new ones
+          if (isEditMode) {
+            for (const entry of aroundProperty) {
+              if (entry.id) {
+                const deleteResult = await dispatch(
+                  deletePlacesAroundProperty({
+                    placeid: entry.id,
+                    unique_property_id,
+                  })
+                );
+                if (!deletePlacesAroundProperty.fulfilled.match(deleteResult)) {
+                  toast.error(
+                    deleteResult.payload ||
+                      "Failed to delete existing around property entry"
+                  );
+                  return;
+                }
+              }
+            }
+          }
+          const aroundPropertyData = aroundProperty.map((entry) => ({
+            title: entry.title,
+            distance: entry.distance,
+          }));
+          const aroundResult = await dispatch(
+            createAroundThisProperty({
+              unique_property_id,
+              around_property: aroundPropertyData,
+            })
+          );
+          if (createAroundThisProperty.fulfilled.match(aroundResult)) {
+            toast.success("Around property entries saved successfully");
+          } else {
+            toast.error(
+              aroundResult.payload || "Failed to save around property entries"
+            );
+            return;
+          }
+        }
+
+        // Handle asset uploads
+        if (
+          formData.brochure ||
+          formData.priceSheet ||
+          sizes.some((s) => s.floorPlan)
+        ) {
+          const uploadPayload: UploadProjectAssetsPayload = {
+            unique_property_id,
+            size_ids: sizes.length > 0 ? projectResult.payload.size_ids : [], // Use size_ids if available
+            brochure: formData.brochure || undefined,
+            price_sheet: formData.priceSheet || undefined,
+            floor_plans: sizes
+              .filter((s) => s.floorPlan)
+              .map((s) => s.floorPlan!),
+          };
+          const uploadResult = await dispatch(
+            uploadProjectAssets(uploadPayload)
+          );
+          if (uploadProjectAssets.fulfilled.match(uploadResult)) {
+            toast.success("Project assets uploaded successfully");
+          } else {
+            toast.error(
+              uploadResult.payload || "Failed to upload project assets"
+            );
+          }
+        }
+      } else {
+        toast.error(projectResult.payload || "Failed to save project");
       }
+    } catch (error) {
+      toast.error("Error saving project");
     }
   };
 
+  // JSX remains mostly the same, update sizes and aroundProperty sections
   return (
-    <ComponentCard title="Create Property">
+    <ComponentCard title={isEditMode ? "Edit Property" : "Create Property"}>
       <form onSubmit={handleSubmit} className="space-y-6">
+        {/* Existing form fields for project details */}
         <div className="min-h-[80px]">
           <Label htmlFor="projectName">Project Name *</Label>
           <Input
@@ -643,7 +985,6 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.projectName}</p>
           )}
         </div>
-
         <div className="min-h-[80px]">
           <Label htmlFor="builderName">Builder Name *</Label>
           <Input
@@ -657,7 +998,6 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.builderName}</p>
           )}
         </div>
-
         <Dropdown
           id="state"
           label="Select State *"
@@ -667,7 +1007,6 @@ export default function CreateProperty() {
           placeholder="Search for a state..."
           error={errors.state}
         />
-
         <Dropdown
           id="city"
           label="Select City *"
@@ -678,18 +1017,41 @@ export default function CreateProperty() {
           disabled={!formData.state}
           error={errors.city}
         />
-
-        <Dropdown
-          id="locality"
-          label="Select Locality *"
-          options={localityOptions}
-          value={formData.locality}
-          onChange={handleDropdownChange("locality")}
-          placeholder="Search for a locality..."
-          disabled={!formData.city}
-          error={errors.locality}
-        />
-
+        <div className="min-h-[80px] relative" ref={localityInputRef}>
+          <Label htmlFor="locality">Select Place *</Label>
+          <Input
+            type="text"
+            id="locality"
+            value={formData.locality}
+            onChange={handleLocalityChange}
+            onFocus={handleLocalityFocus}
+            placeholder="Search for a place..."
+            disabled={!formData.city}
+            className="dark:bg-gray-800"
+          />
+          {isLocalityDropdownOpen && formData.city && (
+            <ul className="absolute z-10 w-full mt-1 bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-600 rounded-lg shadow-lg max-h-[200px] overflow-y-auto">
+              {placeOptions.length > 0 ? (
+                placeOptions.map((option) => (
+                  <li
+                    key={option.value}
+                    onClick={() => handleLocalitySelect(option.value)}
+                    className="px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                  >
+                    {option.text}
+                  </li>
+                ))
+              ) : (
+                <li className="px-4 py-2 text-sm text-gray-500 dark:text-gray-400">
+                  No places found
+                </li>
+              )}
+            </ul>
+          )}
+          {errors.locality && (
+            <p className="text-red-500 text-sm mt-1">{errors.locality}</p>
+          )}
+        </div>
         <div className="min-h-[80px]">
           <Label htmlFor="propertyType">Property Type *</Label>
           <div className="flex space-x-4">
@@ -712,7 +1074,6 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>
           )}
         </div>
-
         <div className="min-h-[80px]">
           <Label htmlFor="propertySubType">Property Sub Type *</Label>
           <div className="flex flex-wrap gap-4">
@@ -739,7 +1100,6 @@ export default function CreateProperty() {
             </p>
           )}
         </div>
-
         <div className="min-h-[80px]">
           <Label htmlFor="status">Construction Status *</Label>
           <div className="flex space-x-4">
@@ -768,7 +1128,6 @@ export default function CreateProperty() {
             ))}
           </div>
         </div>
-
         <div className="min-h-[80px] w-full max-w-md">
           <Label htmlFor="launchType">Launch Type *</Label>
           <Select
@@ -782,7 +1141,6 @@ export default function CreateProperty() {
             error={errors.launchType}
           />
         </div>
-
         {formData.launchType === "Launched" && (
           <div className="min-h-[80px] w-full max-w-md">
             <DatePicker
@@ -797,7 +1155,6 @@ export default function CreateProperty() {
             )}
           </div>
         )}
-
         {formData.status === "Under Construction" && (
           <div className="min-h-[80px] w-full max-w-md">
             <DatePicker
@@ -814,7 +1171,6 @@ export default function CreateProperty() {
             )}
           </div>
         )}
-
         <div className="min-h-[80px]">
           <Label htmlFor="isReraRegistered">Is this RERA Registered?</Label>
           <div className="flex space-x-4 mb-5">
@@ -850,7 +1206,6 @@ export default function CreateProperty() {
             </button>
           </div>
         </div>
-
         {formData.isReraRegistered && (
           <div className="min-h-[80px] w-full max-w-md">
             <Label htmlFor="reraNumber">RERA Number *</Label>
@@ -867,7 +1222,6 @@ export default function CreateProperty() {
             )}
           </div>
         )}
-
         <div className="min-h-[80px]">
           <Label htmlFor="otpOptions">Payment Modes</Label>
           <div className="flex flex-wrap gap-4">
@@ -890,37 +1244,34 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.otpOptions}</p>
           )}
         </div>
-
         <div className="space-y-4">
           <Label htmlFor="sizes">Sizes *</Label>
-          {formData.sizes.map((size, index) => (
+          {sizes.map((size, index) => (
             <div
               key={size.id}
               className="relative grid grid-cols-1 md:grid-cols-4 gap-4 border p-4 rounded-md"
             >
-              {index > 0 && (
-                <button
-                  type="button"
-                  onClick={handleDeleteSize(size.id)}
-                  className="absolute top-2 right-2 text-red-500 hover:text-red-700"
-                  title="Delete Size"
+              <button
+                type="button"
+                onClick={handleDeleteSize(size.id)}
+                className="absolute top-2 right-2 text-red-500 hover:text-red-700"
+                title="Delete Size"
+              >
+                <svg
+                  className="w-5 h-5"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                  xmlns="http://www.w3.org/2000/svg"
                 >
-                  <svg
-                    className="w-5 h-5"
-                    fill="none"
-                    stroke="currentColor"
-                    viewBox="0 0 24 24"
-                    xmlns="http://www.w3.org/2000/svg"
-                  >
-                    <path
-                      strokeLinecap="round"
-                      strokeLinejoin="round"
-                      strokeWidth="2"
-                      d="M6 18L18 6M6 6l12 12"
-                    />
-                  </svg>
-                </button>
-              )}
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
+                </svg>
+              </button>
               <div className="min-h-[80px]">
                 <Label htmlFor={`buildupArea-${size.id}`}>
                   Buildup Area (sq.ft) *
@@ -933,11 +1284,6 @@ export default function CreateProperty() {
                   placeholder="Enter buildup area"
                   className="dark:bg-gray-800"
                 />
-                {errors.sizes?.[size.id]?.buildupArea && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.sizes[size.id].buildupArea}
-                  </p>
-                )}
               </div>
               <div className="min-h-[80px]">
                 <Label htmlFor={`carpetArea-${size.id}`}>
@@ -951,11 +1297,6 @@ export default function CreateProperty() {
                   placeholder="Enter carpet area"
                   className="dark:bg-gray-800"
                 />
-                {errors.sizes?.[size.id]?.carpetArea && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.sizes[size.id].carpetArea}
-                  </p>
-                )}
               </div>
               <div className="min-h-[80px]">
                 <Label htmlFor={`sqftPrice-${size.id}`}>
@@ -969,11 +1310,6 @@ export default function CreateProperty() {
                   placeholder="Enter square foot price"
                   className="dark:bg-gray-800"
                 />
-                {errors.sizes?.[size.id]?.sqftPrice && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.sizes[size.id].sqftPrice}
-                  </p>
-                )}
               </div>
               <div className="min-h-[80px]">
                 <Label>Floor Plan</Label>
@@ -1003,17 +1339,22 @@ export default function CreateProperty() {
                     </button>
                   )}
                   <span className="text-sm text-gray-500 truncate max-w-[200px]">
-                    {size.floorPlan?.name || "No file chosen"}
+                    {size.floorPlan?.name ||
+                      (isEditMode &&
+                        size.size_id &&
+                        project?.sizes
+                          ?.find((s) => s.size_id === size.size_id)
+                          ?.floor_plan?.split("/")
+                          .pop()) ||
+                      "No file chosen"}
                   </span>
                 </div>
-                {errors.sizes?.[size.id]?.floorPlan && (
-                  <p className="text-red-500 text-sm mt-1">
-                    {errors.sizes[size.id].floorPlan}
-                  </p>
-                )}
               </div>
             </div>
           ))}
+          {errors.sizes && (
+            <p className="text-red-500 text-sm mt-1">{errors.sizes}</p>
+          )}
           <button
             type="button"
             onClick={handleAddSize}
@@ -1022,7 +1363,6 @@ export default function CreateProperty() {
             Add Size
           </button>
         </div>
-
         <div className="space-y-4">
           <Label htmlFor="aroundProperty" className="mt-4">
             Around This Property *
@@ -1055,16 +1395,21 @@ export default function CreateProperty() {
           {errors.aroundProperty && (
             <p className="text-red-500 text-sm mt-1">{errors.aroundProperty}</p>
           )}
-          {formData.aroundProperty.length > 0 && (
+          {aroundProperty.length > 0 && (
             <div className="mt-4">
               <ul className="space-y-2">
-                {formData.aroundProperty.map((entry, index) => (
+                {aroundProperty.map((entry, index) => (
                   <li
                     key={index}
                     className="flex justify-between items-center p-2 bg-gray-100 dark:bg-gray-800 rounded-lg"
                   >
                     <span>
                       {entry.title} - {entry.distance}
+                      {isEditMode && entry.id && (
+                        <span className="text-gray-500 text-sm ml-2">
+                          (ID: {entry.id})
+                        </span>
+                      )}
                     </span>
                     <button
                       type="button"
@@ -1079,7 +1424,6 @@ export default function CreateProperty() {
             </div>
           )}
         </div>
-
         <div className="space-y-1">
           <Label>Upload Brochure</Label>
           <div className="flex items-center space-x-2">
@@ -1098,7 +1442,7 @@ export default function CreateProperty() {
             >
               Choose File
             </button>
-            {formData.brochure && (
+            {(formData.brochure || (isEditMode && project?.brochure)) && (
               <button
                 type="button"
                 onClick={handleDeleteBrochure}
@@ -1108,7 +1452,9 @@ export default function CreateProperty() {
               </button>
             )}
             <span className="text-sm text-gray-500">
-              {formData.brochure ? formData.brochure.name : "No file chosen"}
+              {formData.brochure?.name ||
+                (isEditMode && project?.brochure?.split("/").pop()) ||
+                "No file chosen"}
             </span>
           </div>
           {errors.brochure && (
@@ -1127,12 +1473,23 @@ export default function CreateProperty() {
                   {formData.brochure.name}
                 </p>
               )
+            ) : isEditMode && project?.brochure ? (
+              project.brochure.endsWith(".pdf") ? (
+                <p className="text-sm text-gray-500 truncate">
+                  {project.brochure.split("/").pop()}
+                </p>
+              ) : (
+                <img
+                  src={project.brochure}
+                  alt="Brochure Preview"
+                  className="max-w-[100px] max-h-[100px] object-contain"
+                />
+              )
             ) : (
               <p className="text-sm text-gray-400"></p>
             )}
           </div>
         </div>
-
         <div className="space-y-1">
           <Label>Upload Price Sheet</Label>
           <div className="flex items-center space-x-2">
@@ -1151,7 +1508,7 @@ export default function CreateProperty() {
             >
               Choose File
             </button>
-            {formData.priceSheet && (
+            {(formData.priceSheet || (isEditMode && project?.price_sheet)) && (
               <button
                 type="button"
                 onClick={handleDeletePriceSheet}
@@ -1161,9 +1518,9 @@ export default function CreateProperty() {
               </button>
             )}
             <span className="text-sm text-gray-500">
-              {formData.priceSheet
-                ? formData.priceSheet.name
-                : "No file chosen"}
+              {formData.priceSheet?.name ||
+                (isEditMode && project?.price_sheet?.split("/").pop()) ||
+                "No file chosen"}
             </span>
           </div>
           {errors.priceSheet && (
@@ -1182,19 +1539,34 @@ export default function CreateProperty() {
                   {formData.priceSheet.name}
                 </p>
               )
+            ) : isEditMode && project?.price_sheet ? (
+              project.price_sheet.endsWith(".pdf") ? (
+                <p className="text-sm text-gray-500 truncate">
+                  {project.price_sheet.split("/").pop()}
+                </p>
+              ) : (
+                <img
+                  src={project.price_sheet}
+                  alt="Price Sheet Preview"
+                  className="max-w-[100px] max-h-[100px] object-contain"
+                />
+              )
             ) : (
               <p className="text-sm text-gray-400"></p>
             )}
           </div>
         </div>
-
         <div className="flex justify-center">
           <button
             type="submit"
             disabled={createProjectStatus === "loading"}
             className={`w-[60%] px-4 py-2 text-white bg-[#1D3A76] rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50`}
           >
-            {createProjectStatus === "loading" ? "Submitting..." : "Submit"}
+            {createProjectStatus === "loading"
+              ? "Submitting..."
+              : isEditMode
+              ? "Update"
+              : "Submit"}
           </button>
         </div>
       </form>

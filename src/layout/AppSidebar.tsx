@@ -197,7 +197,7 @@ export const navItems: NavItem[] = [
     icon: <FaHouseUser />,
     subItems: [
       { name: "Add Projects", path: "/projects/add-projects" },
-      // { name: "All Projects", path: "/projects/all-projects", pro: false },
+      { name: "All Projects", path: "/projects/all-projects", pro: false },
     ],
   },
   // {

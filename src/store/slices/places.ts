@@ -145,24 +145,27 @@ export const fetchAllCities = createAsyncThunk(
 export const fetchLocalities = createAsyncThunk(
   "places/fetchLocalities",
   async (
-    { city, query }: { city: string; query: string },
+    { city, query }: { city: string; query?: string },
     { rejectWithValue }
   ) => {
     try {
-      const promise = axiosInstance.get<LocalityData[]>(
-        `/api/v1/search?city=${encodeURIComponent(city)}&query=${encodeURIComponent(query)}`
-      );
-    
+      const encodedCity = encodeURIComponent(city);
+      const encodedQuery = query?.trim()
+        ? `&query=${encodeURIComponent(query.trim())}`
+        : "";
 
-      const response = await promise;
+      const url = `/api/v1/search?city=${encodedCity}${encodedQuery}`;
+      const response = await axiosInstance.get<LocalityData[]>(url);
       return response.data;
     } catch (error) {
       const axiosError = error as AxiosError<ErrorResponse>;
-      const errorMessage = axiosError.response?.data?.message || "Failed to fetch localities";
+      const errorMessage =
+        axiosError.response?.data?.message || "Failed to fetch localities";
       return rejectWithValue(errorMessage);
     }
   }
 );
+
 export const insertPlace = createAsyncThunk(
   "places/insertPlace",
   async (payload: InsertPlacePayload, { rejectWithValue }) => {

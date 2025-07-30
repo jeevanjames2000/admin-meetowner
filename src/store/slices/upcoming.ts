@@ -1,10 +1,19 @@
 import { createAsyncThunk, createSlice } from "@reduxjs/toolkit";
 import axiosInstance from "../../utils/axiosInstance";
+import { toast } from "react-hot-toast";
+
 const API_ENDPOINTS = {
   GET_ALL: "/upcoming/v1/getAllUpComingProjects",
-  DELETE: "/upcoming/v1/delete",
+  DELETE: "/upcoming/v1/deleteUpComingProject",
   CREATE_DATA: "/upcoming/v1/createProjectData",
   UPLOAD_ASSETS: "/upcoming/v1/uploadProjectAssets",
+   DELETE_PLACES_AROUND: "/property/deleteplacesaroundproperty",
+  DELETE_PROPERTY_SIZES: "/upcoming/v1/deletePropertySizes",
+  DELETE_BROURCHER_OR_PRICESHEET:"/upcoming/v1/deleteBroucherOrPriceSheet",
+  CREATE_AROUND_PROPERTY:"/upcoming/v1/createAroundThisProperty",
+  CREATE_PROPERTY_SIZES:"/upcoming/v1/createPropertySizes",
+    GET_PROPERTY_SIZES: "/upcoming/v1/getPropertySizes",
+  GET_AROUND_PROPERTY: "/upcoming/v1/getAroundThisProperty",
 } as const;
 interface Size {
   size_id: number;
@@ -44,7 +53,6 @@ interface UpcomingProject {
 }
 
 interface CreateProjectDataPayload {
-  unique_property_id: string;
   property_name: string;
   builder_name: string;
   mobile?: string;
@@ -108,6 +116,40 @@ const createApiThunk = <Returned, ThunkArg>(
       }
     }
   );
+  export const deletePlacesAroundProperty = createApiThunk<void, { placeid: string; unique_property_id: string }>(
+  "upcomingProjects/deletePlacesAroundProperty",
+  ({ placeid, unique_property_id }) =>
+    axiosInstance.post(API_ENDPOINTS.DELETE_PLACES_AROUND, { placeid, unique_property_id }),
+  (response) => response.data.status === "success",
+  () => undefined,
+  "Failed to delete place around property"
+); 
+
+export const deletePropertySizes = createApiThunk<void, { unique_property_id: string }>(
+  "upcomingProjects/deletePropertySizes",
+  ({ unique_property_id }) =>
+    axiosInstance.post(
+      `${API_ENDPOINTS.DELETE_PROPERTY_SIZES}?unique_property_id=${encodeURIComponent(unique_property_id)}`
+    ),
+  (response) => response.data.status === "success",
+  () => undefined,
+  "Failed to delete property sizes"
+);
+export const deleteBroucherOrPriceSheet = createApiThunk<
+  void,
+  { key: string; unique_property_id: string }
+>(
+  "upcomingProjects/deleteBroucherOrPriceSheet",
+  ({ key, unique_property_id }) =>
+    axiosInstance.post(
+      `${API_ENDPOINTS.DELETE_BROURCHER_OR_PRICESHEET}?key=${encodeURIComponent(
+        key
+      )}&unique_property_id=${encodeURIComponent(unique_property_id)}`
+    ),
+  (response) => response.data.status === "success",
+  () => undefined,
+  "Failed to delete brochure or price sheet"
+);
 export const getAllUpcomingProjects = createApiThunk<UpcomingProject[], void>(
   "upcomingProjects/getAll",
   () => axiosInstance.get(API_ENDPOINTS.GET_ALL),
@@ -126,7 +168,7 @@ export const deleteUpComingProject = createApiThunk<void, string>(
 );
 
 export const createProjectData = createApiThunk<
-  { unique_property_id: string; size_ids: number[] },
+  { size_ids: number[] },
   CreateProjectDataPayload
 >(
   "upcomingProjects/createProjectData",
@@ -134,6 +176,73 @@ export const createProjectData = createApiThunk<
   (response) => response.data.status === "success",
   (response) => response.data.data,
   "Failed to create project data"
+);
+export const getPropertySizes = createApiThunk<
+  Array<{
+    size_id: number;
+    buildup_area: number;
+    carpet_area: number;
+    sqft_price?: number;
+    floor_plan?: string;
+  }>,
+  { unique_property_id: string }
+>(
+  "upcomingProjects/getPropertySizes",
+  ({ unique_property_id }) =>
+    axiosInstance.get(
+      `${API_ENDPOINTS.GET_PROPERTY_SIZES}?unique_property_id=${encodeURIComponent(
+        unique_property_id
+      )}`
+    ),
+  (response) => response.data.status === "success",
+  (response) => response.data.data,
+  "Failed to fetch property sizes"
+);
+
+export const getAroundThisProperty = createApiThunk<
+  Array<{ id: string; title: string; distance: string }>,
+  { unique_property_id: string }
+>(
+  "upcomingProjects/getAroundThisProperty",
+  ({ unique_property_id }) =>
+    axiosInstance.get(
+      `${API_ENDPOINTS.GET_AROUND_PROPERTY}?unique_property_id=${encodeURIComponent(
+        unique_property_id
+      )}`
+    ),
+  (response) => response.data.status === "success",
+  (response) => response.data.data,
+  "Failed to fetch around property entries"
+);
+
+export const createPropertySizes = createApiThunk<
+  { size_ids: number[] },
+  { unique_property_id: string; sizes: { buildup_area: number; carpet_area: number; sqft_price?: number }[] }
+>(
+  "upcomingProjects/createPropertySizes",
+  ({ unique_property_id, sizes }) =>
+    axiosInstance.post(API_ENDPOINTS.CREATE_PROPERTY_SIZES, {
+      unique_property_id,
+      sizes,
+    }),
+  (response) => response.data.status === "success",
+  (response) => response.data.data,
+  "Failed to create property sizes"
+);
+
+export const createAroundThisProperty = createApiThunk<
+  { unique_property_id: string },
+  { unique_property_id: string; around_property: { title: string; distance: string }[] }
+>(
+  "upcomingProjects/createAroundThisProperty",
+  ({ unique_property_id, around_property }) =>
+    axiosInstance.post(API_ENDPOINTS.CREATE_AROUND_PROPERTY, {
+      unique_property_id,
+      around_property,
+    }),
+  (response) => response.data.status === "success",
+  (response) => response.data.data,
+  "Failed to create around property entries"
 );
 
 export const uploadProjectAssets = createApiThunk<
@@ -269,6 +378,37 @@ const upcomingProjectsSlice = createSlice({
         }
       })
       .addCase(uploadProjectAssets.rejected, handleCreateRejected);
+       builder
+      .addCase(deletePlacesAroundProperty.pending, handlePending)
+      .addCase(deletePlacesAroundProperty.fulfilled, (state, action) => {
+        state.loading = false;
+      
+        const { unique_property_id } = action.meta.arg;
+        const project = state.projects.find(
+          (p) => p.unique_property_id === unique_property_id
+        );
+        if (project && project.around_property) {
+          project.around_property = project.around_property.filter(
+            (place) => place.placeid !== action.meta.arg.placeid
+          );
+        }
+      })
+      .addCase(deletePlacesAroundProperty.rejected, handleRejected)
+
+    // Add new cases for deletePropertySizes
+    builder
+      .addCase(deletePropertySizes.pending, handlePending)
+      .addCase(deletePropertySizes.fulfilled, (state, action) => {
+        state.loading = false;
+        const project = state.projects.find(
+          (p) => p.unique_property_id === action.meta.arg.unique_property_id
+        );
+        if (project) {
+          project.sizes = []; // Clear sizes array
+        }
+      })
+      .addCase(deletePropertySizes.rejected, handleRejected);
+      
   },
 });
 
