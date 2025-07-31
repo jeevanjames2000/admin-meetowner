@@ -21,6 +21,7 @@ import {
   deleteUpComingProject,
   getAllUpcomingProjects,
 } from "../../store/slices/upcoming";
+
 interface UpcomingProject {
   unique_property_id: string;
   property_name: string;
@@ -50,6 +51,7 @@ interface UpcomingProject {
     floor_plan?: string | null;
   }[];
 }
+
 const UpcomingProjects: React.FC = () => {
   const [dropdownOpen, setDropdownOpen] = useState<string | null>(null);
   const [dropdownPosition, setDropdownPosition] = useState<{
@@ -76,20 +78,50 @@ const UpcomingProjects: React.FC = () => {
   const { projects, loading, error } = useSelector(
     (state: RootState) => state.upcoming
   );
+
+  // Client-side filtering
+  const filteredProjects = projects.filter((item) => {
+    // Search filter
+    const searchMatch =
+      !searchQuery ||
+      item.unique_property_id
+        .toLowerCase()
+        .includes(searchQuery.toLowerCase()) ||
+      item.property_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.builder_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      item.location.toLowerCase().includes(searchQuery.toLowerCase());
+
+    // Date filter (based on created_at)
+    const createdAt = new Date(item.created_at).toISOString().split("T")[0];
+    const fromDateMatch = !fromDate || createdAt >= fromDate;
+    const toDateMatch = !toDate || createdAt <= toDate;
+
+    return searchMatch && fromDateMatch && toDateMatch;
+  });
+
   const currentCount = 10;
-  const totalCount = projects.length;
+  const totalCount = filteredProjects.length;
   const totalPages = Math.ceil(totalCount / currentCount);
   const currentPage = localPage;
+
+  // Slice filtered projects for pagination
+  const paginatedProjects = filteredProjects.slice(
+    (currentPage - 1) * currentCount,
+    currentPage * currentCount
+  );
+
   useEffect(() => {
     const savedSearch = localStorage.getItem("searchQuery") || "";
     setInitialSearch(savedSearch);
     handleSearch(savedSearch);
   }, []);
+
   useEffect(() => {
     if (!loading && searchInputRef.current) {
       searchInputRef.current.focus();
     }
   }, [loading]);
+
   useEffect(() => {
     localStorage.removeItem("searchQuery");
     setSearchQuery("");
@@ -98,6 +130,7 @@ const UpcomingProjects: React.FC = () => {
     setFromDate(null);
     setToDate(null);
   }, []);
+
   useEffect(() => {
     const filters: any = {
       page: localPage,
@@ -106,10 +139,12 @@ const UpcomingProjects: React.FC = () => {
     if (fromDate) filters.from_date = fromDate;
     if (toDate) filters.to_date = toDate;
     dispatch(getAllUpcomingProjects(filters));
-  }, [dispatch, searchQuery, refreshTrigger, localPage, fromDate, toDate]);
+  }, [dispatch, refreshTrigger]);
+
   useEffect(() => {
     setLocalPage(1);
   }, [searchQuery, fromDate, toDate]);
+
   useEffect(() => {
     const handleStorageChange = () => {
       const currentSearch = localStorage.getItem("searchQuery") || "";
@@ -122,6 +157,7 @@ const UpcomingProjects: React.FC = () => {
     window.addEventListener("storage", handleStorageChange);
     return () => window.removeEventListener("storage", handleStorageChange);
   }, [initialSearch]);
+
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (
@@ -138,10 +174,12 @@ const UpcomingProjects: React.FC = () => {
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [dropdownOpen, dropdownPosition]);
+
   const handleEdit = (item: UpcomingProject) => {
     navigate("/projects/add-projects", { state: { project: item } });
     setDropdownOpen(null);
   };
+
   const handleDelete = useCallback(
     (unique_property_id: string, property_name: string) => {
       setSelectedProject({ id: unique_property_id, name: property_name });
@@ -150,6 +188,7 @@ const UpcomingProjects: React.FC = () => {
     },
     []
   );
+
   const confirmDelete = useCallback(() => {
     if (selectedProject) {
       dispatch(deleteUpComingProject(selectedProject.id))
@@ -160,15 +199,19 @@ const UpcomingProjects: React.FC = () => {
       setSelectedProject(null);
     }
   }, [dispatch, selectedProject]);
+
   const handleSearch = (value: string) => {
     setSearchQuery(value.trim());
   };
+
   const goToPage = (page: number) => {
     setLocalPage(page);
   };
+
   const goToPreviousPage = () => currentPage > 1 && goToPage(currentPage - 1);
   const goToNextPage = () =>
     currentPage < totalPages && goToPage(currentPage + 1);
+
   const getPaginationItems = () => {
     const pages = [];
     const totalVisiblePages = 7;
@@ -187,6 +230,7 @@ const UpcomingProjects: React.FC = () => {
     if (endPage < totalPages) pages.push(totalPages);
     return pages;
   };
+
   return (
     <div className="relative min-h-screen">
       <PageMeta title="Meet Owner | Upcoming Projects" />
@@ -219,7 +263,7 @@ const UpcomingProjects: React.FC = () => {
             Error: {error}
           </h2>
         </div>
-      ) : !projects || projects.length === 0 ? (
+      ) : !filteredProjects || filteredProjects.length === 0 ? (
         <div className="min-h-screen bg-gray-50 dark:bg-dark-900 py-6 px-4 sm:px-6 lg:px-8">
           <h2 className="text-2xl font-bold text-gray-800 dark:text-white">
             No Upcoming Projects Found
@@ -298,7 +342,7 @@ const UpcomingProjects: React.FC = () => {
                       </TableRow>
                     </TableHeader>
                     <TableBody className="divide-y divide-gray-100 dark:divide-white/[0.05]">
-                      {projects.map((item, index) => (
+                      {paginatedProjects.map((item, index) => (
                         <TableRow key={item.unique_property_id}>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                             {(currentPage - 1) * currentCount + index + 1}
@@ -322,10 +366,14 @@ const UpcomingProjects: React.FC = () => {
                             {item.launch_date || "N/A"}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {item.possession_end_date || "N/A"}
+                            {item.possession_end_date
+                              ? new Date(
+                                  item.possession_end_date
+                                ).toLocaleDateString()
+                              : "N/A"}
                           </TableCell>
                           <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                            {new Date(item.created_at).toLocaleString() ||
+                            {new Date(item.created_at).toLocaleDateString() ||
                               "N/A"}
                           </TableCell>
                           <TableCell className="relative px-5 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400 whitespace-nowrap">
@@ -482,4 +530,5 @@ const UpcomingProjects: React.FC = () => {
     </div>
   );
 };
+
 export default UpcomingProjects;

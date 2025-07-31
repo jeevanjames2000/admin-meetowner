@@ -20,28 +20,31 @@ interface DropdownProps {
 export default function Dropdown({
   id,
   label,
-  options,
+  options = [], // Default to empty array to prevent undefined
   value,
   onChange,
   placeholder = "Search...",
   disabled = false,
   error,
 }: DropdownProps) {
-  const [searchTerm, setSearchTerm] = useState(
-    options.find((option) => option.value === value)?.text || ""
-  );
+  const [searchTerm, setSearchTerm] = useState<string>("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
 
-  // Update search term when value changes (e.g., reset from parent)
+  // Update search term when value or options change
   useEffect(() => {
     const selectedOption = options.find((option) => option.value === value);
     setSearchTerm(selectedOption?.text || "");
   }, [value, options]);
 
-  // Filter options based on search term
-  const filteredOptions = options.filter((option) =>
-    option.text.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Filter options based on search term with defensive checks
+  const filteredOptions = options.filter((option) => {
+    if (!option || !option.text || typeof option.text !== "string") {
+      return false; // Skip invalid options
+    }
+    return option.text
+      .toLowerCase()
+      .includes(searchTerm ? searchTerm.toLowerCase() : "");
+  });
 
   // Handle search input change
   const handleSearchChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,7 +87,7 @@ export default function Dropdown({
         <input
           id={`${id}-search`}
           type="text"
-          value={searchTerm}
+          value={searchTerm || ""} // Ensure searchTerm is always a string
           onChange={handleSearchChange}
           onClick={toggleDropdown}
           placeholder={placeholder}
@@ -100,13 +103,20 @@ export default function Dropdown({
           className="absolute right-2 top-1/2 transform -translate-y-1/2 text-gray-500 dark:text-gray-400"
         >
           <svg
-            className={`w-4 h-4 transform ${isDropdownOpen ? "rotate-180" : ""}`}
+            className={`w-4 h-4 transform ${
+              isDropdownOpen ? "rotate-180" : ""
+            }`}
             fill="none"
             stroke="currentColor"
             viewBox="0 0 24 24"
             xmlns="http://www.w3.org/2000/svg"
           >
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 9l-7 7-7-7" />
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth="2"
+              d="M19 9l-7 7-7-7"
+            />
           </svg>
         </button>
         {isDropdownOpen && (
