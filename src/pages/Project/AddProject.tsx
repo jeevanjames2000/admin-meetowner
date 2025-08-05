@@ -64,6 +64,10 @@ interface FormData {
   isReraRegistered: boolean;
   reraNumber: string;
   otpOptions: string[];
+  owner_name: string;
+  ownerMobile: string;
+  propertyCostFrom: string;
+  propertyCostUpto: string;
 }
 interface Errors {
   [key: string]: string | undefined;
@@ -90,13 +94,15 @@ interface CreateProjectDataPayload {
   is_rera_registered: boolean;
   rera_number?: string;
   otp_options?: string[];
+  owner_mobile: string;
+  property_cost_from: number;
+  property_cost_upto: number;
 }
 interface UploadProjectAssetsPayload {
   unique_property_id: string;
   size_ids: number[];
   brochure?: File;
   price_sheet?: File;
-  floor_plans: File[];
 }
 interface AddUpcomingProjectImagesPayload {
   unique_property_id: string;
@@ -190,6 +196,9 @@ export default function CreateProperty() {
     isReraRegistered: false,
     reraNumber: "",
     otpOptions: [],
+    ownerMobile: "",
+    propertyCostFrom: "",
+    propertyCostUpto: "",
   });
   const [sizes, setSizes] = useState<SizeEntry[]>([
     {
@@ -371,6 +380,9 @@ export default function CreateProperty() {
             isReraRegistered: !!project.is_rera_registered,
             reraNumber: project.rera_number || "",
             otpOptions: project.otp_options?.length ? project.otp_options : [],
+            ownerMobile: project.owner_mobile || "",
+            propertyCostFrom: project.property_cost_from?.toString() || "",
+            propertyCostUpto: project.property_cost_upto?.toString() || "",
           });
           setImagePreviews(project.gallery?.map((img) => img.image) || []);
         } else {
@@ -709,11 +721,32 @@ export default function CreateProperty() {
       "projectName",
       "builderName",
       "launchType",
+      "ownerMobile",
+      "propertyCostFrom",
+      "propertyCostUpto",
     ];
     requiredFields.forEach((field) => {
-      if (!formData[field].trim())
+      if (!formData[field].toString().trim())
         newErrors[field] = ERROR_MESSAGES.required(field);
     });
+    if (formData.ownerMobile && !/^\d{10,15}$/.test(formData.ownerMobile)) {
+      newErrors.ownerMobile =
+        "Owner mobile must be a valid phone number (10-15 digits)";
+    }
+    if (formData.propertyCostFrom && isNaN(Number(formData.propertyCostFrom))) {
+      newErrors.propertyCostFrom = ERROR_MESSAGES.number("Property Cost From");
+    }
+    if (formData.propertyCostUpto && isNaN(Number(formData.propertyCostUpto))) {
+      newErrors.propertyCostUpto = ERROR_MESSAGES.number("Property Cost Upto");
+    }
+    if (
+      formData.propertyCostFrom &&
+      formData.propertyCostUpto &&
+      Number(formData.propertyCostFrom) > Number(formData.propertyCostUpto)
+    ) {
+      newErrors.propertyCostUpto =
+        "Property Cost Upto must be greater than Property Cost From";
+    }
     if (formData.isReraRegistered && !formData.reraNumber.trim())
       newErrors.reraNumber = ERROR_MESSAGES.required("RERA Number");
     if (formData.launchType === "Launched" && !formData.launchDate)
@@ -726,17 +759,17 @@ export default function CreateProperty() {
       );
     if (sizes.length === 0)
       newErrors.sizes = ERROR_MESSAGES.required("At least one size entry");
-    if (aroundProperty.length === 0)
-      newErrors.aroundProperty = ERROR_MESSAGES.required(
-        "At least one place around property"
-      );
-    sizes.forEach((size) => {
+    sizes.forEach((size, index) => {
       if (!size.buildupArea.trim() || !size.carpetArea.trim())
         newErrors.sizes = ERROR_MESSAGES.required(
           "Buildup Area and Carpet Area for all sizes"
         );
       if (size.sqftPrice && isNaN(Number(size.sqftPrice)))
         newErrors.sizes = ERROR_MESSAGES.number("Square Foot Price");
+      if (size.floorPlan) {
+        const error = handleFileValidation(size.floorPlan, "assets");
+        if (error) newErrors[`floorPlan-${index}`] = error;
+      }
     });
     aroundProperty.forEach((entry) => {
       if (!entry.title.trim() || !entry.distance.trim())
@@ -746,7 +779,7 @@ export default function CreateProperty() {
     });
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [formData, sizes, aroundProperty]);
+  }, [formData, sizes, aroundProperty, handleFileValidation]);
   const generateUniqueId = useCallback(
     () => `MO-${Math.floor(100000 + Math.random() * 900000)}`,
     []
@@ -759,6 +792,7 @@ export default function CreateProperty() {
         toast.error("User ID is missing. Please log in again.");
         return;
       }
+
       const projectData: CreateProjectDataPayload = {
         user_id: userId,
         unique_property_id: isEditMode ? uniquePropertyId! : generateUniqueId(),
@@ -790,16 +824,22 @@ export default function CreateProperty() {
           : undefined,
         otp_options:
           formData.otpOptions.length > 0 ? formData.otpOptions : undefined,
+        owner_mobile: formData.ownerMobile,
+        property_cost_from: Number(formData.propertyCostFrom),
+        property_cost_upto: Number(formData.propertyCostUpto),
       };
+
       try {
         const projectResult = await dispatch(createProjectData(projectData));
         if (!createProjectData.fulfilled.match(projectResult)) {
           toast.error(projectResult.payload || "Failed to save project");
           return;
         }
+
         const unique_property_id =
           projectResult.payload.unique_property_id ||
           projectData.unique_property_id;
+
         if (sizes.length > 0) {
           if (isEditMode) {
             const deleteResult = await dispatch(
@@ -817,6 +857,7 @@ export default function CreateProperty() {
             buildup_area: Number(size.buildupArea),
             carpet_area: Number(size.carpetArea),
             sqft_price: size.sqftPrice ? Number(size.sqftPrice) : undefined,
+            floor_plan: size.floorPlan,
           }));
           const sizesResult = await dispatch(
             createPropertySizes({ unique_property_id, sizes: sizesData })
@@ -826,6 +867,7 @@ export default function CreateProperty() {
             return;
           }
         }
+
         if (aroundProperty.length > 0) {
           if (isEditMode) {
             for (const entry of aroundProperty) {
@@ -863,19 +905,14 @@ export default function CreateProperty() {
             return;
           }
         }
-        if (
-          formData.brochure ||
-          formData.priceSheet ||
-          sizes.some((s) => s.floorPlan)
-        ) {
+
+        if (formData.brochure || formData.priceSheet) {
           const uploadPayload: UploadProjectAssetsPayload = {
             unique_property_id,
-            size_ids: sizes.length > 0 ? projectResult.payload.size_ids : [],
+            size_ids: [],
             brochure: formData.brochure || undefined,
             price_sheet: formData.priceSheet || undefined,
-            floor_plans: sizes
-              .filter((s) => s.floorPlan)
-              .map((s) => s.floorPlan!),
+            floor_plans: [], // Floor plans now handled by createPropertySizes
           };
           const uploadResult = await dispatch(
             uploadProjectAssets(uploadPayload)
@@ -887,6 +924,7 @@ export default function CreateProperty() {
             return;
           }
         }
+
         if (images.length > 0) {
           const imagesPayload: AddUpcomingProjectImagesPayload = {
             unique_property_id,
@@ -897,19 +935,19 @@ export default function CreateProperty() {
             addUpcomingProjectImages(imagesPayload)
           );
           if (!addUpcomingProjectImages.fulfilled.match(imagesResult)) {
-            console.error("Image upload error:", imagesResult.payload);
             toast.error(
               imagesResult.payload || "Failed to upload project images"
             );
             return;
           }
-          toast.success("Project images uploaded successfully");
         }
+
         toast.success(
           isEditMode
             ? "Project updated successfully"
             : "Project created successfully"
         );
+
         if (!isEditMode) {
           setFormData({
             state: "",
@@ -929,6 +967,9 @@ export default function CreateProperty() {
             isReraRegistered: false,
             reraNumber: "",
             otpOptions: [],
+            ownerMobile: "",
+            propertyCostFrom: "",
+            propertyCostUpto: "",
           });
           setSizes([
             {
@@ -969,7 +1010,6 @@ export default function CreateProperty() {
   return (
     <ComponentCard title={isEditMode ? "Edit Property" : "Create Property"}>
       <form onSubmit={handleSubmit} className="space-y-6">
-        
         <div className="min-h-[80px]">
           <Label htmlFor="projectName">Project Name *</Label>
           <Input
@@ -984,7 +1024,6 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.projectName}</p>
           )}
         </div>
-        
         <div className="min-h-[80px]">
           <Label htmlFor="builderName">Builder Name *</Label>
           <Input
@@ -999,7 +1038,6 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.builderName}</p>
           )}
         </div>
-        
         <Dropdown
           id="state"
           label="Select State *"
@@ -1011,7 +1049,6 @@ export default function CreateProperty() {
           placeholder="Search for a state..."
           error={errors.state}
         />
-        
         <Dropdown
           id="city"
           label="Select City *"
@@ -1024,7 +1061,6 @@ export default function CreateProperty() {
           disabled={!formData.state}
           error={errors.city}
         />
-        
         <div className="min-h-[80px] relative" ref={localityInputRef}>
           <Label htmlFor="locality">Select Place *</Label>
           <Input
@@ -1060,7 +1096,6 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.locality}</p>
           )}
         </div>
-        
         <div className="min-h-[80px]">
           <Label htmlFor="propertyType">Property Type *</Label>
           <div className="flex space-x-4">
@@ -1088,7 +1123,6 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.propertyType}</p>
           )}
         </div>
-        
         <div className="min-h-[80px]">
           <Label htmlFor="propertySubType">Property Sub Type *</Label>
           <div className="flex flex-wrap gap-4">
@@ -1115,7 +1149,59 @@ export default function CreateProperty() {
             </p>
           )}
         </div>
-        
+
+        <div className="min-h-[80px]">
+          <Label htmlFor="ownerMobile">Owner Mobile *</Label>
+          <Input
+            type="text"
+            id="ownerMobile"
+            value={formData.ownerMobile}
+            onChange={(e) => updateFormData({ ownerMobile: e.target.value })}
+            placeholder="Enter owner mobile number"
+            className="dark:bg-gray-800"
+          />
+          {errors.ownerMobile && (
+            <p className="text-red-500 text-sm mt-1">{errors.ownerMobile}</p>
+          )}
+        </div>
+
+        <div className="min-h-[80px]">
+          <Label htmlFor="propertyCostFrom">Property Cost From (INR) *</Label>
+          <Input
+            type="text"
+            id="propertyCostFrom"
+            value={formData.propertyCostFrom}
+            onChange={(e) =>
+              updateFormData({ propertyCostFrom: e.target.value })
+            }
+            placeholder="Enter minimum property cost"
+            className="dark:bg-gray-800"
+          />
+          {errors.propertyCostFrom && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.propertyCostFrom}
+            </p>
+          )}
+        </div>
+
+        <div className="min-h-[80px]">
+          <Label htmlFor="propertyCostUpto">Property Cost Upto (INR) *</Label>
+          <Input
+            type="text"
+            id="propertyCostUpto"
+            value={formData.propertyCostUpto}
+            onChange={(e) =>
+              updateFormData({ propertyCostUpto: e.target.value })
+            }
+            placeholder="Enter maximum property cost"
+            className="dark:bg-gray-800"
+          />
+          {errors.propertyCostUpto && (
+            <p className="text-red-500 text-sm mt-1">
+              {errors.propertyCostUpto}
+            </p>
+          )}
+        </div>
         <div className="min-h-[80px]">
           <Label htmlFor="status">Construction Status *</Label>
           <div className="flex space-x-4">
@@ -1143,7 +1229,6 @@ export default function CreateProperty() {
             ))}
           </div>
         </div>
-        
         <div className="min-h-[80px] w-full max-w-md">
           <Label htmlFor="launchType">Launch Type *</Label>
           <Select
@@ -1160,7 +1245,6 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.launchType}</p>
           )}
         </div>
-        
         {formData.launchType === "Launched" && (
           <div className="min-h-[80px] w-full max-w-md">
             <DatePicker
@@ -1175,7 +1259,6 @@ export default function CreateProperty() {
             )}
           </div>
         )}
-        
         {formData.status === "Under Construction" && (
           <div className="min-h-[80px] w-full max-w-md">
             <DatePicker
@@ -1192,7 +1275,6 @@ export default function CreateProperty() {
             )}
           </div>
         )}
-        
         <div className="min-h-[80px]">
           <Label htmlFor="isReraRegistered">Is this RERA Registered?</Label>
           <div className="flex space-x-4 mb-5">
@@ -1222,7 +1304,6 @@ export default function CreateProperty() {
             </button>
           </div>
         </div>
-        
         {formData.isReraRegistered && (
           <div className="min-h-[80px] w-full max-w-md">
             <Label htmlFor="reraNumber">RERA Number *</Label>
@@ -1239,7 +1320,6 @@ export default function CreateProperty() {
             )}
           </div>
         )}
-        
         <div className="min-h-[80px]">
           <Label htmlFor="otpOptions">Payment Modes</Label>
           <div className="flex flex-wrap gap-4">
@@ -1262,7 +1342,6 @@ export default function CreateProperty() {
             <p className="text-red-500 text-sm mt-1">{errors.otpOptions}</p>
           )}
         </div>
-        
         <div className="space-y-4">
           <Label htmlFor="sizes">Sizes *</Label>
           {sizes.map((size) => (
@@ -1368,6 +1447,50 @@ export default function CreateProperty() {
                       "No file chosen"}
                   </span>
                 </div>
+                {size.floorPlan && size.floorPlan.type.startsWith("image/") && (
+                  <div className="mt-2">
+                    <img
+                      src={URL.createObjectURL(size.floorPlan)}
+                      alt="Floor Plan Preview"
+                      className="max-w-[100px] max-h-[100px] object-contain"
+                    />
+                  </div>
+                )}
+                {size.floorPlan &&
+                  size.floorPlan.type === "application/pdf" && (
+                    <p className="text-sm text-gray-500 mt-2">
+                      PDF: {size.floorPlan.name}
+                    </p>
+                  )}
+                {isEditMode &&
+                  !size.floorPlan &&
+                  size.size_id &&
+                  currentProject?.sizes?.find((s) => s.size_id === size.size_id)
+                    ?.floor_plan && (
+                    <div className="mt-2">
+                      {currentProject.sizes
+                        .find((s) => s.size_id === size.size_id)!
+                        .floor_plan!.endsWith(".pdf") ? (
+                        <p className="text-sm text-gray-500">
+                          PDF:{" "}
+                          {currentProject.sizes
+                            .find((s) => s.size_id === size.size_id)!
+                            .floor_plan!.split("/")
+                            .pop()}
+                        </p>
+                      ) : (
+                        <img
+                          src={
+                            currentProject.sizes.find(
+                              (s) => s.size_id === size.size_id
+                            )!.floor_plan!
+                          }
+                          alt="Floor Plan Preview"
+                          className="max-w-[100px] max-h-[100px] object-contain"
+                        />
+                      )}
+                    </div>
+                  )}
               </div>
             </div>
           ))}
@@ -1382,7 +1505,6 @@ export default function CreateProperty() {
             Add Size
           </button>
         </div>
-        
         <div className="space-y-4">
           <Label htmlFor="aroundProperty" className="mt-4">
             Around This Property *
@@ -1444,7 +1566,6 @@ export default function CreateProperty() {
             </div>
           )}
         </div>
-        
         <div className="space-y-1">
           <Label>Upload Brochure</Label>
           <div className="flex items-center space-x-2">
@@ -1512,7 +1633,6 @@ export default function CreateProperty() {
             )}
           </div>
         </div>
-        
         <div className="space-y-1">
           <Label>Upload Price Sheet</Label>
           <div className="flex items-center space-x-2">
@@ -1580,7 +1700,6 @@ export default function CreateProperty() {
             )}
           </div>
         </div>
-        
         <div className="space-y-1">
           <Label>Upload Project Images</Label>
           <div className="flex items-center space-x-2">
@@ -1644,7 +1763,6 @@ export default function CreateProperty() {
             </div>
           )}
         </div>
-        
         <div className="flex justify-center">
           <button
             type="submit"

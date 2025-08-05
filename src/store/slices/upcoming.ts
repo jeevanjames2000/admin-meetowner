@@ -232,12 +232,28 @@ export const deleteBrochureOrPriceSheet = createApiThunk<void, { key: string; un
   "Failed to delete brochure or price sheet"
 );
 export const createPropertySizes = createApiThunk<
-  { size_ids: number[] },
-  { unique_property_id: string; sizes: { buildup_area: number; carpet_area: number; sqft_price?: number }[] }
+  { size_ids: number[]; floor_plans: string[] },
+  { unique_property_id: string; sizes: { buildup_area: number; carpet_area: number; sqft_price?: number; floor_plan?: File }[] }
 >(
   "upcomingProjects/createPropertySizes",
-  ({ unique_property_id, sizes }) =>
-    axiosInstance.post(API_ENDPOINTS.CREATE_PROPERTY_SIZES, { unique_property_id, sizes }),
+  ({ unique_property_id, sizes }) => {
+    const formData = new FormData();
+    formData.append("unique_property_id", unique_property_id);
+    formData.append(
+      "sizes",
+      JSON.stringify(
+        sizes.map(({ floor_plan, ...rest }) => rest)
+      )
+    );
+    sizes.forEach((size) => {
+      if (size.floor_plan) {
+        formData.append("floor_plans", size.floor_plan);
+      }
+    });
+    return axiosInstance.post(API_ENDPOINTS.CREATE_PROPERTY_SIZES, formData, {
+      headers: { "Content-Type": "multipart/form-data" },
+    });
+  },
   undefined,
   (response) => response.data.data,
   "Failed to create property sizes"
@@ -348,20 +364,16 @@ const upcomingProjectsSlice = createSlice({
     builder
       .addCase(uploadProjectAssets.pending, handleCreatePending)
       .addCase(uploadProjectAssets.fulfilled, (state, action) => {
-        state.createProjectStatus = "succeeded";
-        const project = state.projects.find((p) => p.unique_property_id === action.payload.unique_property_id);
-        if (project) {
-          project.brochure = action.payload.brochure;
-          project.price_sheet = action.payload.price_sheet;
-          if (project.sizes && action.payload.floor_plans.length > 0) {
-            project.sizes = project.sizes.map((size) => {
-              const floorPlan = action.payload.floor_plans.find((fp) => fp.size_id === size.size_id);
-              return floorPlan ? { ...size, floor_plan: floorPlan.floor_plan } : size;
-            });
-          }
-        }
-      })
-      .addCase(uploadProjectAssets.rejected, handleCreateRejected);
+    state.createProjectStatus = "succeeded";
+    const project = state.projects.find(
+      (p) => p.unique_property_id === action.payload.unique_property_id
+    );
+    if (project) {
+      project.brochure = action.payload.brochure;
+      project.price_sheet = action.payload.price_sheet;
+    }
+  })
+  .addCase(uploadProjectAssets.rejected, handleCreateRejected);
     builder
       .addCase(deletePlacesAroundProperty.pending, handlePending)
       .addCase(deletePlacesAroundProperty.fulfilled, (state, action) => {
