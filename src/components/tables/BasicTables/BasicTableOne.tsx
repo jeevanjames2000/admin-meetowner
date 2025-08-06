@@ -22,8 +22,8 @@ import FilterBar from "../../common/FilterBar";
 import {
   clearMessages,
   deleteUser,
-  updateProfileStatus,
 } from "../../../store/slices/userEditSlicet";
+import VerifyProfileModal from "./VerifyProfileModal";
 const userTypeMap = {
   1: "Admin",
   2: "User",
@@ -45,9 +45,10 @@ export default function BasicTableOne() {
   const location = useLocation();
   const dispatch = useDispatch<AppDispatch>();
   const navigate = useNavigate();
-  const { users, loading, error } = useSelector(
+  const { users, loading, error, verified } = useSelector(
     (state: RootState) => state.users
   );
+  console.log("verified: ", verified);
   const {
     deleteError,
     deleteSuccess,
@@ -58,6 +59,9 @@ export default function BasicTableOne() {
   const pageuserType = useSelector(
     (state: RootState) => state.auth.user?.user_type
   );
+  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
+  const [selectedUser, setSelectedUser] = useState(null);
+
   const [activeMenu, setActiveMenu] = useState(null);
   const [filterValue, setFilterValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -91,56 +95,11 @@ export default function BasicTableOne() {
     if (userType) {
       dispatch(fetchUsersByType({ user_type: parseInt(userType) }));
     }
-  }, [dispatch, userType]);
+  }, [dispatch, userType, verified]);
   useEffect(() => {
     setCurrentPage(1);
   }, [paymentStatus, startDate, endDate, selectedCity]);
-  useEffect(() => {
-    if (deleteSuccess) {
-      toast.success(deleteSuccess);
-      if (userType && !isNaN(parseInt(userType))) {
-        dispatch(fetchUsersByType({ user_type: parseInt(userType) }))
-          .unwrap()
-          .then(() => {
-            dispatch(clearMessages());
-          })
-          .catch((err) => {
-            console.error("Failed to refresh users after delete:", err);
-            toast.error("Failed to refresh user list");
-          });
-      }
-    }
-    if (deleteError) {
-      toast.error(deleteError);
-      dispatch(clearMessages());
-    }
-  }, [deleteSuccess, deleteError, dispatch, userType]);
-  useEffect(() => {
-    if (profileStatusSuccess) {
-      toast.success(profileStatusSuccess);
-      if (userType && !isNaN(parseInt(userType))) {
-        dispatch(fetchUsersByType({ user_type: parseInt(userType) }))
-          .unwrap()
-          .then(() => {
-            dispatch(clearMessages());
-          })
-          .catch((err) => {
-            console.error(
-              "Failed to refresh users after profile status update:",
-              err
-            );
-            toast.error("Failed to refresh user list");
-          });
-      } else {
-        console.warn("Invalid userType for refresh:", userType);
-        dispatch(clearMessages());
-      }
-    }
-    if (profileStatusError) {
-      toast.error(profileStatusError);
-      dispatch(clearMessages());
-    }
-  }, [profileStatusSuccess, profileStatusError, dispatch, userType]);
+
   const handleEditUser = (user) => {
     navigate("/edit-user-details", { state: { user } });
   };
@@ -161,6 +120,12 @@ export default function BasicTableOne() {
     setIsAssignModalOpen(true);
     setActiveMenu(null);
   };
+  const handleVerifyRejectClick = (user) => {
+    setSelectedUser(user);
+    setIsVerifyModalOpen(true);
+    setActiveMenu(null);
+  };
+
   const confirmDelete = () => {
     if (userToDelete) {
       dispatch(deleteUser(userToDelete.id));
@@ -578,24 +543,10 @@ export default function BasicTableOne() {
                                 </button>
                                 <button
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  onClick={() => {
-                                    dispatch(
-                                      updateProfileStatus({
-                                        user_id: user.id,
-                                        verified: user.verified === 1 ? 0 : 1,
-                                      })
-                                    );
-                                    dispatch(
-                                      fetchUsersByType({
-                                        user_type: parseInt(userType),
-                                      })
-                                    );
-                                  }}
+                                  onClick={() => handleVerifyRejectClick(user)}
                                   disabled={profileStatusLoading}
                                 >
-                                  {profileStatusLoading
-                                    ? "Updating..."
-                                    : user.verified === 1
+                                  {user.verified === 1
                                     ? "Reject Profile"
                                     : "Verify Profile"}
                                 </button>
@@ -667,6 +618,15 @@ export default function BasicTableOne() {
               setIsDeleteModalOpen(false);
               setUserToDelete(null);
             }}
+          />
+          <VerifyProfileModal
+            isOpen={isVerifyModalOpen}
+            onClose={() => {
+              setIsVerifyModalOpen(false);
+              setSelectedUser(null);
+            }}
+            user={selectedUser}
+            userType={userType}
           />
           <AssignEmployeeModal
             isOpen={isAssignModalOpen}

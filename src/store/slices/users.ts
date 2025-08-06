@@ -53,6 +53,7 @@ interface User {
   subscription_status: string | null;
   created_by: string;
   created_userID: number;
+   verified: number;
    userActivity: UserActivity[];
 }
 
@@ -221,6 +222,7 @@ const usersSlice = createSlice({
     totalCount: 0,
     loading: false,
     error: null,
+    verified:null
   } as UsersState,
   reducers: {
     clearUsers: (state) => {
@@ -228,6 +230,9 @@ const usersSlice = createSlice({
       state.totalCount = 0;
       state.error = null;
     },
+  },
+  profileVerified:(state,action)=>{
+    state.verified =action.payload
   },
   extraReducers: (builder) => {
     builder
@@ -239,6 +244,7 @@ const usersSlice = createSlice({
         state.loading = false;
         state.users = action.payload.data;
         state.totalCount = action.payload.count;
+        state.verified = null;
       })
       .addCase(fetchUsersByType.rejected, (state, action) => {
         state.loading = false;
@@ -271,5 +277,5 @@ const usersSlice = createSlice({
   },
 });
 
-export const { clearUsers } = usersSlice.actions;
+export const { clearUsers,profileVerified } = usersSlice.actions;
 export default usersSlice.reducer;

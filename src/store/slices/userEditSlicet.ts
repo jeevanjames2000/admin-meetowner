@@ -66,13 +66,13 @@ const initialState: EmployeeState = {
 export const updateProfileStatus = createAsyncThunk(
   "employee/updateProfileStatus",
   async (
-    { user_id, verified }: { user_id: number; verified: number },
+    { user_id, verified,rejection_reason  }: { user_id: number; verified: number,rejection_reason :string },
     { rejectWithValue }
   ) => {
     try {
       const promise = axiosInstance.post<EmployeeResponse>(
         "/user/v1/updateProfileStatus",
-        { user_id, verified }
+        { user_id, verified,rejection_reason  }
       );
       toast.promise(promise, {
         loading: `Updating profile status...`,
