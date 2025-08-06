@@ -57,8 +57,6 @@ const VerifyProfileModal: React.FC<VerifyProfileModalProps> = ({
       dispatch(clearMessages());
       onClose();
     } catch (err) {
-      const errorMessage = profileStatusError || "Failed to verify profile";
-      toast.error(errorMessage);
       console.error("Verify profile error:", err);
     }
   };
@@ -89,8 +87,6 @@ const VerifyProfileModal: React.FC<VerifyProfileModalProps> = ({
       setShowRejectionInput(false);
       onClose();
     } catch (err) {
-      const errorMessage = profileStatusError || "Failed to reject profile";
-      toast.error(errorMessage);
       console.error("Reject profile error:", err);
     }
   };
