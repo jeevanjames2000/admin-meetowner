@@ -1,4 +1,5 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
+import { useLocation, useNavigate } from "react-router";
 import { useDispatch, useSelector } from "react-redux";
 import { AppDispatch, RootState } from "../../../store/store";
 import {
@@ -7,59 +8,71 @@ import {
 } from "../../../store/slices/userEditSlicet";
 import { fetchUsersByType, profileVerified } from "../../../store/slices/users";
 import toast from "react-hot-toast";
-interface VerifyProfileModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  user: {
-    id: number;
-    name: string;
-    mobile: string;
-    email: string;
-    address: string;
-    city: string;
-    state: string;
-    pincode: string;
-    gst_number: string;
-    rera_number: string;
-    gst_document?: string;
-    rera_document?: string;
-    user_type: number;
-    verified: number;
-  };
-  userType: string;
+import ComponentCard from "../../common/ComponentCard";
+import { ArrowLeft, BadgeCheck, XCircle } from "lucide-react"; // Assuming you're using lucide-react for icons
+
+interface User {
+  id: number;
+  name: string;
+  mobile: string;
+  email: string;
+  address: string;
+  city: string;
+  state: string;
+  pincode: string;
+  gst_number: string;
+  rera_number: string;
+  gst_document?: string;
+  rera_document?: string;
+  user_type: number;
+  verified: number;
 }
-const VerifyProfileModal: React.FC<VerifyProfileModalProps> = ({
-  isOpen,
-  onClose,
-  user,
-  userType,
-}) => {
-  console.log("user: ", user);
+
+const VerifyUserProfile: React.FC = () => {
+  const location = useLocation();
+  const navigate = useNavigate();
   const dispatch = useDispatch<AppDispatch>();
   const { profileStatusLoading, profileStatusError, profileStatusSuccess } =
     useSelector((state: RootState) => state.employee);
-  const [rejectionReason, setRejectionReason] = useState("");
+
+  const user: User = location.state?.user;
+  const userType: string = location.state?.userType;
+
+  const [rejectionReason, setRejectionReason] = useState(
+    user.rejection_reason || ""
+  );
+  console.log("user: ", user);
   const [showRejectionInput, setShowRejectionInput] = useState(false);
+
+  useEffect(() => {
+    if (profileStatusSuccess) {
+      toast.success(profileStatusSuccess);
+      dispatch(clearMessages());
+      navigate(-1); // Navigate back to BasicTableOne
+    }
+    if (profileStatusError) {
+      toast.error(profileStatusError);
+      dispatch(clearMessages());
+    }
+  }, [profileStatusSuccess, profileStatusError, dispatch, navigate]);
+
   const handleVerify = async () => {
     try {
-      await dispatch(
+      dispatch(
         updateProfileStatus({
           user_id: user.id,
           verified: 1,
           rejection_reason: "",
         })
-      ).unwrap();
-      await dispatch(profileVerified(true));
-      await dispatch(
-        fetchUsersByType({ user_type: parseInt(userType) })
-      ).unwrap();
+      );
+      navigate(-1);
       toast.success("Profile verified successfully");
       dispatch(clearMessages());
-      onClose();
     } catch (err) {
       console.error("Verify profile error:", err);
     }
   };
+
   const handleReject = async () => {
     if (!showRejectionInput) {
       setShowRejectionInput(true);
@@ -70,113 +83,53 @@ const VerifyProfileModal: React.FC<VerifyProfileModalProps> = ({
       return;
     }
     try {
-      await dispatch(
+      dispatch(
         updateProfileStatus({
           user_id: user.id,
           verified: 0,
           rejection_reason: rejectionReason,
         })
-      ).unwrap();
-      await dispatch(profileVerified(false));
-      await dispatch(
-        fetchUsersByType({ user_type: parseInt(userType) })
-      ).unwrap();
+      );
       toast.success("Profile rejected successfully");
       dispatch(clearMessages());
       setRejectionReason("");
       setShowRejectionInput(false);
-      onClose();
+      navigate(-1);
     } catch (err) {
+      navigate(-1);
       console.error("Reject profile error:", err);
     }
   };
-  const handleCancel = () => {
+
+  const handleBack = () => {
     setRejectionReason("");
     setShowRejectionInput(false);
     dispatch(clearMessages());
-    onClose();
+    navigate(-1);
   };
+
   const baseURL = "https://api.meetowner.in/aws/v1/s3/";
-  if (!isOpen) return null;
+
+  if (!user) {
+    return <div>No user data available. Please select a user to verify.</div>;
+  }
+
   return (
-    <div
-      style={{
-        position: "fixed",
-        top: 0,
-        left: 0,
-        width: "100%",
-        height: "100%",
-        display: "flex",
-        justifyContent: "center",
-        alignItems: "center",
-        zIndex: 1000,
-      }}
-    >
-      <div
-        style={{
-          backgroundColor: "#fff",
-          width: "90%",
-          maxWidth: "800px",
-          maxHeight: "80vh",
-          borderRadius: "8px",
-          boxShadow: "0 4px 8px rgba(0, 0, 0, 0.2)",
-          display: "flex",
-          flexDirection: "column",
-        }}
-      >
-        {}
-        <div
-          style={{
-            background: "linear-gradient(to right, #1D37A6, #3b82f6)",
-            color: "#fff",
-            padding: "1rem",
-            borderTopLeftRadius: "8px",
-            borderTopRightRadius: "8px",
-            display: "flex",
-            justifyContent: "space-between",
-            alignItems: "center",
-            flexShrink: 0,
-          }}
-        >
-          <h2
-            style={{
-              fontSize: "1.25rem",
-              fontWeight: "600",
-              display: "flex",
-              alignItems: "center",
-            }}
-          >
-            <span style={{ marginRight: "0.5rem" }}>👤</span> Profile Details
-          </h2>
+    <div className="relative min-h-screen">
+      <ComponentCard title="Verify User Profile">
+        <div className="mb-6">
           <button
-            onClick={handleCancel}
-            disabled={profileStatusLoading}
-            style={{
-              background: "none",
-              border: "none",
-              color: "#fff",
-              cursor: profileStatusLoading ? "not-allowed" : "pointer",
-              opacity: profileStatusLoading ? 0.5 : 1,
-              fontSize: "1rem",
-            }}
+            onClick={handleBack}
+            className="flex items-center gap-2 px-4 py-2 text-gray-700 bg-gray-200 rounded-md hover:bg-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
           >
-            ❌
+            <ArrowLeft className="w-5 h-5" />
+            Back
           </button>
         </div>
-        {}
-        <div
-          style={{
-            padding: "1rem",
-            overflowY: "auto",
-            flex: 1,
-            scrollbarWidth: "thin",
-            scrollbarColor: "#bfdbfe #f3f4f6",
-          }}
-        >
+        <div className="space-y-4">
           {profileStatusSuccess && (
             <div
               style={{
-                marginBottom: "1rem",
                 padding: "0.75rem",
                 backgroundColor: "#d1fae5",
                 color: "#065f46",
@@ -189,7 +142,6 @@ const VerifyProfileModal: React.FC<VerifyProfileModalProps> = ({
           {profileStatusError && (
             <div
               style={{
-                marginBottom: "1rem",
                 padding: "0.75rem",
                 backgroundColor: "#fee2e2",
                 color: "#991b1b",
@@ -199,8 +151,7 @@ const VerifyProfileModal: React.FC<VerifyProfileModalProps> = ({
               {profileStatusError}
             </div>
           )}
-          {}
-          <div style={{ marginBottom: "1.5rem" }}>
+          <div>
             <div
               style={{
                 display: "flex",
@@ -303,8 +254,7 @@ const VerifyProfileModal: React.FC<VerifyProfileModalProps> = ({
               </div>
             </div>
           </div>
-          {}
-          <div style={{ marginBottom: "1.5rem" }}>
+          <div>
             <div
               style={{
                 display: "flex",
@@ -423,8 +373,7 @@ const VerifyProfileModal: React.FC<VerifyProfileModalProps> = ({
               </div>
             </div>
           </div>
-          {}
-          <div style={{ marginBottom: "1.5rem" }}>
+          <div>
             <div
               style={{
                 display: "flex",
@@ -581,9 +530,76 @@ const VerifyProfileModal: React.FC<VerifyProfileModalProps> = ({
               </div>
             </div>
           </div>
-          {}
+          <div>
+            <div
+              style={{
+                display: "flex",
+                alignItems: "center",
+                gap: "0.5rem",
+                paddingBottom: "0.5rem",
+                borderBottom: "1px solid #6ee7b7",
+                marginBottom: "0.75rem",
+              }}
+            >
+              <span>
+                {user?.verified === 1 ? (
+                  <BadgeCheck className="w-5 h-5 text-green-500" />
+                ) : (
+                  <XCircle className="w-5 h-5 text-red-500" />
+                )}
+              </span>
+              <h3
+                style={{
+                  fontSize: "1.125rem",
+                  fontWeight: "600",
+                  color: "#6b7280",
+                }}
+              >
+                Profile Status{" "}
+                <span
+                  className={
+                    user?.verified === 1
+                      ? "ml-10 text-green-500"
+                      : "ml-10 text-red-500"
+                  }
+                >
+                  {user?.verified === 1 ? "Verified" : "Not Verified"}
+                </span>
+              </h3>
+            </div>
+            <div
+              style={{
+                display: "grid",
+                gridTemplateColumns: "1fr 1fr",
+                gap: "1rem",
+              }}
+            >
+              <div style={{ marginBottom: "0.75rem" }}>
+                <label
+                  style={{
+                    display: "block",
+                    fontSize: "0.875rem",
+                    fontWeight: "500",
+                    color: "#4b5563",
+                    marginBottom: "0.25rem",
+                  }}
+                >
+                  Rejection Reason
+                </label>
+                <p
+                  style={{
+                    fontSize: "1rem",
+                    fontWeight: "600",
+                    color: "#111827",
+                  }}
+                >
+                  {user?.rejection_reason || "N/A"}
+                </p>
+              </div>
+            </div>
+          </div>
           {showRejectionInput && (
-            <div style={{ marginBottom: "1rem" }}>
+            <div>
               <label
                 htmlFor="rejection_reason"
                 style={{
@@ -615,71 +631,59 @@ const VerifyProfileModal: React.FC<VerifyProfileModalProps> = ({
               />
             </div>
           )}
+          <div className="flex justify-center space-x-4">
+            <button
+              onClick={handleVerify}
+              disabled={profileStatusLoading || user.verified === 1}
+              style={{
+                width: "30%",
+                backgroundColor: "#16a34a",
+                color: "#fff",
+                padding: "0.5rem",
+                borderRadius: "0.375rem",
+                fontWeight: "500",
+                fontSize: "0.875rem",
+                cursor:
+                  profileStatusLoading || user.verified === 1
+                    ? "not-allowed"
+                    : "pointer",
+                opacity: profileStatusLoading || user.verified === 1 ? 0.5 : 1,
+                border: "none",
+              }}
+            >
+              ✅ {profileStatusLoading ? "Processing..." : "Verify Profile"}
+            </button>
+            <button
+              onClick={handleReject}
+              disabled={profileStatusLoading || user.verified === 0}
+              style={{
+                width: "30%",
+                backgroundColor: "#dc2626",
+                color: "#fff",
+                padding: "0.5rem",
+                borderRadius: "0.375rem",
+                fontWeight: "500",
+                fontSize: "0.875rem",
+                cursor:
+                  profileStatusLoading || user.verified === 0
+                    ? "not-allowed"
+                    : "pointer",
+                opacity: profileStatusLoading || user.verified === 0 ? 0.5 : 1,
+                border: "none",
+              }}
+            >
+              ❌{" "}
+              {profileStatusLoading
+                ? "Processing..."
+                : showRejectionInput
+                ? "Submit Rejection"
+                : "Reject Profile"}
+            </button>
+          </div>
         </div>
-        {}
-        <div
-          style={{
-            display: "flex",
-            flexDirection: "row",
-            gap: "0.5rem",
-            padding: "1rem",
-            borderTop: "1px solid #d1d5db",
-            backgroundColor: "#f9fafb",
-            borderBottomLeftRadius: "8px",
-            borderBottomRightRadius: "8px",
-            flexShrink: 0,
-          }}
-        >
-          <button
-            onClick={handleVerify}
-            disabled={profileStatusLoading || user.verified === 1}
-            style={{
-              flex: 1,
-              backgroundColor: "#16a34a",
-              color: "#fff",
-              padding: "0.5rem",
-              borderRadius: "0.375rem",
-              fontWeight: "500",
-              fontSize: "0.875rem",
-              cursor:
-                profileStatusLoading || user.verified === 1
-                  ? "not-allowed"
-                  : "pointer",
-              opacity: profileStatusLoading || user.verified === 1 ? 0.5 : 1,
-              border: "none",
-            }}
-          >
-            ✅ {profileStatusLoading ? "Processing..." : "Verify Profile"}
-          </button>
-          <button
-            onClick={handleReject}
-            disabled={profileStatusLoading || user.verified === 0}
-            style={{
-              flex: 1,
-              backgroundColor: "#dc2626",
-              color: "#fff",
-              padding: "0.5rem",
-              borderRadius: "0.375rem",
-              fontWeight: "500",
-              fontSize: "0.875rem",
-              cursor:
-                profileStatusLoading || user.verified === 0
-                  ? "not-allowed"
-                  : "pointer",
-              opacity: profileStatusLoading || user.verified === 0 ? 0.5 : 1,
-              border: "none",
-            }}
-          >
-            ❌{" "}
-            {profileStatusLoading
-              ? "Processing..."
-              : showRejectionInput
-              ? "Submit Rejection"
-              : "Reject Profile"}
-          </button>
-        </div>
-      </div>
+      </ComponentCard>
     </div>
   );
 };
-export default VerifyProfileModal;
+
+export default VerifyUserProfile;

@@ -72,6 +72,7 @@ import UserHistory from "./components/tables/userHistory";
 
 import { disconnectSocket, initSocket } from "./utils/socketService";
 import PropertyLinks from "./pages/Forms/PropertyLinks";
+import VerifyUserProfile from "./components/tables/BasicTables/VerifyUserProfile";
 const ProtectedRoute: React.FC<ProtectedRouteProps> = ({ children }) => {
   const dispatch = useDispatch<AppDispatch>();
   const { isAuthenticated, token, user } = useSelector(
@@ -181,6 +182,16 @@ export default function App() {
                   <ErrorBoundary>
                     <ProtectedRoute>
                       <EditUserDetails />
+                    </ProtectedRoute>
+                  </ErrorBoundary>
+                }
+              />
+              <Route
+                path="/verify-user-profile"
+                element={
+                  <ErrorBoundary>
+                    <ProtectedRoute>
+                      <VerifyUserProfile />
                     </ProtectedRoute>
                   </ErrorBoundary>
                 }

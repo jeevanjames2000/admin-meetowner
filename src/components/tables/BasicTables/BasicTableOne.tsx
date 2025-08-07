@@ -23,7 +23,6 @@ import {
   clearMessages,
   deleteUser,
 } from "../../../store/slices/userEditSlicet";
-import VerifyProfileModal from "./VerifyProfileModal";
 const userTypeMap = {
   1: "Admin",
   2: "User",
@@ -36,10 +35,10 @@ const userTypeMap = {
   9: "Marketing Executive",
   10: "Customer Support",
 };
-const paymentStatusOptions = [
+const profileVerifiedOptions = [
   { value: "All", label: "All" },
-  { value: "active", label: "Active" },
-  { value: "inactive", label: "Inactive" },
+  { value: "verified", label: "Verified" },
+  { value: "not verified", label: "Not Verified" },
 ];
 export default function BasicTableOne() {
   const location = useLocation();
@@ -48,7 +47,6 @@ export default function BasicTableOne() {
   const { users, loading, error, verified } = useSelector(
     (state: RootState) => state.users
   );
-  console.log("verified: ", verified);
   const {
     deleteError,
     deleteSuccess,
@@ -59,9 +57,6 @@ export default function BasicTableOne() {
   const pageuserType = useSelector(
     (state: RootState) => state.auth.user?.user_type
   );
-  const [isVerifyModalOpen, setIsVerifyModalOpen] = useState(false);
-  const [selectedUser, setSelectedUser] = useState(null);
-
   const [activeMenu, setActiveMenu] = useState(null);
   const [filterValue, setFilterValue] = useState("");
   const [currentPage, setCurrentPage] = useState(1);
@@ -69,7 +64,7 @@ export default function BasicTableOne() {
   const [userToDelete, setUserToDelete] = useState(null);
   const [startDate, setStartDate] = useState(null);
   const [endDate, setEndDate] = useState(null);
-  const [paymentStatus, setPaymentStatus] = useState("All");
+  const [profileVerified, setProfileVerified] = useState("All");
   const [isAssignModalOpen, setIsAssignModalOpen] = useState(false);
   const [userToAssign, setUserToAssign] = useState(null);
   const [selectedState, setSelectedState] = useState("");
@@ -98,12 +93,11 @@ export default function BasicTableOne() {
   }, [dispatch, userType, verified]);
   useEffect(() => {
     setCurrentPage(1);
-  }, [paymentStatus, startDate, endDate, selectedCity]);
-
+  }, [profileVerified, startDate, endDate, selectedCity]);
   const handleEditUser = (user) => {
     navigate("/edit-user-details", { state: { user } });
   };
-  const handleUserHisory = (user) => {
+  const handleUserHistory = (user) => {
     navigate(`/user-subscriptions?user_id=${user.id}`);
   };
   const handleDeleteClick = (user) => {
@@ -121,11 +115,9 @@ export default function BasicTableOne() {
     setActiveMenu(null);
   };
   const handleVerifyRejectClick = (user) => {
-    setSelectedUser(user);
-    setIsVerifyModalOpen(true);
+    navigate("/verify-user-profile", { state: { user, userType } });
     setActiveMenu(null);
   };
-
   const confirmDelete = () => {
     if (userToDelete) {
       dispatch(deleteUser(userToDelete.id));
@@ -152,13 +144,10 @@ export default function BasicTableOne() {
               .filter((field) => field !== null && field !== undefined)
               .map((field) => field.toLowerCase())
               .some((field) => field.includes(filterValue.toLowerCase()));
-            const matchesPaymentStatus =
-              paymentStatus === "All" ||
-              (paymentStatus === "active" &&
-                user.subscription_status === "active") ||
-              (paymentStatus === "inactive" &&
-                (user.subscription_status === "inactive" ||
-                  user.subscription_status === null));
+            const matchesProfileVerified =
+              profileVerified === "All" ||
+              (profileVerified === "verified" && user.verified === 1) ||
+              (profileVerified === "not verified" && user.verified === 0);
             let matchesDate = true;
             if (startDate || endDate) {
               if (!user.created_date) {
@@ -177,13 +166,13 @@ export default function BasicTableOne() {
             const matchesCity = !selectedCity || user.city === selectedCity;
             return (
               matchesSearch &&
-              matchesPaymentStatus &&
+              matchesProfileVerified &&
               matchesDate &&
               matchesCity
             );
           })
         : [],
-    [users, filterValue, paymentStatus, startDate, endDate, selectedCity]
+    [users, filterValue, profileVerified, startDate, endDate, selectedCity]
   );
   const totalItems = filteredUsers.length;
   const totalPages = Math.ceil(totalItems / itemsPerPage);
@@ -272,14 +261,14 @@ export default function BasicTableOne() {
           showDateFilters={true}
           showStateFilter={true}
           showCityFilter={true}
-          userFilterOptions={paymentStatusOptions}
-          onUserTypeChange={(value) => setPaymentStatus(value || "All")}
+          userFilterOptions={profileVerifiedOptions}
+          onUserTypeChange={(value) => setProfileVerified(value || "All")}
           onStartDateChange={setStartDate}
           onEndDateChange={setEndDate}
           onStateChange={setSelectedState}
           onCityChange={setSelectedCity}
           onClearFilters={() => {
-            setPaymentStatus("All");
+            setProfileVerified("All");
             setStartDate(null);
             setEndDate(null);
             setSelectedState("");
@@ -287,7 +276,7 @@ export default function BasicTableOne() {
             setFilterValue("");
             setCurrentPage(1);
           }}
-          selectedUserType={paymentStatus}
+          selectedUserType={profileVerified}
           startDate={startDate}
           endDate={endDate}
           stateValue={selectedState}
@@ -301,13 +290,13 @@ export default function BasicTableOne() {
           Create user
         </button>
       </div>
-      {(paymentStatus !== "All" ||
+      {(profileVerified !== "All" ||
         startDate ||
         endDate ||
         selectedCity ||
         filterValue) && (
         <div className="text-sm text-gray-500 dark:text-gray-400 mb-2">
-          Filters: {paymentStatus} | Date: {startDate || "Any"} to{" "}
+          Filters: {profileVerified} | Date: {startDate || "Any"} to{" "}
           {endDate || "Any"} | City: {selectedCity || "Any"} | Search:{" "}
           {filterValue || "None"}
         </div>
@@ -391,12 +380,6 @@ export default function BasicTableOne() {
                     >
                       Profile Verified
                     </TableCell>
-                    <TableCell
-                      isHeader
-                      className="px-5 py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400"
-                    >
-                      Status
-                    </TableCell>
                     {pageuserType === 1 && (
                       <TableCell
                         isHeader
@@ -439,13 +422,13 @@ export default function BasicTableOne() {
                         </TableCell>
                       )}
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.city}
+                        {user.city || "N/A"}
                       </TableCell>
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.state}
+                        {user.state || "N/A"}
                       </TableCell>
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        {user.subscription_status}
+                      <TableCell className="px-5 py-4 sm:px-6 text-start text-xs">
+                        {user?.subscription_status || "Free Listings"}
                       </TableCell>
                       {showGstNumber && (
                         <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
@@ -460,11 +443,14 @@ export default function BasicTableOne() {
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
                         {formatDate(user.created_date)}
                       </TableCell>
-
                       <TableCell className="px-5 py-4 sm:px-6 text-start text-xs">
                         <span
                           className={`inline-flex items-center gap-1 whitespace-nowrap rounded-full px-3 py-1 font-medium
-      ${user?.verified === 1 ? " text-blue-700" : " text-red-500"}`}
+                            ${
+                              user?.verified === 1
+                                ? "text-blue-700"
+                                : "text-red-500"
+                            }`}
                         >
                           {user?.verified === 1 ? (
                             <>
@@ -477,30 +463,6 @@ export default function BasicTableOne() {
                               Not Verified
                             </>
                           )}
-                        </span>
-                      </TableCell>
-
-                      <TableCell className="px-5 py-4 sm:px-6 text-start text-gray-500 text-theme-sm dark:text-gray-400">
-                        <span
-                          className={`inline-block px-2 py-1 rounded-full text-xs font-medium ${
-                            user.status === 0
-                              ? "bg-green-100 text-green-800 dark:bg-green-900 dark:text-green-200"
-                              : user.status === 2
-                              ? "bg-yellow-100 text-yellow-800 dark:bg-yellow-900 dark:text-yellow-200"
-                              : user.status === 3
-                              ? "bg-gray-100 text-gray-800 dark:bg-gray-900 dark:text-gray-200"
-                              : "bg-red-100 text-red-800 dark:bg-red-900 dark:text-red-200"
-                          }`}
-                        >
-                          {user.status === 0
-                            ? "Active"
-                            : user.status === 2
-                            ? "Suspended"
-                            : user.status === 3
-                            ? "Blocked"
-                            : user.status === null
-                            ? "N/A"
-                            : "Inactive"}
                         </span>
                       </TableCell>
                       {pageuserType === 1 && (
@@ -537,7 +499,7 @@ export default function BasicTableOne() {
                                 )}
                                 <button
                                   className="w-full text-left px-4 py-2 text-sm text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700"
-                                  onClick={() => handleUserHisory(user)}
+                                  onClick={() => handleUserHistory(user)}
                                 >
                                   History
                                 </button>
@@ -618,15 +580,6 @@ export default function BasicTableOne() {
               setIsDeleteModalOpen(false);
               setUserToDelete(null);
             }}
-          />
-          <VerifyProfileModal
-            isOpen={isVerifyModalOpen}
-            onClose={() => {
-              setIsVerifyModalOpen(false);
-              setSelectedUser(null);
-            }}
-            user={selectedUser}
-            userType={userType}
           />
           <AssignEmployeeModal
             isOpen={isAssignModalOpen}
